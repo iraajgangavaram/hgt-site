@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "hgt-site"
+type: software
+authors:
+  - family-names: "Gangavaram"
+    given-names: "Iraaj"
+    orcid: "https://orcid.org/0009-0002-4615-2846"
+repository-code: "https://github.com/iraajgangavaram/hgt-site"
+license: MIT

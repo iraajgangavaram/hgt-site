@@ -108,9 +108,13 @@ pip install ".[test]"
 pytest
 ```
 
+## Citation
+
+If you use hgt-site in your work, please cite it. Use the "Cite this repository" button on the GitHub page, or the details in [CITATION.cff](CITATION.cff).
+
 ## Author
 
-Iraaj Gangavaram
+Iraaj Gangavaram ([ORCID 0009-0002-4615-2846](https://orcid.org/0009-0002-4615-2846))
 
 ## Licence
 
