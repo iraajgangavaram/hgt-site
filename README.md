@@ -134,6 +134,10 @@ pip install ".[test]"
 pytest
 ```
 
+## Use of generative AI
+
+hgt-site is led by Iraaj Gangavaram, who chose the project from the options considered, set its scope, and made the decisions on its programming language, licence, benchmarking and comparison with LGTSeek. He reviewed and approved every change before it was committed. Claude (Anthropic), a generative AI assistant (Claude Opus 5.5), was used to write most of the source code, tests and benchmark scripts, to draft the documentation including this README, and to run and summarise the benchmarks. The methods were checked with the automated tests and the benchmarks reported above.
+
 ## Citation
 
 If you use hgt-site in your work, please cite it. Use the "Cite this repository" button on the GitHub page, or the details in [CITATION.cff](CITATION.cff).
