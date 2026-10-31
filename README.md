@@ -21,7 +21,7 @@
   <a href="#citation">Citation</a>
 </p>
 
-hgt-site calls candidate horizontal gene transfer (HGT) sites in a host genome from paired-end sequencing data. It takes reads aligned to the host and Kraken2 classifications of the reads that did not align, finds places where one mate maps to the host and the other is classified as a foreign organism, and tests whether each place has more support than chance chimeras would give.
+hgt-site finds places where DNA from bacteria or other organisms may have been inserted into a host genome, such as a human genome, using sequencing data. Most bacterial reads in these samples come from contamination or from DNA fragments joined by chance in the lab, so hgt-site checks each possible site against what chance alone would produce and keeps only the sites with clearly more support. In the benchmarks below, every site it reported was a real insertion, while an existing tool, LGTSeek, reported thousands of false sites in the noisiest samples.
 
 It is designed to run on the outputs that nf-core/hgtseq already produces.
 
