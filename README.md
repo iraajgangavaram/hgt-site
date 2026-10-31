@@ -21,7 +21,7 @@ A pair where one mate maps to the host and the other is foreign therefore does n
 | Flag | Meaning |
 |---|---|
 | `LOW_SUPPORT` | Fewer than 3 supporting pairs |
-| `MIXED_TAXA` | Less than 80% of pairs share one taxon |
+| `MIXED_TAXA` | Less than 80% of pairs share one taxon, and the site holds more pairs from other taxa than background chimeras would explain |
 | `LOW_MAPQ` | Mean mapping quality of the anchors below 20 |
 | `LOW_COMPLEXITY` | Unmapped mates have low 3-mer entropy (repeats or low-complexity sequence) |
 | `NOT_ENRICHED` | Q-value above 0.05 |
@@ -74,6 +74,7 @@ A tab-separated table with one row per candidate site:
 | `taxon_anchored_pairs` | Anchored pairs for this taxon across the genome |
 | `taxon_unanchored_pairs` | Pairs for this taxon where neither mate mapped |
 | `expected_pairs`, `pvalue`, `qvalue` | Enrichment test |
+| `expected_other_pairs`, `other_pvalue` | Pairs from other taxa expected by chance, and the test for an excess of them |
 | `flags`, `filter` | Flags raised and the overall filter result |
 
 ## Preliminary results on simulated data
@@ -83,19 +84,44 @@ The simulator builds a random host genome (two 100 kb chromosomes), inserts five
 | Setting | Precision | Recall |
 |---|---|---|
 | 10x coverage, 2,000 contaminant pairs, 150 chimeras | 1.000 | 1.000 |
-| 10x coverage, 4,000 contaminant pairs, 300 chimeras | 1.000 | 0.980 |
-| 5x coverage, 2,000 contaminant pairs, 300 chimeras | 1.000 | 0.813 |
+| 10x coverage, 4,000 contaminant pairs, 300 chimeras | 1.000 | 1.000 |
+| 5x coverage, 2,000 contaminant pairs, 300 chimeras | 1.000 | 0.980 |
 | 10x, heavy noise, clusters filtered on support only (no enrichment test) | 0.217 | 1.000 |
 
 The last row shows why the enrichment test matters: filtering on read support alone accepts most chimera clusters.
 
+## Benchmark on real genomes
+
+A second benchmark uses real sequence. Twenty fragments (1 to 5 kb) of the *Escherichia coli* K-12 genome were inserted into a 10 Mb region of human chromosome 21 (chr21:20,000,000-30,000,000, from nf-core/test-datasets). Paired 150 bp reads were simulated with wgsim. The reads were mixed with 50,000 free contaminant read pairs from *Klebsiella pneumoniae*, *Salmonella enterica*, *Pseudomonas aeruginosa* and *Acinetobacter baumannii*, and with host-contaminant chimeric pairs of the kind formed during library preparation. Reads were aligned to the host with BWA-MEM and the unmapped reads were classified with Kraken2, using a database built from the host region and the five bacterial genomes.
+
+hgt-site was compared with two approaches on the same data:
+
+- Support only: the same clusters, accepted when they have at least 3 supporting pairs, with no enrichment test.
+- LGTSeek: the read classification step of LGTSeek (`LGT::LGTSeek->bwaPostProcess` from [IGS/lgtseek-pipeline](https://github.com/IGS/lgtseek-pipeline)), with reads aligned to the host and to the five bacterial genomes. LGTSeek reports read pairs rather than sites, so its host-side reads were grouped with the same clustering settings and a site needed at least 3 pairs.
+
+Results over 3 random seeds per setting (60 true insertions per row):
+
+| Coverage | Chimeric pairs | hgt-site precision | hgt-site recall | LGTSeek precision | LGTSeek recall | Support-only precision | Support-only recall |
+|---|---|---|---|---|---|---|---|
+| 10x | 2,000 | 1.000 | 1.000 | 0.813 | 1.000 | 0.813 | 1.000 |
+| 10x | 10,000 | 1.000 | 1.000 | 0.053 | 1.000 | 0.053 | 1.000 |
+| 10x | 30,000 | 1.000 | 1.000 | 0.007 | 1.000 | 0.007 | 1.000 |
+| 5x | 2,000 | 1.000 | 0.983 | 0.781 | 0.817 | 0.813 | 1.000 |
+| 5x | 10,000 | 1.000 | 0.983 | 0.047 | 0.883 | 0.053 | 1.000 |
+| 5x | 30,000 | 1.000 | 0.983 | 0.007 | 0.983 | 0.007 | 1.000 |
+
+As chimeras become more common, approaches based on read support alone report thousands of candidate sites, of which fewer than 1% are real. hgt-site kept every call correct across all settings. The one insertion it missed at 5x coverage came from a region shared between *E. coli* and *K. pneumoniae*, where Kraken2 split the reads between the two species.
+
+The scripts are in [`benchmark/`](benchmark/). `run_benchmark.py` runs one replicate and `summarise.py` builds the table from a folder of runs.
+
 ## Limitations
 
-The simulator models alignment and Kraken2 classification directly rather than running an aligner and classifier, and its genomes are random sequence without repeats. Real data will include repetitive regions, misclassified reads and chimera hotspots that the current simulation does not contain. The default clustering settings assume fragments of around 350 bp.
+The simulator models alignment and Kraken2 classification directly rather than running an aligner and classifier, and its genomes are random sequence without repeats. The real-genome benchmark uses real sequence but simulated reads, a Kraken2 database far smaller than a standard one, and chimeras placed at random positions. Real data may include chimera hotspots and more reads classified above species level. The LGTSeek comparison covers its read classification step only, not its later BLAST-based filtering. Sites are tested one taxon at a time, so an insertion whose reads Kraken2 splits between related species can lose support. The default clustering settings assume fragments of around 350 bp.
 
 ## Future work
 
-- Benchmark on reads simulated from real genomes and aligned with BWA-MEM, and compare with LGTSeek and with the current nf-core/hgtseq output
+- Test on public sequencing data, including the datasets used to evaluate nf-core/hgtseq
+- Group reads from closely related taxa before testing, so that split classifications do not reduce support
 - Estimate fragment size from the data and set clustering limits from it
 - Use split reads that cross the junction to refine breakpoints to base-pair resolution
 - Add VCF and BED output
