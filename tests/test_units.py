@@ -58,3 +58,43 @@ def test_cluster_span_limit_stops_chaining():
     anchors = [Anchor(str(i), "chr1", p, p + 100, False, 60) for i, p in enumerate(range(0, 5000, 500))]
     sites = cluster_anchors(anchors, max_gap=600, max_span=1000)
     assert max(len(s.anchors) for s in sites) <= 3
+
+
+def test_mixed_taxa_allows_background_chimeras():
+    from collections import Counter
+
+    from hgt_site.call import DEFAULTS
+    from hgt_site.sites import score_sites
+
+    # 14 donor pairs plus 4 random chimeras of another taxon in one window.
+    anchors = [Anchor(f"d{i}", "chr1", 5000 + i * 10, 5100 + i * 10, i % 2 == 0, 60) for i in range(14)]
+    anchors += [Anchor(f"c{i}", "chr1", 5050 + i * 20, 5150 + i * 20, False, 60) for i in range(4)]
+    calls = {f"d{i}": 562 for i in range(14)}
+    calls.update({f"c{i}": 573 for i in range(4)})
+    # Genome-wide, the other taxon has many scattered chimeric anchors.
+    scattered = [Anchor(f"x{i}", "chr1", 20000 + i * 300, 20100 + i * 300, False, 60) for i in range(30000)]
+    calls.update({f"x{i}": 573 for i in range(30000)})
+    sites = cluster_anchors(anchors + scattered, max_gap=300, max_span=800)
+    sites = score_sites(sites, calls, {}, Counter(), 10_000_000, 600, DEFAULTS)
+    real = max(sites, key=lambda s: len(s.anchors))
+    assert real.stats["top_taxid_fraction"] < 0.8
+    assert "MIXED_TAXA" not in real.flags
+
+
+def test_mixed_taxa_flags_excess_other_taxa():
+    from collections import Counter
+
+    from hgt_site.call import DEFAULTS
+    from hgt_site.sites import score_sites
+
+    # Same site, but the other taxon is rare genome-wide, so 4 reads here is an excess.
+    anchors = [Anchor(f"d{i}", "chr1", 5000 + i * 10, 5100 + i * 10, i % 2 == 0, 60) for i in range(14)]
+    anchors += [Anchor(f"c{i}", "chr1", 5050 + i * 20, 5150 + i * 20, False, 60) for i in range(4)]
+    calls = {f"d{i}": 562 for i in range(14)}
+    calls.update({f"c{i}": 573 for i in range(4)})
+    scattered = [Anchor(f"x{i}", "chr1", 20000 + i * 3000, 20100 + i * 3000, False, 60) for i in range(3000)]
+    calls.update({f"x{i}": 573 for i in range(3000)})
+    sites = cluster_anchors(anchors + scattered, max_gap=300, max_span=800)
+    sites = score_sites(sites, calls, {}, Counter(), 10_000_000, 600, DEFAULTS)
+    real = max(sites, key=lambda s: len(s.anchors))
+    assert "MIXED_TAXA" in real.flags

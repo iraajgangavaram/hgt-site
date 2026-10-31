@@ -128,6 +128,10 @@ def score_sites(sites, calls, mate_seqs, background, genome_length, window, thre
         expected = anchored_per_taxon[top_taxid] * span / genome_length
         pvalue = poisson_sf(top_count, expected)
         pvalues.append(pvalue)
+        # Pairs from other taxa that chance chimeras alone would put in this window.
+        other_total = sum(anchored_per_taxon.values()) - anchored_per_taxon[top_taxid]
+        expected_other = other_total * span / genome_length
+        other_count = n_pairs - top_count
         site.stats = {
             "n_pairs": n_pairs,
             "n_forward": n_fwd,
@@ -145,6 +149,8 @@ def score_sites(sites, calls, mate_seqs, background, genome_length, window, thre
             "taxon_unanchored_pairs": background.get(top_taxid, 0),
             "expected_pairs": expected,
             "pvalue": pvalue,
+            "expected_other_pairs": expected_other,
+            "other_pvalue": poisson_sf(other_count, expected_other),
         }
 
     # Every window of the genome could have produced a cluster for every
@@ -157,7 +163,11 @@ def score_sites(sites, calls, mate_seqs, background, genome_length, window, thre
         s, t = site.stats, thresholds
         if s["n_pairs"] < t["min_support"]:
             site.flags.append("LOW_SUPPORT")
-        if s["top_taxid_fraction"] < t["min_taxon_fraction"]:
+        # A site is only mixed if it holds more reads from other taxa than
+        # background chimeras explain. Without this, real sites in noisy
+        # samples fail because a few random chimeras land inside them.
+        excess_other = s["other_pvalue"] < t["max_other_pvalue"]
+        if s["top_taxid_fraction"] < t["min_taxon_fraction"] and excess_other:
             site.flags.append("MIXED_TAXA")
         if s["mean_mapq"] < t["min_mean_mapq"]:
             site.flags.append("LOW_MAPQ")

@@ -13,6 +13,7 @@ DEFAULTS = {
     "window": 600,
     "min_support": 3,
     "min_taxon_fraction": 0.8,
+    "max_other_pvalue": 0.01,
     "min_mean_mapq": 20,
     "min_complexity": 0.5,
     "max_qvalue": 0.05,
@@ -37,6 +38,8 @@ COLUMNS = [
     "expected_pairs",
     "pvalue",
     "qvalue",
+    "expected_other_pairs",
+    "other_pvalue",
     "flags",
     "filter",
 ]
