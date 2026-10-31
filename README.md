@@ -1,5 +1,7 @@
 # hgt-site
 
+[![tests](https://github.com/iraajgangavaram/hgt-site/actions/workflows/tests.yml/badge.svg)](https://github.com/iraajgangavaram/hgt-site/actions/workflows/tests.yml)
+
 hgt-site calls candidate horizontal gene transfer (HGT) sites in a host genome from paired-end sequencing data. It takes reads aligned to the host and Kraken2 classifications of the reads that did not align, finds places where one mate maps to the host and the other is classified as a foreign organism, and tests whether each place has more support than chance chimeras would give.
 
 It is designed to run on the outputs that nf-core/hgtseq already produces.
