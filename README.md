@@ -1,10 +1,37 @@
-# hgt-site
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/logo_dark.svg">
+    <img alt="hgt-site" src="docs/images/logo_light.svg" width="460">
+  </picture>
+</h1>
 
-[![tests](https://github.com/iraajgangavaram/hgt-site/actions/workflows/tests.yml/badge.svg)](https://github.com/iraajgangavaram/hgt-site/actions/workflows/tests.yml)
+<p align="center">
+  <a href="https://github.com/iraajgangavaram/hgt-site/actions/workflows/tests.yml"><img alt="tests" src="https://github.com/iraajgangavaram/hgt-site/actions/workflows/tests.yml/badge.svg"></a>
+  <a href="https://github.com/iraajgangavaram/hgt-site/releases"><img alt="release" src="https://img.shields.io/github/v/release/iraajgangavaram/hgt-site?color=2a78d6"></a>
+  <img alt="Python 3.9 to 3.13" src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-2a78d6">
+  <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-52514e"></a>
+</p>
+
+<p align="center">
+  <a href="#installation">Installation</a> ·
+  <a href="#usage">Usage</a> ·
+  <a href="#output">Output</a> ·
+  <a href="#benchmark-on-real-genomes">Benchmarks</a> ·
+  <a href="#citation">Citation</a>
+</p>
 
 hgt-site calls candidate horizontal gene transfer (HGT) sites in a host genome from paired-end sequencing data. It takes reads aligned to the host and Kraken2 classifications of the reads that did not align, finds places where one mate maps to the host and the other is classified as a foreign organism, and tests whether each place has more support than chance chimeras would give.
 
 It is designed to run on the outputs that nf-core/hgtseq already produces.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/benchmark_precision_dark.svg">
+    <img alt="Line chart: as chimeric read pairs rise from 2,000 to 30,000, the share of LGTSeek calls that are real insertions falls from 81% to under 1%, while every hgt-site call stays a real insertion." src="docs/images/benchmark_precision_light.svg" width="640">
+  </picture>
+</p>
+
+<p align="center"><sub>Benchmark on real genomes with added contamination and chimeras. Read support alone gives the same numbers as LGTSeek. Details in <a href="#benchmark-on-real-genomes">Benchmark on real genomes</a>.</sub></p>
 
 ## The problem
 
@@ -13,6 +40,17 @@ When a sample is aligned to its host genome, some reads do not map. Kraken2 ofte
 A pair where one mate maps to the host and the other is foreign therefore does not show an integration on its own. The useful signal is several such pairs, from the same foreign taxon, pointing at the same host position.
 
 ## How it works
+
+```mermaid
+flowchart LR
+    A["Host alignment<br/>(BAM, CRAM or SAM)"] --> C["Anchored pairs:<br/>one mate on the host,<br/>one mate unmapped"]
+    B["Kraken2 calls for<br/>unmapped reads"] --> D["Keep foreign anchors"]
+    C --> D
+    D --> E["Cluster by<br/>junction position"]
+    E --> F["Test each site against<br/>chance chimeras"]
+    F --> G["Flag artefacts"]
+    G --> H["Candidate sites<br/>(TSV)"]
+```
 
 1. Collect read pairs. The host alignment is read once. Pairs where one mate maps with mapping quality of at least 20 and the other mate is unmapped are kept as anchors. Pairs where both mates are unmapped are counted as background.
 2. Keep foreign anchors. The unmapped mate's Kraken2 call is checked. Unclassified reads, the host taxon and uninformative taxa (root, cellular organisms) are removed. With an NCBI `nodes.dmp` file, the whole host lineage and the host's ancestors are removed too.

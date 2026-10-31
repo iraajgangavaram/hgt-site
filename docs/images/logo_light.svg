@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="120" viewBox="0 0 560 120" role="img" aria-label="hgt-site">
+  <g stroke-linecap="round">
+    <line x1="16" y1="48" x2="70" y2="48" stroke="#a8a7a1" stroke-width="6"/>
+    <line x1="16" y1="72" x2="70" y2="72" stroke="#a8a7a1" stroke-width="6"/>
+    <line x1="80" y1="48" x2="126" y2="48" stroke="#2a78d6" stroke-width="6"/>
+    <line x1="80" y1="72" x2="126" y2="72" stroke="#2a78d6" stroke-width="6"/>
+    <line x1="136" y1="48" x2="190" y2="48" stroke="#a8a7a1" stroke-width="6"/>
+    <line x1="136" y1="72" x2="190" y2="72" stroke="#a8a7a1" stroke-width="6"/>
+    <line x1="75" y1="34" x2="75" y2="86" stroke="#2a78d6" stroke-width="2.5" stroke-dasharray="3 5"/>
+    <line x1="131" y1="34" x2="131" y2="86" stroke="#2a78d6" stroke-width="2.5" stroke-dasharray="3 5"/>
+  </g>
+  <text x="214" y="68" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="46" font-weight="700" fill="#0b0b0b">hgt-site</text>
+  <text x="216" y="96" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#52514e">horizontal gene transfer site caller</text>
+</svg>
