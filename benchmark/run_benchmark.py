@@ -80,6 +80,34 @@ def build_sample(host, donor, args, rng):
     return host_name, "".join(pieces), truth
 
 
+def build_sample_intvi(args, out):
+    """Insert donor fragments with the published simulator of Scott et al. (2022).
+
+    Uses scripts/insert_virus.py from aehrc/vector-integration-simulation-pipeline,
+    which adds rearranged and deleted fragments, host deletions and junction gaps
+    or overlaps. Whole-genome insertions are switched off, since the donor here is
+    a bacterium, and no free episomes are added.
+    """
+    import csv as _csv
+
+    run(
+        [sys.executable, args.intvi_script, "--host", args.host, "--virus", args.donor,
+         "--ints", out / "sample.fa", "--int_info", out / "intvi_ints.tsv",
+         "--epi_num", "0", "--epi_info", out / "intvi_epi.tsv",
+         "--int_num", args.n_insertions, "--p_whole", "0",
+         "--min-len", args.insert_min, "--max-len", args.insert_max,
+         "--min-sep", "20000", "--seed", args.seed],
+        stdout=subprocess.DEVNULL,
+    )
+    sample = read_fasta(out / "sample.fa")
+    (host_name,) = read_fasta(args.host).keys()
+    truth = []
+    with open(out / "intvi_ints.tsv") as handle:
+        for row in _csv.DictReader(handle, delimiter="\t"):
+            truth.append((row["chr"], int(row["hPos_input_fasta"]), 0))
+    return host_name, sample[host_name], truth
+
+
 def build_chimeras(host_seq, contaminants, n, rng, molecule=500):
     """Host-contaminant molecules of the kind made by chance during library preparation.
 
@@ -174,6 +202,7 @@ def main():
     p.add_argument("--chimera-pairs", type=int, default=2_000)
     p.add_argument("--threads", type=int, default=2)
     p.add_argument("--seed", type=int, default=1)
+    p.add_argument("--intvi-script", help="insert_virus.py from the Scott et al. simulator; used instead of the built-in insertion step")
     p.add_argument("--lgtseek-lib", help="LGTSeek perl5 lib directory; also runs LGTSeek's read classification")
     p.add_argument("--bacteria-index", help="BWA index of the bacterial reference genomes, for LGTSeek")
     p.add_argument("--min-lgtseek-pairs", type=int, default=3)
@@ -186,7 +215,10 @@ def main():
     host = read_fasta(args.host)
     donor = read_fasta(args.donor)
     contaminants = [read_fasta(c) for c in args.contaminants]
-    host_name, sample_seq, truth = build_sample(host, donor, args, rng)
+    if args.intvi_script:
+        host_name, sample_seq, truth = build_sample_intvi(args, out)
+    else:
+        host_name, sample_seq, truth = build_sample(host, donor, args, rng)
     write_fasta(out / "sample.fa", {host_name: sample_seq})
     with open(out / "truth.bed", "w") as handle:
         for chrom, pos, length in truth:
