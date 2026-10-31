@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hgt-site"
+dynamic = ["version"]
+requires-python = ">=3.9"
+dependencies = ["pysam>=0.21"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+hgt-site = "hgt_site.cli:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "hgt_site.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
