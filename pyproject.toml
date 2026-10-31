@@ -1,12 +1,32 @@
 [build-system]
-requires = ["setuptools>=64"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "hgt-site"
 dynamic = ["version"]
+description = "Call candidate horizontal gene transfer sites from host alignments and Kraken2 read classifications"
+readme = "docs/pypi.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{name = "Iraaj Gangavaram"}]
+keywords = ["bioinformatics", "horizontal gene transfer", "genomics", "kraken2", "metagenomics"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
 requires-python = ">=3.9"
 dependencies = ["pysam>=0.21"]
+
+[project.urls]
+Homepage = "https://github.com/iraajgangavaram/hgt-site"
+Documentation = "https://github.com/iraajgangavaram/hgt-site#readme"
+Issues = "https://github.com/iraajgangavaram/hgt-site/issues"
+DOI = "https://doi.org/10.5281/zenodo.23842712"
 
 [project.optional-dependencies]
 test = ["pytest"]
