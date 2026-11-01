@@ -8,6 +8,7 @@
 <p align="center">
   <a href="https://github.com/iraajgangavaram/hgt-site/actions/workflows/tests.yml"><img alt="tests" src="https://github.com/iraajgangavaram/hgt-site/actions/workflows/tests.yml/badge.svg"></a>
   <a href="https://github.com/iraajgangavaram/hgt-site/releases"><img alt="release" src="https://img.shields.io/github/v/release/iraajgangavaram/hgt-site?color=2a78d6"></a>
+  <a href="https://pypi.org/project/hgt-site/"><img alt="PyPI" src="https://img.shields.io/pypi/v/hgt-site?color=2a78d6"></a>
   <img alt="Python 3.9 to 3.13" src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-2a78d6">
   <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-52514e"></a>
   <a href="https://doi.org/10.5281/zenodo.23842712"><img alt="DOI" src="https://zenodo.org/badge/1441009191.svg"></a>
@@ -18,12 +19,15 @@
   <a href="#usage">Usage</a> ·
   <a href="#output">Output</a> ·
   <a href="#benchmark-on-real-genomes">Benchmarks</a> ·
+  <a href="#speed">Speed</a> ·
   <a href="#citation">Citation</a>
 </p>
 
 hgt-site finds places where DNA from bacteria or other organisms may have been inserted into a host genome, such as a human genome, using sequencing data. Most bacterial reads in these samples come from contamination or from DNA fragments joined by chance in the lab, so hgt-site checks each possible site against what chance alone would produce and keeps only the sites with clearly more support. In the benchmarks below, every site it reported was a real insertion, while an existing tool, LGTSeek, reported thousands of false sites in the noisiest samples.
 
-It is designed to run on the outputs that nf-core/hgtseq already produces.
+It is also fast. On a sample of 2.1 million reads, hgt-site took about 3 seconds once the reads were aligned and classified, while LGTSeek needed about 2.5 minutes (see [Speed](#speed)).
+
+It works with any host alignment and Kraken2 output, including the files that nf-core/hgtseq already produces.
 
 <p align="center">
   <picture>
@@ -53,9 +57,9 @@ flowchart LR
     G --> H["Candidate sites<br/>(TSV)"]
 ```
 
-1. Collect read pairs. The host alignment is read once. Pairs where one mate maps with mapping quality of at least 20 and the other mate is unmapped are kept as anchors. Pairs where both mates are unmapped are counted as background.
+1. Collect read pairs. The host alignment is read once, and any read whose pair is fully mapped is skipped straight away. Pairs where one mate maps with mapping quality of at least 20 and the other mate is unmapped are kept as anchors. Pairs where both mates are unmapped are counted as background.
 2. Keep foreign anchors. The unmapped mate's Kraken2 call is checked. Unclassified reads, the host taxon and uninformative taxa (root, cellular organisms) are removed. With an NCBI `nodes.dmp` file, the whole host lineage and the host's ancestors are removed too.
-3. Cluster. Anchors are grouped by the end that faces the junction (the 3' end of a forward read, the 5' end of a reverse read), so reads from both sides of one insertion fall in the same cluster. A limit on cluster width stops scattered reads chaining together.
+3. Cluster. Anchors are grouped by the end that faces the junction (the 3' end of a forward read, the 5' end of a reverse read), so reads from both sides of one insertion fall in the same cluster. A limit on cluster width stops scattered reads chaining together. The limits suit fragments of up to about 500 bp. For libraries with longer fragments they are widened automatically, using fragment sizes measured from the first 100,000 properly paired read pairs.
 4. Test for enrichment. For each cluster, the number of pairs from its main taxon is compared with a Poisson expectation based on how many anchored pairs that taxon has across the whole genome. Chance chimeras are spread across the genome, while real integrations pile up at one place. P-values are adjusted with Benjamini-Hochberg, counting every genome window that could have produced a cluster.
 5. Flag. Each site gets a filter value of `PASS` or a list of reasons it failed.
 
@@ -71,6 +75,12 @@ flowchart LR
 All thresholds can be changed on the command line.
 
 ## Installation
+
+```bash
+pip install hgt-site
+```
+
+A Bioconda package is under review. To install the latest code from GitHub instead:
 
 ```bash
 git clone https://github.com/iraajgangavaram/hgt-site.git
@@ -91,9 +101,29 @@ hgt-site call \
   -o sample.hgt-site.tsv
 ```
 
-`--kraken` is the per-read output from Kraken2 (`--output`), run on the unmapped reads. Read names ending in `/1` or `/2` are handled, as is output made with `--use-names`.
+`--kraken` is the per-read output from Kraken2 (`--output`), run on the unmapped reads. Read names ending in `/1` or `/2` are handled, as is output made with `--use-names`. Several files can be given at once, which suits the two files nf-core/hgtseq writes for each sample:
 
-For large BAM or CRAM files, add `--threads 4` (or the number of cores you have) to read them faster.
+```bash
+hgt-site call \
+  --bam results/preprocess/alignment/sample01_sorted.bam \
+  --kraken results/results/classified/single_unmapped/sample01.kraken2.classifiedreads.txt \
+           results/results/classified/both_unmapped/sample01.kraken2.classifiedreads.txt \
+  --host-taxid 9606 \
+  -o sample01.hgt-site.tsv
+```
+
+Other options:
+
+| Option | What it does |
+|---|---|
+| `--threads 4` | Uses more cores to read large BAM or CRAM files |
+| `--bed sites.bed` | Also writes the sites that passed every filter as a BED file, for genome browsers |
+| `--vcf sites.vcf` | Also writes every candidate site as a VCF file, with `PASS` or the failing flags in the FILTER column |
+| `--nodes nodes.dmp` | Excludes the whole host lineage, not just the host taxid |
+| `--reference genome.fa` | Reference FASTA, needed for CRAM input |
+| `--exclude-taxid 1234` | Ignores a taxon, for example a known contaminant (can be repeated) |
+
+While it runs, hgt-site reports how many anchored pairs it found, how many have a Kraken2 call, and the fragment size it measured. If none of the anchored reads has a Kraken2 call, it warns that the Kraken2 file may not match the alignment.
 
 To try it on simulated data with known insertion sites:
 
@@ -119,6 +149,10 @@ A tab-separated table with one row per candidate site:
 | `expected_pairs`, `pvalue`, `qvalue` | Enrichment test |
 | `expected_other_pairs`, `other_pvalue` | Pairs from other taxa expected by chance, and the test for an excess of them |
 | `flags`, `filter` | Flags raised and the overall filter result |
+
+With `--bed`, the sites that passed every filter are also written as BED: one line per site, named by the main taxid (for example `taxid_562`), with the number of supporting pairs as the score.
+
+With `--vcf`, every candidate site is written as a VCF 4.2 insertion record (`ALT` is `<INS>`, `SVTYPE=INS`) at the estimated junction. The FILTER column holds `PASS` or the failing flags, and the INFO column holds the main taxid, the number of supporting pairs, the pairs on each side of the junction and the q-value. hgt-site does not read the reference sequence, so `REF` is `N`.
 
 ## Preliminary results on simulated data
 
@@ -172,22 +206,81 @@ The pattern matches the first benchmark. The three insertions hgt-site missed at
 
 The simulator needs Biopython 1.77. For these runs, the few Biopython functions it uses (FASTA reading, sequence slicing and reverse complement) were supplied by a small compatibility module, which passed the simulator's own test suite.
 
+The figure below shows both benchmarks together: 6 random seeds per setting, 3 with each simulator, with 20 true insertions in each. Small points are single runs and lines join the means. Precision is on a log scale, because the other two approaches fall below 1% while hgt-site stays at 100%.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/benchmark_accuracy_dark.svg">
+    <img alt="Four panels. Top row: precision against the number of chimeric read pairs, at 10x and 5x coverage, on a log scale. hgt-site stays at 100% in every run, while LGTSeek and read support alone fall from about 80% to under 1%. Bottom row: recall. At 10x all three find every insertion. At 5x hgt-site finds 97 to 99% on average, LGTSeek 85 to 98%, and read support alone 100%." src="docs/images/benchmark_accuracy_light.svg" width="720">
+  </picture>
+</p>
+
+### Libraries with long fragments
+
+Reads from one insertion lie within about one fragment length of the junction, so with fixed clustering limits, libraries with long fragments can have one insertion split into two candidate sites. hgt-site measures the fragment size from properly paired reads and widens its limits when needed. The built-in simulator was run with mean fragment lengths of 400, 800 and 1000 bp (20 random seeds each, 5 insertions per seed, 300 chimeric pairs and 4,000 contaminant pairs):
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/benchmark_fragments_dark.svg">
+    <img alt="Bar chart of calls per real insertion. With 400 bp fragments both settings give 1.00. With 800 bp fragments, fixed limits give 2.01 and limits from the measured fragment size give 1.13. With 1000 bp fragments, 2.39 and 1.21." src="docs/images/benchmark_fragments_light.svg" width="640">
+  </picture>
+</p>
+
+Both settings found every insertion. With fixed limits, most insertions in the 800 and 1000 bp libraries were reported twice, and precision at 1000 bp was 85%. With limits set from the measured fragment size, precision was 100% at 800 bp and 97.5% at 1000 bp. At 400 bp the limits are not changed and the results are identical.
+
+## Speed
+
+hgt-site only needs read pairs where at least one mate is unmapped, and it skips every other read before doing any work on it. It reads the host alignment once and needs no second alignment.
+
+Measured on one sample of 2.1 million paired reads (1 million pairs from human chr21:20,000,000-30,000,000 and 50,000 contaminant pairs, aligned with BWA-MEM), on 2 CPU cores:
+
+| Step after the host alignment | hgt-site | LGTSeek |
+|---|---|---|
+| Kraken2 on the unmapped reads | 12 s | not needed |
+| Second alignment of all reads to the bacterial genomes | not needed | 129 s |
+| Calling sites or classifying reads | 2.7 s | 25 s |
+| Total | 15 s | 154 s |
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/benchmark_speed_dark.svg">
+    <img alt="Stacked bar chart of seconds after the host alignment. hgt-site: 12 s for Kraken2 on the unmapped reads, then 2.7 s for calling, 15 s in total. LGTSeek: 129 s for a second alignment of all reads to the bacterial genomes, then 25 s for read classification, 154 s in total." src="docs/images/benchmark_speed_light.svg" width="720">
+  </picture>
+</p>
+
+
+hgt-site times are the median of five runs. Kraken2 is already part of nf-core/hgtseq, so on hgtseq outputs hgt-site adds about 3 seconds for a sample of this size. Compared with version 0.1.1, the calling step is more than twice as fast on the same file (median 5.9 s before, 2.7 s now), with identical results.
+
+Run time grows in proportion to the size of the alignment file. The same sample was subsampled to about 0.5 and 1 million records and concatenated to 4.2 and 8.4 million records, and each file was run three times with each version:
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/benchmark_scaling_dark.svg">
+    <img alt="Line chart of run time against the number of records in the BAM file. Version 0.1.1 rises from about 1.5 s at 0.5 million records to about 25 s at 8.4 million. The current version rises from about 1 s to about 10 s." src="docs/images/benchmark_scaling_light.svg" width="640">
+  </picture>
+</p>
+
+At 8.4 million records the current version took a median of 9.8 s, against 25.5 s for version 0.1.1, or about 0.9 million records a second. At that rate, a 100-million-read exome takes roughly two minutes. Times vary by about 10% between runs of the same file.
+
 ### Reproducing the benchmarks
 
-The scripts are in [`benchmark/`](benchmark/). `run_benchmark.py` runs one replicate and `summarise.py` builds the table from a folder of runs. Add `--intvi-script` with the path to the simulator's `scripts/insert_virus.py` to use the independent simulator, and `--lgtseek-lib` with LGTSeek's `perl5` library folder to include LGTSeek.
+The scripts are in [`benchmark/`](benchmark/). `run_benchmark.py` runs one replicate, `summarise.py` builds the table from a folder of runs, and `figures.py` draws the figures in this README. The numbers behind each figure are in [`benchmark/results/`](benchmark/results/). Add `--intvi-script` with the path to the simulator's `scripts/insert_virus.py` to use the independent simulator, and `--lgtseek-lib` with LGTSeek's `perl5` library folder to include LGTSeek.
 
 ## Limitations
 
-The simulator models alignment and Kraken2 classification directly rather than running an aligner and classifier, and its genomes are random sequence without repeats. The real-genome benchmark uses real sequence but simulated reads, a Kraken2 database far smaller than a standard one, and chimeras placed at random positions. Real data may include chimera hotspots and more reads classified above species level. The LGTSeek comparison covers its read classification step only, not its later BLAST-based filtering. Sites are tested one taxon at a time, so an insertion whose reads Kraken2 splits between related species can lose support. The default clustering settings assume fragments of around 350 bp.
+- The simulator models alignment and Kraken2 classification directly rather than running an aligner and classifier, and its genomes are random sequence without repeats.
+- The real-genome benchmark uses real sequence but simulated reads, a Kraken2 database far smaller than a standard one, and chimeras placed at random positions. Real data may include chimera hotspots and more reads classified above species level.
+- The LGTSeek comparison covers its read classification step only, not its later BLAST-based filtering.
+- Sites are tested one taxon at a time, so an insertion whose reads Kraken2 splits between related species can lose support. Grouping Kraken2 calls at genus or family level before testing was tried and did not help: genus grouping changed nothing in the benchmark, and family grouping merged real insertions with contamination from related bacteria, which lowered recall.
+- Fragment sizes are measured from properly paired reads, so if the input contains only pairs with an unmapped mate, the default clustering limits are used.
+- The speed comparison used five bacterial genomes as LGTSeek's reference, and the time for its second alignment depends on the size of that reference. All timings were measured on one 2-core machine and will differ on other hardware.
 
 ## Future work
 
 - Test on public sequencing data, including the datasets used to evaluate nf-core/hgtseq
-- Group reads from closely related taxa before testing, so that split classifications do not reduce support
-- Estimate fragment size from the data and set clustering limits from it
+- Combine reads that Kraken2 splits between related taxa without merging them with contamination
 - Use split reads that cross the junction to refine breakpoints to base-pair resolution
-- Add VCF and BED output
-- Package for Bioconda and contribute an nf-core module
+- Contribute an nf-core module (the Bioconda package is under review)
 
 ## Testing
 
