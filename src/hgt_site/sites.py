@@ -81,7 +81,14 @@ def cluster_anchors(anchors, max_gap, max_span):
         by_chrom[anchor.chrom].append(anchor)
     sites = []
     for chrom in sorted(by_chrom):
-        group = sorted(by_chrom[chrom], key=lambda a: a.junction_side)
+        # Sorting on the whole anchor, not only the junction side, so that
+        # anchors that face the junction at the same base always fall in the
+        # same order. Otherwise clusters could depend on the order of the
+        # records in the file, and a sorted BAM would give slightly different
+        # sites from the same reads in a SAM file.
+        group = sorted(
+            by_chrom[chrom], key=lambda a: (a.junction_side, a.start, a.end, a.reverse, a.name)
+        )
         current = [group[0]]
         for anchor in group[1:]:
             close = anchor.junction_side - current[-1].junction_side <= max_gap

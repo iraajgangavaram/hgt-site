@@ -150,6 +150,24 @@ def test_split_reads_give_exact_junctions_sam(sim_split):
     _breakpoints_match_truth(sites, f"{sim_split}.truth.bed")
 
 
+def _rows(sites):
+    """Sites as comparable rows, so two formats can be compared whatever the order."""
+    return sorted(
+        (s.chrom, s.start, s.end, tuple(sorted((k, str(v)) for k, v in s.stats.items())))
+        for s in sites
+    )
+
+
+def _same_sites(a, b, label_a, label_b):
+    rows_a, rows_b = _rows(a), _rows(b)
+    only_a = [r for r in rows_a if r not in rows_b]
+    only_b = [r for r in rows_b if r not in rows_a]
+    assert not only_a and not only_b, (
+        f"{len(only_a)} sites only from {label_a}, {len(only_b)} only from {label_b}; "
+        f"first from {label_a}: {only_a[:1]}; first from {label_b}: {only_b[:1]}"
+    )
+
+
 def test_split_reads_give_exact_junctions_bam(sim_split, tmp_path):
     pysam = pytest.importorskip("pysam")
     bam = tmp_path / "sample.bam"
@@ -158,7 +176,7 @@ def test_split_reads_give_exact_junctions_bam(sim_split, tmp_path):
     sites = call_sites(str(bam), f"{sim_split}.kraken2.txt", HOST_TAXID)
     _breakpoints_match_truth(sites, f"{sim_split}.truth.bed")
     sam_sites = call_sites(f"{sim_split}.sam", f"{sim_split}.kraken2.txt", HOST_TAXID)
-    assert [s.stats for s in sites] == [s.stats for s in sam_sites]
+    _same_sites(sites, sam_sites, "the BAM file", "the SAM file")
 
 
 def test_unindexed_bam_falls_back_to_pairs(sim_split, tmp_path, caplog):
@@ -218,7 +236,7 @@ def test_cram_input(sim_split, tmp_path):
     pysam.index(str(cram))
     from_cram = call_sites(str(cram), f"{sim_split}.kraken2.txt", HOST_TAXID, reference=ref)
     from_sam = call_sites(f"{sim_split}.sam", f"{sim_split}.kraken2.txt", HOST_TAXID)
-    assert [s.stats for s in from_cram] == [s.stats for s in from_sam]
+    _same_sites(from_cram, from_sam, "the CRAM file", "the SAM file")
 
 
 def test_empty_kraken_file(sim, tmp_path, caplog):
@@ -240,3 +258,19 @@ def test_outputs_are_valid_when_nothing_is_found(sim, tmp_path):
     assert out.read_text().count("\n") == 1  # header only
     assert bed.read_text() == ""
     assert vcf.read_text().splitlines()[-1].startswith("#CHROM")
+
+
+def test_results_do_not_depend_on_read_order(sim_split, tmp_path):
+    """The same reads in a different order must give the same sites."""
+    import random
+
+    lines = open(f"{sim_split}.sam").read().splitlines(keepends=True)
+    header = [line for line in lines if line.startswith("@")]
+    body = [line for line in lines if not line.startswith("@")]
+    random.Random(3).shuffle(body)
+    shuffled = tmp_path / "shuffled.sam"
+    shuffled.write_text("".join(header + body))
+    a = call_sites(f"{sim_split}.sam", f"{sim_split}.kraken2.txt", HOST_TAXID)
+    b = call_sites(str(shuffled), f"{sim_split}.kraken2.txt", HOST_TAXID)
+    assert [(s.chrom, s.start, s.end, s.stats) for s in a] == [(s.chrom, s.start, s.end, s.stats) for s in b]
+    _same_sites(a, b, "the original order", "the shuffled order")
