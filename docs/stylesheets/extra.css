@@ -1,0 +1,15 @@
+:root > * {
+  --md-primary-fg-color: #2a78d6;
+  --md-primary-fg-color--light: #a9c9ef;
+  --md-primary-fg-color--dark: #1f5ea8;
+  --md-accent-fg-color: #2a78d6;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #3987e5;
+  --md-accent-fg-color: #3987e5;
+}
+
+.md-typeset figure img {
+  max-width: 100%;
+}
