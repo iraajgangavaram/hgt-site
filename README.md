@@ -15,6 +15,7 @@
 </p>
 
 <p align="center">
+  <a href="https://iraajgangavaram.github.io/hgt-site/">Documentation</a> ·
   <a href="#installation">Installation</a> ·
   <a href="#usage">Usage</a> ·
   <a href="#output">Output</a> ·
@@ -27,7 +28,7 @@ hgt-site finds places where DNA from bacteria or other organisms may have been i
 
 It is also fast. On a sample of 2.1 million reads, hgt-site took about 3 seconds once the reads were aligned and classified, while LGTSeek needed about 2.5 minutes (see [Speed](#speed)).
 
-It works with any host alignment and Kraken2 output, including the files that nf-core/hgtseq already produces.
+Where reads cross the junction itself, hgt-site gives the insertion point to the base pair. It works with any host alignment and Kraken2 output, including the files that nf-core/hgtseq already produces.
 
 <p align="center">
   <picture>
@@ -53,15 +54,17 @@ flowchart LR
     C --> D
     D --> E["Cluster by<br/>junction position"]
     E --> F["Test each site against<br/>chance chimeras"]
-    F --> G["Flag artefacts"]
-    G --> H["Candidate sites<br/>(TSV)"]
+    F --> G["Exact junction<br/>from split reads"]
+    G --> H["Flag artefacts"]
+    H --> I["Candidate sites<br/>(TSV, BED, VCF)"]
 ```
 
 1. Collect read pairs. The host alignment is read once, and any read whose pair is fully mapped is skipped straight away. Pairs where one mate maps with mapping quality of at least 20 and the other mate is unmapped are kept as anchors. Pairs where both mates are unmapped are counted as background.
 2. Keep foreign anchors. The unmapped mate's Kraken2 call is checked. Unclassified reads, the host taxon and uninformative taxa (root, cellular organisms) are removed. With an NCBI `nodes.dmp` file, the whole host lineage and the host's ancestors are removed too.
 3. Cluster. Anchors are grouped by the end that faces the junction (the 3' end of a forward read, the 5' end of a reverse read), so reads from both sides of one insertion fall in the same cluster. A limit on cluster width stops scattered reads chaining together. The limits suit fragments of up to about 500 bp. For libraries with longer fragments they are widened automatically, using fragment sizes measured from the first 100,000 properly paired read pairs.
 4. Test for enrichment. For each cluster, the number of pairs from its main taxon is compared with a Poisson expectation based on how many anchored pairs that taxon has across the whole genome. Chance chimeras are spread across the genome, while real integrations pile up at one place. P-values are adjusted with Benjamini-Hochberg, counting every genome window that could have produced a cluster.
-5. Flag. Each site gets a filter value of `PASS` or a list of reasons it failed.
+5. Find the exact junction. Read pairs place a junction only to within about one fragment length. Reads that cross the junction itself align to the host up to the junction and are soft-clipped beyond it, so several clips ending at the same base give the junction to the base pair. This step needs an indexed BAM or CRAM, and only the reads around each candidate site are read. Without an index, hgt-site says so and keeps the estimate from read pairs.
+6. Flag. Each site gets a filter value of `PASS` or a list of reasons it failed.
 
 | Flag | Meaning |
 |---|---|
@@ -119,11 +122,13 @@ Other options:
 | `--threads 4` | Uses more cores to read large BAM or CRAM files |
 | `--bed sites.bed` | Also writes the sites that passed every filter as a BED file, for genome browsers |
 | `--vcf sites.vcf` | Also writes every candidate site as a VCF file, with `PASS` or the failing flags in the FILTER column |
+| `--multiqc sample_mqc.json` | Also writes a summary table that MultiQC picks up, so the counts appear in a pipeline report |
+| `--no-split-reads` | Skips the split-read search, so junctions come from read pairs only |
 | `--nodes nodes.dmp` | Excludes the whole host lineage, not just the host taxid |
 | `--reference genome.fa` | Reference FASTA, needed for CRAM input |
 | `--exclude-taxid 1234` | Ignores a taxon, for example a known contaminant (can be repeated) |
 
-While it runs, hgt-site reports how many anchored pairs it found, how many have a Kraken2 call, and the fragment size it measured. If none of the anchored reads has a Kraken2 call, it warns that the Kraken2 file may not match the alignment.
+While it runs, hgt-site reports how many anchored pairs it found, how many have a Kraken2 call, the fragment size it measured, and how many sites got an exact junction. If none of the anchored reads has a Kraken2 call, it warns that the Kraken2 file may not match the alignment.
 
 To try it on simulated data with known insertion sites:
 
@@ -132,6 +137,8 @@ hgt-site simulate -o demo
 hgt-site call --bam demo.sam --kraken demo.kraken2.txt --host-taxid 9606 -o demo.tsv
 ```
 
+This writes `demo.sam`, `demo.kraken2.txt`, `demo.truth.bed` and `demo.host.fa`. The BED file holds the five insertion sites the simulator used, so the calls can be checked against them.
+
 ## Output
 
 A tab-separated table with one row per candidate site:
@@ -139,7 +146,9 @@ A tab-separated table with one row per candidate site:
 | Column | Description |
 |---|---|
 | `chrom`, `start`, `end` | Host region covered by the anchors (0-based) |
-| `left_junction`, `right_junction` | Estimated junction from forward and reverse anchors |
+| `left_junction`, `right_junction` | Junction estimated from forward and reverse anchors |
+| `left_breakpoint`, `right_breakpoint` | Exact junction from split reads, where there are any |
+| `left_split_reads`, `right_split_reads` | Reads clipped at that exact base |
 | `n_pairs`, `n_forward`, `n_reverse` | Supporting pairs, split by anchor strand |
 | `top_taxid`, `top_taxid_fraction`, `n_taxa` | Main foreign taxon and how consistent the calls are |
 | `mean_mapq` | Mean mapping quality of the anchors |
@@ -152,7 +161,9 @@ A tab-separated table with one row per candidate site:
 
 With `--bed`, the sites that passed every filter are also written as BED: one line per site, named by the main taxid (for example `taxid_562`), with the number of supporting pairs as the score.
 
-With `--vcf`, every candidate site is written as a VCF 4.2 insertion record (`ALT` is `<INS>`, `SVTYPE=INS`) at the estimated junction. The FILTER column holds `PASS` or the failing flags, and the INFO column holds the main taxid, the number of supporting pairs, the pairs on each side of the junction and the q-value. hgt-site does not read the reference sequence, so `REF` is `N`.
+With `--vcf`, every candidate site is written as a VCF 4.2 insertion record (`ALT` is `<INS>`, `SVTYPE=INS`), so the calls can go through the same tools as other structural variants. `POS` is the last host base before the insertion, taken from the split reads where there are any and otherwise from the anchors. The FILTER column holds `PASS` or the failing flags. INFO holds the main taxid, the number of supporting pairs, the pairs on each side of the junction, the q-value, the split-read counts, and an `IMPRECISE` flag when no split reads were found. hgt-site does not read the reference sequence, so `REF` is `N`.
+
+With `--multiqc`, hgt-site writes a custom-content table that MultiQC finds on its own, as long as the file name ends in `_mqc.json`. It holds the number of candidate sites, the number that passed, how many have an exact junction, and the read counts behind them.
 
 ## Preliminary results on simulated data
 
@@ -228,6 +239,19 @@ Reads from one insertion lie within about one fragment length of the junction, s
 
 Both settings found every insertion. With fixed limits, most insertions in the 800 and 1000 bp libraries were reported twice, and precision at 1000 bp was 85%. With limits set from the measured fragment size, precision was 100% at 800 bp and 97.5% at 1000 bp. At 400 bp the limits are not changed and the results are identical.
 
+### Junction accuracy
+
+Read pairs place a junction only to within about one fragment length, so hgt-site also looks for reads that cross the junction and are soft-clipped past it. This was measured on 8 runs of the real-genome benchmark (10x and 5x coverage, 2,000 and 30,000 chimeric pairs, 2 seeds each), using the full sorted alignment rather than one filtered down to pairs with an unmapped mate. Across the 157 sites that matched a true insertion, split reads were found for 154.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/benchmark_junctions_dark.svg">
+    <img alt="Bar chart of how close each junction is. With read pairs alone, 41% of insertions are placed exactly and 57% within 2 bp. With split reads, 71% are exact, 92% within 1 bp and 98% within 2 bp." src="docs/images/benchmark_junctions_light.svg" width="640">
+  </picture>
+</p>
+
+With split reads, 71% of junctions were exact and 98% were within 2 bp, against 41% exact and 57% within 2 bp from read pairs alone. The remaining 2% are the three sites with no split reads, where the estimate from read pairs is kept. The same sites passed the filters either way, and the extra step made no measurable difference to the run time, because only the sites that passed every other filter are searched and the alignment index is used to read just the reads around them.
+
 ## Speed
 
 hgt-site only needs read pairs where at least one mate is unmapped, and it skips every other read before doing any work on it. It reads the host alignment once and needs no second alignment.
@@ -273,13 +297,13 @@ The scripts are in [`benchmark/`](benchmark/). `run_benchmark.py` runs one repli
 - The LGTSeek comparison covers its read classification step only, not its later BLAST-based filtering.
 - Sites are tested one taxon at a time, so an insertion whose reads Kraken2 splits between related species can lose support. Grouping Kraken2 calls at genus or family level before testing was tried and did not help: genus grouping changed nothing in the benchmark, and family grouping merged real insertions with contamination from related bacteria, which lowered recall.
 - Fragment sizes are measured from properly paired reads, so if the input contains only pairs with an unmapped mate, the default clustering limits are used.
+- Exact junctions need an indexed alignment that still holds the reads whose pairs are fully mapped. They are found for fewer sites at low coverage, and for none when the input has been filtered down to pairs with an unmapped mate.
 - The speed comparison used five bacterial genomes as LGTSeek's reference, and the time for its second alignment depends on the size of that reference. All timings were measured on one 2-core machine and will differ on other hardware.
 
 ## Future work
 
 - Test on public sequencing data, including the datasets used to evaluate nf-core/hgtseq
 - Combine reads that Kraken2 splits between related taxa without merging them with contamination
-- Use split reads that cross the junction to refine breakpoints to base-pair resolution
 - Contribute an nf-core module (the Bioconda package is under review)
 
 ## Testing
@@ -288,6 +312,8 @@ The scripts are in [`benchmark/`](benchmark/). `run_benchmark.py` runs one repli
 pip install ".[test]"
 pytest
 ```
+
+30 tests cover the units, the simulated data, BAM and CRAM input, the output formats and the exact junctions. They run on GitHub for Python 3.10 to 3.13. Code style is checked with `ruff check src tests benchmark`.
 
 ## Use of generative AI
 
