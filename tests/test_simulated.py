@@ -119,3 +119,124 @@ def test_vcf_output(sim, tmp_path):
     with pysam.VariantFile(str(vcf)) as handle:
         parsed = list(handle)
     assert len(parsed) == len(rows)
+
+
+@pytest.fixture(scope="module")
+def sim_split(tmp_path_factory):
+    # Reads may align with as little as 30% of their length, so many reads
+    # crossing a junction are kept as soft-clipped split reads.
+    prefix = tmp_path_factory.mktemp("split") / "sample"
+    simulate(str(prefix), SimConfig(seed=7, coverage=20, min_mapped_fraction=0.3))
+    return prefix
+
+
+def _breakpoints_match_truth(sites, truth_bed):
+    truth = {}
+    for line in open(truth_bed):
+        chrom, start, *_ = line.split("\t")
+        truth.setdefault(chrom, []).append(int(start))
+    passed = [s for s in sites if not [f for f in s.flags if f != "ONE_SIDED"]]
+    assert len(passed) == 5
+    for site in passed:
+        st = site.stats
+        assert st["left_split_reads"] >= 2 or st["right_split_reads"] >= 2
+        for key in ("left_breakpoint", "right_breakpoint"):
+            if st[key] != "":
+                assert st[key] in truth[site.chrom], (key, st[key], truth[site.chrom])
+
+
+def test_split_reads_give_exact_junctions_sam(sim_split):
+    sites = call_sites(f"{sim_split}.sam", f"{sim_split}.kraken2.txt", HOST_TAXID)
+    _breakpoints_match_truth(sites, f"{sim_split}.truth.bed")
+
+
+def test_split_reads_give_exact_junctions_bam(sim_split, tmp_path):
+    pysam = pytest.importorskip("pysam")
+    bam = tmp_path / "sample.bam"
+    pysam.sort("-o", str(bam), f"{sim_split}.sam")
+    pysam.index(str(bam))
+    sites = call_sites(str(bam), f"{sim_split}.kraken2.txt", HOST_TAXID)
+    _breakpoints_match_truth(sites, f"{sim_split}.truth.bed")
+    sam_sites = call_sites(f"{sim_split}.sam", f"{sim_split}.kraken2.txt", HOST_TAXID)
+    assert [s.stats for s in sites] == [s.stats for s in sam_sites]
+
+
+def test_unindexed_bam_falls_back_to_pairs(sim_split, tmp_path, caplog):
+    pysam = pytest.importorskip("pysam")
+    bam = tmp_path / "unsorted.bam"
+    pysam.view("-b", "-o", str(bam), f"{sim_split}.sam", catch_stdout=False)
+    with caplog.at_level("INFO", logger="hgt_site"):
+        sites = call_sites(str(bam), f"{sim_split}.kraken2.txt", HOST_TAXID)
+    assert "no index" in caplog.text
+    assert all(s.stats["left_split_reads"] == 0 and s.stats["right_split_reads"] == 0 for s in sites)
+    assert sum(1 for s in sites if not [f for f in s.flags if f != "ONE_SIDED"]) == 5
+
+
+def test_split_reads_can_be_turned_off(sim_split):
+    sites = call_sites(f"{sim_split}.sam", f"{sim_split}.kraken2.txt", HOST_TAXID, split_reads=False)
+    assert all(s.stats["left_breakpoint"] == "" for s in sites)
+
+
+def test_vcf_uses_exact_junction(sim_split, tmp_path):
+    vcf = tmp_path / "s.vcf"
+    assert main([
+        "call", "--bam", f"{sim_split}.sam", "--kraken", f"{sim_split}.kraken2.txt",
+        "--host-taxid", str(HOST_TAXID), "-o", str(tmp_path / "s.tsv"), "--vcf", str(vcf),
+    ]) == 0
+    truth = {int(line.split("\t")[1]) for line in open(f"{sim_split}.truth.bed")}
+    passed = [line.split("\t") for line in vcf.read_text().splitlines() if not line.startswith("#")]
+    passed = [r for r in passed if r[6] == "PASS"]
+    assert len(passed) == 5
+    for r in passed:
+        assert "IMPRECISE" not in r[7]
+        assert int(r[1]) in truth  # POS is the last host base before the insertion
+
+
+def test_multiqc_table(sim, tmp_path):
+    import json
+
+    mqc = tmp_path / "sample_mqc.json"
+    assert main([
+        "call", "--bam", f"{sim}.sam", "--kraken", f"{sim}.kraken2.txt",
+        "--host-taxid", str(HOST_TAXID), "-o", str(tmp_path / "s.tsv"), "--multiqc", str(mqc),
+    ]) == 0
+    content = json.loads(mqc.read_text())
+    assert content["plot_type"] == "table"
+    row = content["data"]["sample"]
+    assert row["passed_sites"] == 5
+    assert row["candidate_sites"] >= row["passed_sites"]
+    assert row["foreign_anchored_pairs"] <= row["anchored_pairs_with_call"] <= row["anchored_pairs"]
+    assert set(content["headers"]) <= set(row)
+
+
+def test_cram_input(sim_split, tmp_path):
+    pysam = pytest.importorskip("pysam")
+    ref = f"{sim_split}.host.fa"
+    bam, cram = tmp_path / "s.bam", tmp_path / "s.cram"
+    pysam.sort("-o", str(bam), f"{sim_split}.sam")
+    pysam.view("-C", "-T", ref, "-o", str(cram), str(bam), catch_stdout=False)
+    pysam.index(str(cram))
+    from_cram = call_sites(str(cram), f"{sim_split}.kraken2.txt", HOST_TAXID, reference=ref)
+    from_sam = call_sites(f"{sim_split}.sam", f"{sim_split}.kraken2.txt", HOST_TAXID)
+    assert [s.stats for s in from_cram] == [s.stats for s in from_sam]
+
+
+def test_empty_kraken_file(sim, tmp_path, caplog):
+    empty = tmp_path / "empty.txt"
+    empty.write_text("")
+    with caplog.at_level("WARNING", logger="hgt_site"):
+        assert call_sites(f"{sim}.sam", str(empty), HOST_TAXID) == []
+    assert "no classified reads" in caplog.text
+
+
+def test_outputs_are_valid_when_nothing_is_found(sim, tmp_path):
+    empty = tmp_path / "empty.txt"
+    empty.write_text("")
+    out, bed, vcf = tmp_path / "s.tsv", tmp_path / "s.bed", tmp_path / "s.vcf"
+    assert main([
+        "call", "--bam", f"{sim}.sam", "--kraken", str(empty), "--host-taxid", str(HOST_TAXID),
+        "-o", str(out), "--bed", str(bed), "--vcf", str(vcf),
+    ]) == 0
+    assert out.read_text().count("\n") == 1  # header only
+    assert bed.read_text() == ""
+    assert vcf.read_text().splitlines()[-1].startswith("#CHROM")

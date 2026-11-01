@@ -4,6 +4,7 @@ import csv
 import logging
 
 from .alignments import collect_pairs, count_by_taxon
+from .breakpoints import find_breakpoints
 from .kraken import TaxonFilter, load_classifications
 from .sites import add_info_flags, cluster_anchors, score_sites, site_filter
 
@@ -28,6 +29,10 @@ COLUMNS = [
     "end",
     "left_junction",
     "right_junction",
+    "left_breakpoint",
+    "left_split_reads",
+    "right_breakpoint",
+    "right_split_reads",
     "n_pairs",
     "n_forward",
     "n_reverse",
@@ -92,7 +97,10 @@ def fit_limits(pairs, settings, user_set):
     return fitted
 
 
-def call_sites(alignments, kraken, host_taxid, nodes_dmp=None, exclude=(), reference=None, threads=1, **opts):
+def call_sites(
+    alignments, kraken, host_taxid, nodes_dmp=None, exclude=(), reference=None, threads=1, split_reads=True, summary=None, **opts
+):
+    """Call candidate sites. If summary is a dict, read counts are added to it."""
     user_set = {k for k, v in opts.items() if v is not None}
     settings = {**DEFAULTS, **{k: v for k, v in opts.items() if v is not None}}
     taxon_filter = TaxonFilter(host_taxid, nodes_dmp, exclude)
@@ -116,6 +124,11 @@ def call_sites(alignments, kraken, host_taxid, nodes_dmp=None, exclude=(), refer
             "None of the anchored reads has a Kraken2 call. Check that the Kraken2 file was made "
             "from the unmapped reads of this alignment, and that the read names match."
         )
+    if summary is not None:
+        summary.update(
+            anchored_pairs=len(pairs.anchors), anchored_pairs_with_call=len(with_call),
+            foreign_anchored_pairs=len(foreign), both_unmapped_pairs=len(pairs.both_unmapped),
+        )
     settings = fit_limits(pairs, settings, user_set)
     if not foreign:
         return []
@@ -130,6 +143,17 @@ def call_sites(alignments, kraken, host_taxid, nodes_dmp=None, exclude=(), refer
         sites, calls, pairs.unmapped_mate_seqs, background, genome_length,
         settings["window"], settings,
     )
+    if split_reads:
+        # Only the sites that passed their other filters are worth searching.
+        passing = [s for s in sites if site_filter(s) == "PASS"]
+        find_breakpoints(
+            sites, alignments, settings["window"], settings["min_mapq"], reference, threads, targets=passing
+        )
+        found = sum(1 for s in passing if s.stats["left_split_reads"] or s.stats["right_split_reads"])
+        log.info("Exact junctions from split reads found for %d of %d sites that passed.", found, len(passing))
+    else:
+        for site in sites:
+            site.stats.update(left_breakpoint="", left_split_reads=0, right_breakpoint="", right_split_reads=0)
     return add_info_flags(sites)
 
 
@@ -173,14 +197,27 @@ VCF_FILTERS = {
 }
 
 
+def _given(value):
+    return value not in ("", None)
+
+
 def _junction(site):
-    """1-based position of the estimated junction, falling back to the site start."""
-    left, right = site.stats.get("left_junction"), site.stats.get("right_junction")
-    if left != "" and left is not None:
-        return int(left)
-    if right != "" and right is not None:
-        return int(right) + 1
+    """1-based position of the last host base before the insertion.
+
+    Split-read breakpoints are used when there are any, then the edges of the
+    anchors, then the site start. All of these are 0-based boundaries, which
+    equal the 1-based position of the base before the boundary.
+    """
+    st = site.stats
+    for key in ("left_breakpoint", "right_breakpoint", "left_junction", "right_junction"):
+        if _given(st.get(key)):
+            return max(1, int(st[key]))
     return site.start + 1
+
+
+def _precise(site):
+    st = site.stats
+    return bool(st.get("left_split_reads") or st.get("right_split_reads"))
 
 
 def write_vcf(sites, path, version="unknown"):
@@ -210,6 +247,9 @@ def write_vcf(sites, path, version="unknown"):
             '##INFO=<ID=NFWD,Number=1,Type=Integer,Description="Supporting pairs with a forward anchor">',
             '##INFO=<ID=NREV,Number=1,Type=Integer,Description="Supporting pairs with a reverse anchor">',
             '##INFO=<ID=QVAL,Number=1,Type=Float,Description="Benjamini-Hochberg q-value of the enrichment test">',
+            '##INFO=<ID=SPLIT_LEFT,Number=1,Type=Integer,Description="Split reads at the junction on the forward-anchor side">',
+            '##INFO=<ID=SPLIT_RIGHT,Number=1,Type=Integer,Description="Split reads at the junction on the reverse-anchor side">',
+            '##INFO=<ID=IMPRECISE,Number=0,Type=Flag,Description="No split reads; position estimated from read pairs">',
             '##INFO=<ID=ONE_SIDED,Number=0,Type=Flag,Description="Anchors from only one side of the junction">',
         ):
             handle.write(line + "\n")
@@ -221,10 +261,50 @@ def write_vcf(sites, path, version="unknown"):
                 "SVTYPE=INS", f"END={pos}", f"SITE_START={site.start + 1}", f"SITE_END={site.end}",
                 f"TAXID={st['top_taxid']}", f"NPAIRS={st['n_pairs']}", f"NFWD={st['n_forward']}",
                 f"NREV={st['n_reverse']}", f"QVAL={st['qvalue']:.4g}",
+                f"SPLIT_LEFT={st.get('left_split_reads', 0)}", f"SPLIT_RIGHT={st.get('right_split_reads', 0)}",
             ]
+            if not _precise(site):
+                info.append("IMPRECISE")
             if "ONE_SIDED" in site.flags:
                 info.append("ONE_SIDED")
             handle.write(
                 f"{site.chrom}\t{pos}\thgtsite_{i}\tN\t<INS>\t.\t{site_filter(site)}\t{';'.join(info)}\n"
             )
     return len(ordered)
+
+
+def write_multiqc(sites, path, sample, summary=None):
+    """Write a MultiQC custom-content table with one row for this sample.
+
+    MultiQC picks the file up when its name ends in _mqc.json.
+    """
+    import json
+
+    passed = [s for s in sites if site_filter(s) == "PASS"]
+    row = dict(summary or {})
+    row.update(
+        candidate_sites=len(sites),
+        passed_sites=len(passed),
+        passed_with_exact_junction=sum(1 for s in passed if _precise(s)),
+    )
+    headers = {
+        "passed_sites": {"title": "HGT sites", "description": "Candidate sites that passed every filter", "format": "{:,.0f}"},
+        "passed_with_exact_junction": {"title": "Exact junctions", "description": "Passed sites with split reads at the junction", "format": "{:,.0f}"},
+        "candidate_sites": {"title": "Candidates", "description": "All candidate sites, before filtering", "format": "{:,.0f}"},
+        "foreign_anchored_pairs": {"title": "Foreign anchored pairs", "description": "Pairs with one mate on the host and the other classified outside the host", "format": "{:,.0f}"},
+        "anchored_pairs": {"title": "Anchored pairs", "description": "Pairs with one mate on the host and the other unmapped", "format": "{:,.0f}", "hidden": True},
+        "anchored_pairs_with_call": {"title": "Anchored pairs with a Kraken2 call", "format": "{:,.0f}", "hidden": True},
+        "both_unmapped_pairs": {"title": "Both mates unmapped", "format": "{:,.0f}", "hidden": True},
+    }
+    content = {
+        "id": "hgt_site",
+        "section_name": "hgt-site",
+        "description": "Candidate horizontal gene transfer sites called by hgt-site.",
+        "plot_type": "table",
+        "pconfig": {"id": "hgt_site_table", "title": "hgt-site: candidate HGT sites"},
+        "headers": {k: v for k, v in headers.items() if k in row},
+        "data": {sample: row},
+    }
+    with open(path, "w") as handle:
+        json.dump(content, handle, indent=2)
+    return row

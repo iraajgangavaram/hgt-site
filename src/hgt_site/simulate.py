@@ -226,4 +226,9 @@ def simulate(out_prefix, cfg=None):
     with open(f"{out_prefix}.truth.bed", "w") as fh:
         for chrom, pos, length in sorted(truth):
             fh.write(f"{chrom}\t{pos}\t{pos + 1}\t{DONOR_TAXID}\t{length}\n")
+    # The host reference, so the reads can also be stored as CRAM.
+    with open(f"{out_prefix}.host.fa", "w") as fh:
+        for chrom, seq in host_chroms.items():
+            fh.write(f">{chrom}\n")
+            fh.writelines(seq[i : i + 60] + "\n" for i in range(0, len(seq), 60))
     return truth
