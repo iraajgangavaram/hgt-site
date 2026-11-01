@@ -45,11 +45,11 @@ COLUMNS = [
 ]
 
 
-def call_sites(alignments, kraken, host_taxid, nodes_dmp=None, exclude=(), reference=None, **opts):
+def call_sites(alignments, kraken, host_taxid, nodes_dmp=None, exclude=(), reference=None, threads=1, **opts):
     settings = {**DEFAULTS, **{k: v for k, v in opts.items() if v is not None}}
     taxon_filter = TaxonFilter(host_taxid, nodes_dmp, exclude)
     calls = load_classifications(kraken)
-    pairs = collect_pairs(alignments, settings["min_mapq"], reference)
+    pairs = collect_pairs(alignments, settings["min_mapq"], reference, threads)
 
     foreign = [
         a

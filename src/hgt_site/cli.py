@@ -21,6 +21,7 @@ def build_parser():
     call.add_argument("--nodes", help="NCBI nodes.dmp, so the whole host lineage is excluded")
     call.add_argument("--exclude-taxid", type=int, action="append", default=[], help="Extra taxid to ignore (repeatable)")
     call.add_argument("--reference", help="Reference FASTA, needed for CRAM input")
+    call.add_argument("--threads", type=int, default=1, help="Threads for reading BAM or CRAM files (default 1)")
     call.add_argument("-o", "--output", required=True, help="Output TSV")
     for key, value in DEFAULTS.items():
         call.add_argument(f"--{key.replace('_', '-')}", type=type(value), default=None, help=f"default {value}")
@@ -35,7 +36,8 @@ def main(argv=None):
     if args.command == "call":
         opts = {k: getattr(args, k) for k in DEFAULTS}
         sites = call_sites(
-            args.bam, args.kraken, args.host_taxid, args.nodes, args.exclude_taxid, args.reference, **opts
+            args.bam, args.kraken, args.host_taxid, args.nodes, args.exclude_taxid, args.reference,
+            threads=args.threads, **opts
         )
         write_table(sites, args.output)
         passed = sum(1 for s in sites if site_filter(s) == "PASS")

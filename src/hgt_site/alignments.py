@@ -70,6 +70,16 @@ def _cigar_ref_length(cigar):
     return length
 
 
+def _wanted(flag):
+    """True for primary records of paired reads where at least one mate is unmapped.
+
+    These are the only records hgt-site uses. In a typical host alignment they
+    are well under 1% of all records, so checking the flag before building
+    anything else saves most of the run time.
+    """
+    return bool(flag & PAIRED) and not flag & SKIP and bool(flag & (UNMAPPED | MATE_UNMAPPED))
+
+
 def _iter_sam_text(path):
     lengths = {}
     records = []
@@ -80,8 +90,10 @@ def _iter_sam_text(path):
                     tags = dict(t.split(":", 1) for t in line.rstrip("\n").split("\t")[1:])
                     lengths[tags["SN"]] = int(tags["LN"])
                 continue
-            cols = line.rstrip("\n").split("\t")
+            cols = line.split("\t", 10)
             flag = int(cols[1])
+            if not _wanted(flag):
+                continue
             pos = int(cols[3]) - 1
             cigar = cols[5]
             end = pos + (_cigar_ref_length(cigar) if cigar != "*" else 0)
@@ -89,15 +101,17 @@ def _iter_sam_text(path):
     return lengths, records
 
 
-def _iter_pysam(path, reference=None):
+def _iter_pysam(path, reference=None, threads=1):
     import pysam
 
     mode = "rc" if str(path).endswith(".cram") else "rb"
-    bam = pysam.AlignmentFile(str(path), mode, reference_filename=reference)
+    bam = pysam.AlignmentFile(str(path), mode, reference_filename=reference, threads=threads)
     lengths = dict(zip(bam.references, bam.lengths))
 
     def generate():
         for read in bam.fetch(until_eof=True):
+            if not _wanted(read.flag):
+                continue
             yield Record(
                 read.query_name,
                 read.flag,
@@ -111,16 +125,16 @@ def _iter_pysam(path, reference=None):
     return lengths, generate()
 
 
-def open_alignments(path, reference=None):
+def open_alignments(path, reference=None, threads=1):
     path = str(path)
     if path.endswith(".sam"):
         return _iter_sam_text(path)
-    return _iter_pysam(path, reference)
+    return _iter_pysam(path, reference, threads)
 
 
-def collect_pairs(path, min_mapq=20, reference=None):
+def collect_pairs(path, min_mapq=20, reference=None, threads=1):
     """Scan the alignments once and sort read pairs into the groups we need."""
-    lengths, records = open_alignments(path, reference)
+    lengths, records = open_alignments(path, reference, threads)
     anchors = []
     mate_seqs = {}
     both_unmapped = set()

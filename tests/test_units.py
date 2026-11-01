@@ -98,3 +98,16 @@ def test_mixed_taxa_flags_excess_other_taxa():
     sites = score_sites(sites, calls, {}, Counter(), 10_000_000, 600, DEFAULTS)
     real = max(sites, key=lambda s: len(s.anchors))
     assert "MIXED_TAXA" in real.flags
+
+
+def test_only_needed_records_are_kept():
+    from hgt_site.alignments import _wanted
+
+    assert _wanted(0x1 | 0x8)  # mapped read, mate unmapped
+    assert _wanted(0x1 | 0x4)  # unmapped read, mate mapped
+    assert _wanted(0x1 | 0x4 | 0x8)  # both unmapped
+    assert not _wanted(0x1)  # both mates mapped
+    assert not _wanted(0x8)  # not paired
+    assert not _wanted(0x1 | 0x8 | 0x100)  # secondary
+    assert not _wanted(0x1 | 0x8 | 0x800)  # supplementary
+    assert not _wanted(0x1 | 0x8 | 0x400)  # duplicate

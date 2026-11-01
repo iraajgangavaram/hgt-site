@@ -93,6 +93,8 @@ hgt-site call \
 
 `--kraken` is the per-read output from Kraken2 (`--output`), run on the unmapped reads. Read names ending in `/1` or `/2` are handled, as is output made with `--use-names`.
 
+For large BAM or CRAM files, add `--threads 4` (or the number of cores you have) to read them faster.
+
 To try it on simulated data with known insertion sites:
 
 ```bash
