@@ -95,5 +95,11 @@ class TaxonFilter:
         return result
 
 
-def load_classifications(path):
-    return read_kraken(Path(path))
+def load_classifications(paths):
+    """Read one or more Kraken2 per-read files into a single {read name: taxid} map."""
+    if isinstance(paths, (str, Path)):
+        paths = [paths]
+    calls = {}
+    for path in paths:
+        calls.update(read_kraken(Path(path)))
+    return calls

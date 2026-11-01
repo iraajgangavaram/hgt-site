@@ -5,11 +5,12 @@ without pysam, which keeps the test suite light.
 """
 
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .kraken import normalise_read_name
 
 PAIRED = 0x1
+PROPER_PAIR = 0x2
 UNMAPPED = 0x4
 MATE_UNMAPPED = 0x8
 REVERSE = 0x10
@@ -56,6 +57,28 @@ class ReadPairs:
     unmapped_mate_seqs: dict
     both_unmapped: set
     contig_lengths: dict
+    insert_sizes: list = field(default_factory=list)
+    read_lengths: list = field(default_factory=list)
+
+
+# Number of properly paired reads sampled to estimate the fragment size.
+FRAGMENT_SAMPLE = 100_000
+
+
+class _Sample:
+    """Insert sizes and read lengths from the first properly paired reads seen."""
+
+    def __init__(self, limit=FRAGMENT_SAMPLE):
+        self.limit = limit
+        self.insert_sizes = []
+        self.read_lengths = []
+
+    def add(self, flag, tlen, read_length):
+        """Add one record; return False once the sample is full."""
+        if (flag & PROPER_PAIR) and (flag & READ1) and not (flag & SKIP) and tlen > 0:
+            self.insert_sizes.append(tlen)
+            self.read_lengths.append(read_length)
+        return len(self.insert_sizes) < self.limit
 
 
 def _cigar_ref_length(cigar):
@@ -80,9 +103,10 @@ def _wanted(flag):
     return bool(flag & PAIRED) and not flag & SKIP and bool(flag & (UNMAPPED | MATE_UNMAPPED))
 
 
-def _iter_sam_text(path):
+def _iter_sam_text(path, sample):
     lengths = {}
     records = []
+    sampling = True
     with open(path) as handle:
         for line in handle:
             if line.startswith("@"):
@@ -92,6 +116,8 @@ def _iter_sam_text(path):
                 continue
             cols = line.split("\t", 10)
             flag = int(cols[1])
+            if sampling:
+                sampling = sample.add(flag, int(cols[8]), len(cols[9]))
             if not _wanted(flag):
                 continue
             pos = int(cols[3]) - 1
@@ -101,7 +127,7 @@ def _iter_sam_text(path):
     return lengths, records
 
 
-def _iter_pysam(path, reference=None, threads=1):
+def _iter_pysam(path, sample, reference=None, threads=1):
     import pysam
 
     mode = "rc" if str(path).endswith(".cram") else "rb"
@@ -109,12 +135,16 @@ def _iter_pysam(path, reference=None, threads=1):
     lengths = dict(zip(bam.references, bam.lengths))
 
     def generate():
+        sampling = True
         for read in bam.fetch(until_eof=True):
-            if not _wanted(read.flag):
+            flag = read.flag
+            if sampling:
+                sampling = sample.add(flag, read.template_length, read.query_length)
+            if not _wanted(flag):
                 continue
             yield Record(
                 read.query_name,
-                read.flag,
+                flag,
                 read.reference_name or "*",
                 read.reference_start if read.reference_start is not None else -1,
                 read.reference_end if read.reference_end is not None else -1,
@@ -125,16 +155,17 @@ def _iter_pysam(path, reference=None, threads=1):
     return lengths, generate()
 
 
-def open_alignments(path, reference=None, threads=1):
+def open_alignments(path, sample, reference=None, threads=1):
     path = str(path)
     if path.endswith(".sam"):
-        return _iter_sam_text(path)
-    return _iter_pysam(path, reference, threads)
+        return _iter_sam_text(path, sample)
+    return _iter_pysam(path, sample, reference, threads)
 
 
 def collect_pairs(path, min_mapq=20, reference=None, threads=1):
     """Scan the alignments once and sort read pairs into the groups we need."""
-    lengths, records = open_alignments(path, reference, threads)
+    sample = _Sample()
+    lengths, records = open_alignments(path, sample, reference, threads)
     anchors = []
     mate_seqs = {}
     both_unmapped = set()
@@ -153,7 +184,7 @@ def collect_pairs(path, min_mapq=20, reference=None, threads=1):
                 )
         elif read_unmapped and not mate_unmapped:
             mate_seqs[name] = rec.seq
-    return ReadPairs(anchors, mate_seqs, both_unmapped, lengths)
+    return ReadPairs(anchors, mate_seqs, both_unmapped, lengths, sample.insert_sizes, sample.read_lengths)
 
 
 def count_by_taxon(names, calls, taxon_filter):

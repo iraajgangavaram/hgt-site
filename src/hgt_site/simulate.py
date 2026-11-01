@@ -116,12 +116,20 @@ class _Writer:
         else:
             self.kraken.append(f"U\t{name}\t0\t{self.cfg.read_length}\t0:1")
 
-    def pair(self, chrom, r1, r2):
-        """r1/r2: (mapped, host_start, cigar, taxid, seq, reverse)."""
+    def pair(self, chrom, r1, r2, fragment=None):
+        """r1/r2: (mapped, host_start, cigar, taxid, seq, reverse).
+
+        When both reads map to the host at the expected distance, the pair is
+        marked as properly paired and given a template length, as an aligner would.
+        """
         self.n += 1
         name = f"pair{self.n}"
         m1, m2 = r1[0], r2[0]
         mate_taxid = None
+        proper = False
+        if m1 and m2 and fragment:
+            span = r2[1] + len(r2[4]) - r1[1]
+            proper = span == fragment
 
         def placement(read, mate):
             # SAM convention: an unmapped read with a mapped mate takes the mate's position.
@@ -142,13 +150,16 @@ class _Writer:
                 flag |= 0x10
             if other[5]:
                 flag |= 0x20
+            if proper:
+                flag |= 0x2
+            tlen = (fragment if first else -fragment) if proper else 0
             rname, pos = placement(this, other)
             mate_rname, mate_pos = placement(other, this)
             rnext = "=" if mate_rname == rname else mate_rname
             mapq = 60 if mapped else 0
             qual = "I" * len(seq)
             self.sam.append(
-                f"{name}\t{flag}\t{rname}\t{pos}\t{mapq}\t{cigar}\t{rnext}\t{mate_pos}\t0\t{seq}\t{qual}"
+                f"{name}\t{flag}\t{rname}\t{pos}\t{mapq}\t{cigar}\t{rnext}\t{mate_pos}\t{tlen}\t{seq}\t{qual}"
             )
             if not mapped:
                 mate_taxid = taxid
@@ -187,7 +198,7 @@ def simulate(out_prefix, cfg=None):
             p2 = _place(segments, s2, L, cfg)
             seq1 = sample[s1 : s1 + L]
             seq2 = revcomp(sample[s2 : s2 + L])
-            writer.pair(chrom, (*p1, seq1, False), (*p2, seq2, True))
+            writer.pair(chrom, (*p1, seq1, False), (*p2, seq2, True), fragment=frag)
 
     for _ in range(cfg.contaminant_pairs):
         start = rng.randint(0, len(contaminant) - 2 * L - 200)

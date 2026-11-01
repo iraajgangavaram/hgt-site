@@ -111,3 +111,20 @@ def test_only_needed_records_are_kept():
     assert not _wanted(0x1 | 0x8 | 0x100)  # secondary
     assert not _wanted(0x1 | 0x8 | 0x800)  # supplementary
     assert not _wanted(0x1 | 0x8 | 0x400)  # duplicate
+
+
+def test_limits_widen_only_for_long_fragments():
+    from hgt_site.alignments import ReadPairs
+    from hgt_site.call import DEFAULTS, fit_limits
+
+    def pairs(fragment):
+        return ReadPairs([], {}, set(), {}, [fragment] * 2000, [100] * 2000)
+
+    assert fit_limits(pairs(350), dict(DEFAULTS), set()) == DEFAULTS
+    wide = fit_limits(pairs(900), dict(DEFAULTS), set())
+    assert wide["max_span"] == 2 * (900 - 100)
+    assert wide["max_gap"] > DEFAULTS["max_gap"] and wide["window"] > DEFAULTS["window"]
+    # Limits the user set are left alone.
+    assert fit_limits(pairs(900), dict(DEFAULTS), {"max_span"}) == DEFAULTS
+    # Too few pairs to estimate: defaults are kept.
+    assert fit_limits(ReadPairs([], {}, set(), {}, [900] * 10, [100] * 10), dict(DEFAULTS), set()) == DEFAULTS

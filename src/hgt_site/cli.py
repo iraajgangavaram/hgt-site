@@ -1,8 +1,9 @@
 import argparse
+import logging
 import sys
 
 from . import __version__
-from .call import DEFAULTS, call_sites, write_table
+from .call import DEFAULTS, call_sites, write_bed, write_table, write_vcf
 from .sites import site_filter
 
 
@@ -16,13 +17,15 @@ def build_parser():
 
     call = sub.add_parser("call", help="Call candidate sites")
     call.add_argument("--bam", required=True, help="Paired-end reads aligned to the host (BAM, CRAM or SAM)")
-    call.add_argument("--kraken", required=True, help="Kraken2 per-read output for the unmapped reads")
+    call.add_argument("--kraken", required=True, nargs="+", help="Kraken2 per-read output for the unmapped reads (one or more files)")
     call.add_argument("--host-taxid", required=True, type=int, help="NCBI taxid of the host, e.g. 9606")
     call.add_argument("--nodes", help="NCBI nodes.dmp, so the whole host lineage is excluded")
     call.add_argument("--exclude-taxid", type=int, action="append", default=[], help="Extra taxid to ignore (repeatable)")
     call.add_argument("--reference", help="Reference FASTA, needed for CRAM input")
     call.add_argument("--threads", type=int, default=1, help="Threads for reading BAM or CRAM files (default 1)")
     call.add_argument("-o", "--output", required=True, help="Output TSV")
+    call.add_argument("--bed", help="Also write the sites that passed every filter as a BED file")
+    call.add_argument("--vcf", help="Also write every candidate site as a VCF file, with PASS or the failing flags in FILTER")
     for key, value in DEFAULTS.items():
         call.add_argument(f"--{key.replace('_', '-')}", type=type(value), default=None, help=f"default {value}")
     sim = sub.add_parser("simulate", help="Write a small simulated dataset with known insertion sites")
@@ -33,6 +36,7 @@ def build_parser():
 
 def main(argv=None):
     args = build_parser().parse_args(argv)
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s", stream=sys.stderr)
     if args.command == "call":
         opts = {k: getattr(args, k) for k in DEFAULTS}
         sites = call_sites(
@@ -40,6 +44,10 @@ def main(argv=None):
             threads=args.threads, **opts
         )
         write_table(sites, args.output)
+        if args.bed:
+            write_bed(sites, args.bed)
+        if args.vcf:
+            write_vcf(sites, args.vcf, __version__)
         passed = sum(1 for s in sites if site_filter(s) == "PASS")
         print(f"{len(sites)} candidate sites, {passed} passed filters -> {args.output}", file=sys.stderr)
     elif args.command == "simulate":
