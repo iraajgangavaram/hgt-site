@@ -1,0 +1,1016 @@
+[
+ {
+  "run": "cov10_chim2000_s7",
+  "sites": [
+   {
+    "truth": 639072,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 13
+   },
+   {
+    "truth": 820111,
+    "pairs_error": 5,
+    "split_error": 1,
+    "split_reads": 9
+   },
+   {
+    "truth": 983060,
+    "pairs_error": 1,
+    "split_error": 0,
+    "split_reads": 11
+   },
+   {
+    "truth": 1181979,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 13
+   },
+   {
+    "truth": 1225279,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 6
+   },
+   {
+    "truth": 1451955,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 13
+   },
+   {
+    "truth": 1531911,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 14
+   },
+   {
+    "truth": 1589240,
+    "pairs_error": 1,
+    "split_error": 1,
+    "split_reads": 17
+   },
+   {
+    "truth": 2540829,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 11
+   },
+   {
+    "truth": 3612037,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 17
+   },
+   {
+    "truth": 4047655,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 21
+   },
+   {
+    "truth": 5443012,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 18
+   },
+   {
+    "truth": 6145241,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 13
+   },
+   {
+    "truth": 6634039,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 17
+   },
+   {
+    "truth": 7025764,
+    "pairs_error": 1,
+    "split_error": 1,
+    "split_reads": 11
+   },
+   {
+    "truth": 7285367,
+    "pairs_error": 17,
+    "split_error": 0,
+    "split_reads": 6
+   },
+   {
+    "truth": 8523358,
+    "pairs_error": 1,
+    "split_error": 1,
+    "split_reads": 22
+   },
+   {
+    "truth": 9000608,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 11
+   },
+   {
+    "truth": 9255038,
+    "pairs_error": 1,
+    "split_error": 1,
+    "split_reads": 16
+   },
+   {
+    "truth": 9787560,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 24
+   }
+  ],
+  "passed": 21,
+  "passed_without_split_reads": 21,
+  "seconds_with": 1.92,
+  "seconds_without": 1.95
+ },
+ {
+  "run": "cov10_chim2000_s8",
+  "sites": [
+   {
+    "truth": 518244,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 16
+   },
+   {
+    "truth": 744480,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 13
+   },
+   {
+    "truth": 1439171,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 11
+   },
+   {
+    "truth": 2129480,
+    "pairs_error": 1,
+    "split_error": 1,
+    "split_reads": 11
+   },
+   {
+    "truth": 2305844,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 11
+   },
+   {
+    "truth": 3249959,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 9
+   },
+   {
+    "truth": 3523109,
+    "pairs_error": 2,
+    "split_error": 2,
+    "split_reads": 18
+   },
+   {
+    "truth": 3813493,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 15
+   },
+   {
+    "truth": 4161370,
+    "pairs_error": 2,
+    "split_error": 2,
+    "split_reads": 18
+   },
+   {
+    "truth": 6224479,
+    "pairs_error": 32,
+    "split_error": 0,
+    "split_reads": 7
+   },
+   {
+    "truth": 6307654,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 16
+   },
+   {
+    "truth": 6561133,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 7
+   },
+   {
+    "truth": 6732802,
+    "pairs_error": 1,
+    "split_error": 1,
+    "split_reads": 9
+   },
+   {
+    "truth": 6765912,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 8
+   },
+   {
+    "truth": 7612300,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 20
+   },
+   {
+    "truth": 7712986,
+    "pairs_error": 20,
+    "split_error": 2,
+    "split_reads": 10
+   },
+   {
+    "truth": 8187249,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 10
+   },
+   {
+    "truth": 8314431,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 10
+   },
+   {
+    "truth": 8505317,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 19
+   },
+   {
+    "truth": 9625440,
+    "pairs_error": 1,
+    "split_error": 1,
+    "split_reads": 22
+   }
+  ],
+  "passed": 20,
+  "passed_without_split_reads": 20,
+  "seconds_with": 1.71,
+  "seconds_without": 1.81
+ },
+ {
+  "run": "cov10_chim30000_s7",
+  "sites": [
+   {
+    "truth": 639072,
+    "pairs_error": 82,
+    "split_error": 1,
+    "split_reads": 5
+   },
+   {
+    "truth": 820111,
+    "pairs_error": 5,
+    "split_error": 1,
+    "split_reads": 9
+   },
+   {
+    "truth": 983060,
+    "pairs_error": 1,
+    "split_error": 0,
+    "split_reads": 11
+   },
+   {
+    "truth": 1181979,
+    "pairs_error": 101,
+    "split_error": 0,
+    "split_reads": 7
+   },
+   {
+    "truth": 1225279,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 6
+   },
+   {
+    "truth": 1451955,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 13
+   },
+   {
+    "truth": 1531911,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 14
+   },
+   {
+    "truth": 1589240,
+    "pairs_error": 1,
+    "split_error": 1,
+    "split_reads": 17
+   },
+   {
+    "truth": 2540829,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 11
+   },
+   {
+    "truth": 3612037,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 17
+   },
+   {
+    "truth": 4047655,
+    "pairs_error": 247,
+    "split_error": 0,
+    "split_reads": 11
+   },
+   {
+    "truth": 5443012,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 18
+   },
+   {
+    "truth": 6145241,
+    "pairs_error": 467,
+    "split_error": 0,
+    "split_reads": 3
+   },
+   {
+    "truth": 6634039,
+    "pairs_error": 371,
+    "split_error": 0,
+    "split_reads": 8
+   },
+   {
+    "truth": 7025764,
+    "pairs_error": 322,
+    "split_error": 0,
+    "split_reads": 8
+   },
+   {
+    "truth": 7285367,
+    "pairs_error": 17,
+    "split_error": 0,
+    "split_reads": 6
+   },
+   {
+    "truth": 8523358,
+    "pairs_error": 362,
+    "split_error": 1,
+    "split_reads": 13
+   },
+   {
+    "truth": 9000608,
+    "pairs_error": 167,
+    "split_error": 0,
+    "split_reads": 8
+   },
+   {
+    "truth": 9255038,
+    "pairs_error": 1,
+    "split_error": 1,
+    "split_reads": 16
+   },
+   {
+    "truth": 9787560,
+    "pairs_error": 500,
+    "split_error": 0,
+    "split_reads": 13
+   }
+  ],
+  "passed": 20,
+  "passed_without_split_reads": 20,
+  "seconds_with": 5.01,
+  "seconds_without": 4.24
+ },
+ {
+  "run": "cov10_chim30000_s8",
+  "sites": [
+   {
+    "truth": 518244,
+    "pairs_error": 67,
+    "split_error": 1,
+    "split_reads": 5
+   },
+   {
+    "truth": 744480,
+    "pairs_error": 174,
+    "split_error": 0,
+    "split_reads": 7
+   },
+   {
+    "truth": 1439171,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 11
+   },
+   {
+    "truth": 2129480,
+    "pairs_error": 376,
+    "split_error": 0,
+    "split_reads": 3
+   },
+   {
+    "truth": 2305844,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 11
+   },
+   {
+    "truth": 3249959,
+    "pairs_error": 553,
+    "split_error": 1,
+    "split_reads": 5
+   },
+   {
+    "truth": 3523109,
+    "pairs_error": 2,
+    "split_error": 2,
+    "split_reads": 18
+   },
+   {
+    "truth": 3523109,
+    "pairs_error": 63,
+    "split_error": 1,
+    "split_reads": 7
+   },
+   {
+    "truth": 3813493,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 15
+   },
+   {
+    "truth": 4161370,
+    "pairs_error": 2,
+    "split_error": 2,
+    "split_reads": 18
+   },
+   {
+    "truth": 6224479,
+    "pairs_error": 213,
+    "split_error": 0,
+    "split_reads": 7
+   },
+   {
+    "truth": 6307654,
+    "pairs_error": 376,
+    "split_error": 0,
+    "split_reads": 4
+   },
+   {
+    "truth": 6561133,
+    "pairs_error": 259,
+    "split_error": 0,
+    "split_reads": 5
+   },
+   {
+    "truth": 6732802,
+    "pairs_error": 166,
+    "split_error": 1,
+    "split_reads": 6
+   },
+   {
+    "truth": 6765912,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 8
+   },
+   {
+    "truth": 7612300,
+    "pairs_error": 339,
+    "split_error": 0,
+    "split_reads": 6
+   },
+   {
+    "truth": 7712986,
+    "pairs_error": 455,
+    "split_error": 1,
+    "split_reads": 4
+   },
+   {
+    "truth": 8187249,
+    "pairs_error": 165,
+    "split_error": 0,
+    "split_reads": 5
+   },
+   {
+    "truth": 8314431,
+    "pairs_error": 254,
+    "split_error": 0,
+    "split_reads": 4
+   },
+   {
+    "truth": 8505317,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 19
+   },
+   {
+    "truth": 9625440,
+    "pairs_error": 179,
+    "split_error": 0,
+    "split_reads": 10
+   }
+  ],
+  "passed": 21,
+  "passed_without_split_reads": 21,
+  "seconds_with": 4.35,
+  "seconds_without": 4.01
+ },
+ {
+  "run": "cov5_chim2000_s7",
+  "sites": [
+   {
+    "truth": 639072,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 7
+   },
+   {
+    "truth": 820111,
+    "pairs_error": 4,
+    "split_error": 1,
+    "split_reads": 7
+   },
+   {
+    "truth": 983060,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 2
+   },
+   {
+    "truth": 1181979,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 8
+   },
+   {
+    "truth": 1225279,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 3
+   },
+   {
+    "truth": 1451955,
+    "pairs_error": 11,
+    "split_error": 0,
+    "split_reads": 6
+   },
+   {
+    "truth": 1531911,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 8
+   },
+   {
+    "truth": 1589240,
+    "pairs_error": 49,
+    "split_error": 1,
+    "split_reads": 8
+   },
+   {
+    "truth": 2540829,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 7
+   },
+   {
+    "truth": 3612037,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 9
+   },
+   {
+    "truth": 4047655,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 10
+   },
+   {
+    "truth": 5443012,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 7
+   },
+   {
+    "truth": 6145241,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 5
+   },
+   {
+    "truth": 6634039,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 13
+   },
+   {
+    "truth": 7025764,
+    "pairs_error": 49,
+    "split_error": 0,
+    "split_reads": 5
+   },
+   {
+    "truth": 7285367,
+    "pairs_error": 71,
+    "split_error": null,
+    "split_reads": 0
+   },
+   {
+    "truth": 8523358,
+    "pairs_error": 1,
+    "split_error": 1,
+    "split_reads": 11
+   },
+   {
+    "truth": 9000608,
+    "pairs_error": 38,
+    "split_error": 0,
+    "split_reads": 3
+   },
+   {
+    "truth": 9255038,
+    "pairs_error": 113,
+    "split_error": 0,
+    "split_reads": 4
+   },
+   {
+    "truth": 9787560,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 19
+   }
+  ],
+  "passed": 21,
+  "passed_without_split_reads": 21,
+  "seconds_with": 0.91,
+  "seconds_without": 1.07
+ },
+ {
+  "run": "cov5_chim2000_s8",
+  "sites": [
+   {
+    "truth": 518244,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 10
+   },
+   {
+    "truth": 744480,
+    "pairs_error": 14,
+    "split_error": 0,
+    "split_reads": 7
+   },
+   {
+    "truth": 1439171,
+    "pairs_error": 2,
+    "split_error": 0,
+    "split_reads": 4
+   },
+   {
+    "truth": 2129480,
+    "pairs_error": 1,
+    "split_error": 1,
+    "split_reads": 3
+   },
+   {
+    "truth": 2305844,
+    "pairs_error": 28,
+    "split_error": 0,
+    "split_reads": 2
+   },
+   {
+    "truth": 3249959,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 7
+   },
+   {
+    "truth": 3523109,
+    "pairs_error": 2,
+    "split_error": 2,
+    "split_reads": 12
+   },
+   {
+    "truth": 3813493,
+    "pairs_error": 0,
+    "split_error": 1,
+    "split_reads": 4
+   },
+   {
+    "truth": 4161370,
+    "pairs_error": 2,
+    "split_error": 2,
+    "split_reads": 7
+   },
+   {
+    "truth": 6224479,
+    "pairs_error": 32,
+    "split_error": 0,
+    "split_reads": 4
+   },
+   {
+    "truth": 6307654,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 8
+   },
+   {
+    "truth": 6561133,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 5
+   },
+   {
+    "truth": 6732802,
+    "pairs_error": 1,
+    "split_error": 1,
+    "split_reads": 4
+   },
+   {
+    "truth": 6765912,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 2
+   },
+   {
+    "truth": 7612300,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 8
+   },
+   {
+    "truth": 7712986,
+    "pairs_error": 20,
+    "split_error": 2,
+    "split_reads": 3
+   },
+   {
+    "truth": 8187249,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 5
+   },
+   {
+    "truth": 8314431,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 7
+   },
+   {
+    "truth": 8505317,
+    "pairs_error": 26,
+    "split_error": 0,
+    "split_reads": 7
+   },
+   {
+    "truth": 9625440,
+    "pairs_error": 1,
+    "split_error": 1,
+    "split_reads": 12
+   }
+  ],
+  "passed": 20,
+  "passed_without_split_reads": 20,
+  "seconds_with": 1.07,
+  "seconds_without": 0.94
+ },
+ {
+  "run": "cov5_chim30000_s7",
+  "sites": [
+   {
+    "truth": 639072,
+    "pairs_error": 82,
+    "split_error": 1,
+    "split_reads": 2
+   },
+   {
+    "truth": 820111,
+    "pairs_error": 4,
+    "split_error": 1,
+    "split_reads": 7
+   },
+   {
+    "truth": 983060,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 2
+   },
+   {
+    "truth": 1181979,
+    "pairs_error": 101,
+    "split_error": 0,
+    "split_reads": 6
+   },
+   {
+    "truth": 1225279,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 3
+   },
+   {
+    "truth": 1451955,
+    "pairs_error": 11,
+    "split_error": 0,
+    "split_reads": 6
+   },
+   {
+    "truth": 1531911,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 8
+   },
+   {
+    "truth": 1589240,
+    "pairs_error": 49,
+    "split_error": 1,
+    "split_reads": 8
+   },
+   {
+    "truth": 2540829,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 7
+   },
+   {
+    "truth": 3612037,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 9
+   },
+   {
+    "truth": 4047655,
+    "pairs_error": 247,
+    "split_error": 0,
+    "split_reads": 7
+   },
+   {
+    "truth": 5443012,
+    "pairs_error": 0,
+    "split_error": 0,
+    "split_reads": 7
+   },
+   {
+    "truth": 6145241,
+    "pairs_error": 467,
+    "split_error": null,
+    "split_reads": 0
+   },
+   {
+    "truth": 6634039,
+    "pairs_error": 371,
+    "split_error": 0,
+    "split_reads": 6
+   },
+   {
+    "truth": 8523358,
+    "pairs_error": 362,
+    "split_error": 1,
+    "split_reads": 8
+   },
+   {
+    "truth": 9000608,
+    "pairs_error": 167,
+    "split_error": 0,
+    "split_reads": 3
+   },
+   {
+    "truth": 9255038,
+    "pairs_error": 113,
+    "split_error": 0,
+    "split_reads": 4
+   },
+   {
+    "truth": 9787560,
+    "pairs_error": 500,
+    "split_error": 0,
+    "split_reads": 12
+   }
+  ],
+  "passed": 18,
+  "passed_without_split_reads": 18,
+  "seconds_with": 3.47,
+  "seconds_without": 3.8
+ },
+ {
+  "run": "cov5_chim30000_s8",
+  "sites": [
+   {
+    "truth": 518244,
+    "pairs_error": 67,
+    "split_error": 1,
+    "split_reads": 5
+   },
+   {
+    "truth": 744480,
+    "pairs_error": 174,
+    "split_error": 0,
+    "split_reads": 4
+   },
+   {
+    "truth": 1439171,
+    "pairs_error": 2,
+    "split_error": 0,
+    "split_reads": 4
+   },
+   {
+    "truth": 2305844,
+    "pairs_error": 28,
+    "split_error": 0,
+    "split_reads": 2
+   },
+   {
+    "truth": 3249959,
+    "pairs_error": 553,
+    "split_error": 1,
+    "split_reads": 4
+   },
+   {
+    "truth": 3523109,
+    "pairs_error": 2,
+    "split_error": 2,
+    "split_reads": 12
+   },
+   {
+    "truth": 3813493,
+    "pairs_error": 0,
+    "split_error": 1,
+    "split_reads": 4
+   },
+   {
+    "truth": 4161370,
+    "pairs_error": 2,
+    "split_error": 2,
+    "split_reads": 7
+   },
+   {
+    "truth": 6224479,
+    "pairs_error": 213,
+    "split_error": 0,
+    "split_reads": 4
+   },
+   {
+    "truth": 6307654,
+    "pairs_error": 376,
+    "split_error": 0,
+    "split_reads": 2
+   },
+   {
+    "truth": 6561133,
+    "pairs_error": 259,
+    "split_error": 0,
+    "split_reads": 3
+   },
+   {
+    "truth": 6732802,
+    "pairs_error": 166,
+    "split_error": 1,
+    "split_reads": 2
+   },
+   {
+    "truth": 7612300,
+    "pairs_error": 339,
+    "split_error": 0,
+    "split_reads": 4
+   },
+   {
+    "truth": 7712986,
+    "pairs_error": 455,
+    "split_error": null,
+    "split_reads": 0
+   },
+   {
+    "truth": 8187249,
+    "pairs_error": 165,
+    "split_error": 0,
+    "split_reads": 2
+   },
+   {
+    "truth": 8314431,
+    "pairs_error": 254,
+    "split_error": 0,
+    "split_reads": 3
+   },
+   {
+    "truth": 8505317,
+    "pairs_error": 26,
+    "split_error": 0,
+    "split_reads": 7
+   },
+   {
+    "truth": 9625440,
+    "pairs_error": 179,
+    "split_error": 0,
+    "split_reads": 6
+   }
+  ],
+  "passed": 18,
+  "passed_without_split_reads": 18,
+  "seconds_with": 3.39,
+  "seconds_without": 3.1
+ }
+]

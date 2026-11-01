@@ -206,6 +206,8 @@ def main():
     p.add_argument("--lgtseek-lib", help="LGTSeek perl5 lib directory; also runs LGTSeek's read classification")
     p.add_argument("--bacteria-index", help="BWA index of the bacterial reference genomes, for LGTSeek")
     p.add_argument("--min-lgtseek-pairs", type=int, default=3)
+    p.add_argument("--keep-sorted-bam", action="store_true",
+                   help="Keep a sorted, indexed copy of the host alignment (host.sorted.bam), for junctions.py")
     args = p.parse_args()
 
     out = Path(args.outdir)
@@ -294,6 +296,9 @@ def main():
         summary["lgtseek"] = evaluate(lgtseek_sites, truth)
     (out / "summary.json").write_text(json.dumps(summary, indent=2))
     print(json.dumps(summary))
+    if args.keep_sorted_bam:
+        run(["samtools", "sort", "-@", str(args.threads), "-o", out / "host.sorted.bam", out / "host.bam"])
+        run(["samtools", "index", out / "host.sorted.bam"])
     for f in ["s_1.fq", "s_2.fq", "c_1.fq", "c_2.fq", "x_1.fq", "x_2.fq", "reads_1.fq", "reads_2.fq",
               "host.bam", "donor.bam"]:
         (out / f).unlink(missing_ok=True)

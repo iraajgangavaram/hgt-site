@@ -1,9 +1,10 @@
 """Draw the README benchmark figures, in light and dark versions.
 
-Usage: python figures.py <accuracy.json> <scaling.json> <outdir>
+Usage: python figures.py <accuracy.json> <scaling.json> <junctions.json> <outdir>
 
-accuracy.json: list of {sim, cov, chim, seed, method, precision, recall, calls}
-scaling.json:  list of {records, version, median}
+accuracy.json:  list of {sim, cov, chim, seed, method, precision, recall, calls}
+scaling.json:   list of {records, version, median}
+junctions.json: output of junctions.py
 """
 
 import json
@@ -94,7 +95,7 @@ def speed(out):
         style(ax, c)
         ax.grid(axis="x", color=c["grid"], lw=0.8)
         ax.grid(axis="y", visible=False)
-        for y, (name, prep, prep_label, call, colour) in enumerate(tools):
+        for y, (_name, prep, prep_label, call, colour) in enumerate(tools):
             ax.barh(y, prep, color=c[colour], alpha=0.35, height=0.42, edgecolor="none")
             ax.barh(y, call, left=prep + 0.6, color=c[colour], height=0.42, edgecolor="none")
             ax.text(prep + call + 3, y, f"{prep + call:.0f} s", va="center", color=c["text"], fontsize=10.5,
@@ -160,10 +161,48 @@ def fragments(out):
         save(fig, out, "benchmark_fragments", mode)
 
 
+def junctions(runs, out):
+    """How close each junction is, with read pairs alone and with split reads."""
+    sites = [s for run in runs for s in run["sites"]]
+    pairs = sorted(s["pairs_error"] for s in sites)
+    split = sorted(s["split_error"] if s["split_error"] is not None else s["pairs_error"] for s in sites)
+    n = len(sites)
+    cuts = [0, 1, 2, 5, 10, 25, 50]
+
+    def share(values):
+        return [100 * sum(v <= c for v in values) / n for c in cuts]
+
+    for mode, c in THEMES.items():
+        fig, ax = plt.subplots(figsize=(7.2, 3.6), dpi=100)
+        style(ax, c)
+        x = range(len(cuts))
+        w = 0.36
+        for offset, values, colour, label in (
+            (-w / 2 - 0.01, pairs, "alt", "Read pairs only"),
+            (w / 2 + 0.01, split, "hgt", "With split reads"),
+        ):
+            heights = share(values)
+            ax.bar([i + offset for i in x], heights, w, color=c[colour], edgecolor="none", label=label)
+            for i, h in enumerate(heights):
+                ax.text(i + offset, h + 1.5, f"{h:.0f}", ha="center", color=c["text"], fontsize=9)
+        ax.set_xticks(list(x), ["exact"] + [f"{v} bp" for v in cuts[1:]])
+        ax.set_ylim(0, 126)
+        ax.set_yticks([0, 25, 50, 75, 100], ["0", "25%", "50%", "75%", "100%"])
+        ax.set_ylabel("Insertions placed this close", color=c["muted"], fontsize=10)
+        ax.set_xlabel("Distance from the true junction", color=c["muted"], fontsize=10)
+        ax.set_title(f"Junction accuracy, {n} insertions", color=c["text"], fontsize=11, loc="left")
+        leg = ax.legend(loc="upper right", bbox_to_anchor=(1, 1.04), ncol=2, frameon=False, fontsize=9.5)
+        for text in leg.get_texts():
+            text.set_color(c["text"])
+        fig.tight_layout()
+        save(fig, out, "benchmark_junctions", mode)
+
+
 if __name__ == "__main__":
-    acc, scale, outdir = sys.argv[1:4]
+    acc, scale, junc, outdir = sys.argv[1:5]
     Path(outdir).mkdir(parents=True, exist_ok=True)
     accuracy(json.load(open(acc)), outdir)
     speed(outdir)
     scaling(json.load(open(scale)), outdir)
     fragments(outdir)
+    junctions(json.load(open(junc)), outdir)
