@@ -47,3 +47,13 @@ def test_cli_runs(sim, tmp_path):
     ])
     assert code == 0
     assert out.read_text().startswith("chrom\tstart")
+
+
+def test_simulated_sam_has_mate_positions(sim):
+    with open(f"{sim}.sam") as handle:
+        for line in handle:
+            if line.startswith("@"):
+                continue
+            cols = line.split("\t")
+            if not int(cols[1]) & 0x8:
+                assert int(cols[7]) > 0, "a mapped mate must have a position"

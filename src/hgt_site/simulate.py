@@ -122,6 +122,15 @@ class _Writer:
         name = f"pair{self.n}"
         m1, m2 = r1[0], r2[0]
         mate_taxid = None
+
+        def placement(read, mate):
+            # SAM convention: an unmapped read with a mapped mate takes the mate's position.
+            if read[0]:
+                return chrom, read[1] + 1
+            if mate[0]:
+                return chrom, mate[1] + 1
+            return "*", 0
+
         for this, other, first in ((r1, r2, True), (r2, r1, False)):
             mapped, hstart, cigar, taxid, seq, rev = this
             flag = 0x1 | (0x40 if first else 0x80)
@@ -133,15 +142,13 @@ class _Writer:
                 flag |= 0x10
             if other[5]:
                 flag |= 0x20
-            if mapped:
-                rname, pos, mapq = chrom, hstart + 1, 60
-            elif other[0]:
-                rname, pos, mapq = chrom, other[1] + 1, 0
-            else:
-                rname, pos, mapq = "*", 0, 0
+            rname, pos = placement(this, other)
+            mate_rname, mate_pos = placement(other, this)
+            rnext = "=" if mate_rname == rname else mate_rname
+            mapq = 60 if mapped else 0
             qual = "I" * len(seq)
             self.sam.append(
-                f"{name}\t{flag}\t{rname}\t{pos}\t{mapq}\t{cigar}\t=\t0\t0\t{seq}\t{qual}"
+                f"{name}\t{flag}\t{rname}\t{pos}\t{mapq}\t{cigar}\t{rnext}\t{mate_pos}\t0\t{seq}\t{qual}"
             )
             if not mapped:
                 mate_taxid = taxid
