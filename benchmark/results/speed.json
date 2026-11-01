@@ -1,0 +1,11 @@
+{
+ "note": "2.1 million records, 2 CPU cores. hgt-site calling is the median of 5 runs.",
+ "hgt_site": {
+  "kraken2_unmapped_s": 12.0,
+  "calling_s": 2.7
+ },
+ "lgtseek": {
+  "second_alignment_s": 129.0,
+  "classification_s": 25.3
+ }
+}

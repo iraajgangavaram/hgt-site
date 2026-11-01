@@ -1,0 +1,37 @@
+{
+ "note": "Built-in simulator, 20 seeds per fragment length, 5 insertions per seed, 300 chimeric pairs, 4,000 contaminant pairs. calls = sites that passed every filter; real = insertions.",
+ "fixed_limits": {
+  "400": {
+   "calls": 100,
+   "true_calls": 100,
+   "insertions": 100
+  },
+  "800": {
+   "calls": 201,
+   "true_calls": 200,
+   "insertions": 100
+  },
+  "1000": {
+   "calls": 239,
+   "true_calls": 203,
+   "insertions": 100
+  }
+ },
+ "measured_limits": {
+  "400": {
+   "calls": 100,
+   "true_calls": 100,
+   "insertions": 100
+  },
+  "800": {
+   "calls": 113,
+   "true_calls": 113,
+   "insertions": 100
+  },
+  "1000": {
+   "calls": 121,
+   "true_calls": 118,
+   "insertions": 100
+  }
+ }
+}
