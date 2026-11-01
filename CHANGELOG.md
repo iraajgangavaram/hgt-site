@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 (2026-11-01)
 
 - More than twice as fast on large BAM and CRAM files: reads whose pair is fully mapped are now skipped before any other work. A new `--threads` option uses more cores to read BAM and CRAM files.
 - `--kraken` accepts several files, such as the two that nf-core/hgtseq writes for each sample.
