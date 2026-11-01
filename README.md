@@ -9,7 +9,7 @@
   <a href="https://github.com/iraajgangavaram/hgt-site/actions/workflows/tests.yml"><img alt="tests" src="https://github.com/iraajgangavaram/hgt-site/actions/workflows/tests.yml/badge.svg"></a>
   <a href="https://github.com/iraajgangavaram/hgt-site/releases"><img alt="release" src="https://img.shields.io/github/v/release/iraajgangavaram/hgt-site?color=2a78d6"></a>
   <a href="https://pypi.org/project/hgt-site/"><img alt="PyPI" src="https://img.shields.io/pypi/v/hgt-site?color=2a78d6"></a>
-  <img alt="Python 3.9 to 3.13" src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-2a78d6">
+  <img alt="Python 3.10 to 3.13" src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-2a78d6">
   <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-52514e"></a>
   <a href="https://doi.org/10.5281/zenodo.23842712"><img alt="DOI" src="https://zenodo.org/badge/1441009191.svg"></a>
 </p>

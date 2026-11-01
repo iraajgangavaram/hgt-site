@@ -9,6 +9,7 @@
 - Clustering limits are widened automatically for libraries with fragments longer than about 500 bp, using fragment sizes measured from properly paired reads.
 - hgt-site now reports how many anchored pairs it found and how many have a Kraken2 call, and warns if the Kraken2 file does not seem to match the alignment.
 - `hgt-site simulate` now fills in mate positions and marks properly paired reads, so its SAM files convert cleanly to BAM.
+- Python 3.10 or newer is now needed. Python 3.9 no longer gets security updates.
 
 ## 0.1.1 (2026-10-31)
 
