@@ -21,6 +21,7 @@
   <a href="#output">Output</a> ·
   <a href="#benchmark-on-real-genomes">Benchmarks</a> ·
   <a href="#speed">Speed</a> ·
+  <a href="https://iraajgangavaram.github.io/hgt-site/for-labs/">Is it worth trying?</a> ·
   <a href="#citation">Citation</a>
 </p>
 
@@ -358,7 +359,15 @@ pip install ".[test]"
 pytest
 ```
 
-30 tests cover the units, the simulated data, BAM and CRAM input, the output formats and the exact junctions. They run on GitHub for Python 3.10 to 3.13. Code style is checked with `ruff check src tests benchmark`.
+35 tests cover the units, the simulated data, BAM and CRAM input, the output formats, the exact junctions and that results do not depend on the order of records in the file. They run on GitHub for Python 3.10 to 3.13. Code style is checked with `ruff check src tests benchmark`.
+
+## Contributing
+
+Bug reports, criticism of the method and runs on real data are all welcome, and there is no need to ask first. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+The most useful thing anyone can send is a run on real sequencing data, including one that found nothing. There is an [issue template](https://github.com/iraajgangavaram/hgt-site/issues/new?template=real_data_report.yml) for it that asks about the sample and the output and nothing about the data itself. Reports that go into the documentation are credited by name.
+
+If hgt-site is useful to you, starring the repository helps other people find it.
 
 ## Use of generative AI
 

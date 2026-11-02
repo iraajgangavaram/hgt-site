@@ -1,0 +1,10 @@
+blank_issues_enabled: true
+contact_links:
+  - name: A question about using hgt-site
+    url: https://github.com/iraajgangavaram/hgt-site/discussions
+    about: >-
+      How to prepare inputs, what a column means, whether a site is worth
+      following up. Ask here rather than opening an issue.
+  - name: Documentation
+    url: https://iraajgangavaram.github.io/hgt-site/
+    about: Installation, usage, the method, the benchmarks and the limitations.

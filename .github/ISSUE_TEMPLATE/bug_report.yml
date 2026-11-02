@@ -1,0 +1,84 @@
+name: Something went wrong
+description: hgt-site crashed, refused to run, or produced output that looks wrong
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filling this in, it is worth checking that you are on the latest
+        release (`hgt-site --version`, compared with
+        [the releases page](https://github.com/iraajgangavaram/hgt-site/releases)),
+        since the problem may already be fixed.
+
+        If hgt-site ran but you disagree with the sites it reported, that is a
+        bug too, and this is the right place for it.
+
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What happened
+      description: What you expected, and what you got instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: command
+    attributes:
+      label: The command you ran
+      description: The whole command, with the thresholds you set, if any.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: messages
+    attributes:
+      label: What it printed
+      description: >-
+        Everything hgt-site wrote to the terminal, including the INFO lines,
+        which say how many anchored pairs it found and how many had a Kraken2
+        call. If it crashed, the whole traceback.
+      render: shell
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: hgt-site version
+      description: The output of `hgt-site --version`.
+      placeholder: "0.3.0"
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Python and operating system
+      placeholder: "Python 3.12, Ubuntu 24.04"
+    validations:
+      required: true
+
+  - type: textarea
+    id: input
+    attributes:
+      label: Your input
+      description: >-
+        How the alignment was made, which aligner and reference, whether it is
+        BAM, CRAM or SAM, whether it is indexed, and whether it still holds the
+        pairs where both mates mapped. Which Kraken2 database, and roughly how
+        many reads.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: data
+    attributes:
+      label: Can you share anything to reproduce it?
+      description: >-
+        Not required, and please do not attach anything you are not allowed to
+        share. A region of the alignment is usually enough: `samtools view -b
+        in.bam chr1:1000000-1100000 > small.bam` and the matching Kraken2 lines.
+      options:
+        - label: I can share a small piece of the input
+        - label: I cannot share the data, but I can run commands on it and report what happens

@@ -1,0 +1,109 @@
+name: A run on real data
+description: You ran hgt-site on real sequencing data and want to report what came out
+labels: ["real-data"]
+title: "real data: <organism or sample type>, <number of reads>, v<version>"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        hgt-site has been tested on simulated reads from real genomes, and not
+        yet on real sequencing data with confirmed integrations. That is the
+        biggest open question about it, and a report here is the most useful
+        thing anyone can send.
+
+        A report is worth filing whether the result was good, bad or unclear. A
+        run that found nothing where something was expected is more useful than
+        one that worked, and so is a run on a sample with no known integrations,
+        because that says something about the false positive rate.
+
+        Nothing here asks for your data. If you are willing to say what the
+        sample was and what came out, that is enough.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: "One or two sentences: what the sample was, what you ran, what came out."
+      placeholder: >-
+        Ran hgt-site 0.3.0 on a cervical tumour WGS sample with a known HPV18
+        integration; it reported 4 sites, one of them within 300 bp of the
+        published integration point.
+    validations:
+      required: true
+
+  - type: input
+    id: sample
+    attributes:
+      label: The sample
+      description: >-
+        Organism, tissue or sample type, and whether it is public. An accession
+        if there is one.
+    validations:
+      required: true
+
+  - type: input
+    id: scale
+    attributes:
+      label: Reads and coverage
+      placeholder: "420 million pairs, about 30x"
+    validations:
+      required: true
+
+  - type: textarea
+    id: inputs
+    attributes:
+      label: How the inputs were made
+      description: >-
+        Aligner and reference build, whether the alignment kept both mates, and
+        which Kraken2 database.
+    validations:
+      required: true
+
+  - type: textarea
+    id: command
+    attributes:
+      label: The command
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: results
+    attributes:
+      label: What came out
+      description: >-
+        How many candidate sites, how many passed, and which flags the rest
+        failed on. If you can paste the rows that passed, with the taxid,
+        n_pairs, expected_pairs and qvalue columns, that is ideal.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expectations
+    attributes:
+      label: Was anything known in advance?
+      description: >-
+        A published integration, a PCR-confirmed site, a positive control, or a
+        sample that should contain nothing. This is what turns a run into
+        evidence.
+    validations:
+      required: false
+
+  - type: input
+    id: resources
+    attributes:
+      label: Time and memory
+      description: Wall time and peak memory, if you happened to record them.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: credit
+    attributes:
+      label: Credit
+      description: >-
+        Reports that go into the documentation are credited by name unless you
+        would rather they were not.
+      options:
+        - label: Happy to be named if this is written up
+        - label: Please keep this anonymous

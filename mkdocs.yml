@@ -18,6 +18,7 @@ nav:
   - Output: output.md
   - How it works: method.md
   - Benchmarks: benchmarks.md
+  - Is it worth trying?: for-labs.md
   - Citation: citation.md
 
 theme:
