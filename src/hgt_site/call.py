@@ -2,6 +2,8 @@
 
 import csv
 import logging
+import math
+import time
 
 from .alignments import collect_pairs, count_by_taxon
 from .breakpoints import find_breakpoints
@@ -128,8 +130,13 @@ def call_sites(
         summary.update(
             anchored_pairs=len(pairs.anchors), anchored_pairs_with_call=len(with_call),
             foreign_anchored_pairs=len(foreign), both_unmapped_pairs=len(pairs.both_unmapped),
+            contig_lengths=dict(pairs.contig_lengths),
         )
     settings = fit_limits(pairs, settings, user_set)
+    if summary is not None:
+        # After fit_limits, so these are the limits actually used rather than
+        # the ones asked for. The VCF header records them.
+        summary["settings"] = dict(settings)
     if not foreign:
         return []
 
@@ -220,26 +227,100 @@ def _precise(site):
     return bool(st.get("left_split_reads") or st.get("right_split_reads"))
 
 
-def write_vcf(sites, path, version="unknown"):
+# The highest QUAL we report. A q-value of zero after rounding would otherwise
+# give infinity, and no caller gains anything from a larger number.
+MAX_QUAL = 1000
+
+
+def _qual(site):
+    """Phred-scale the q-value, so the VCF can be filtered on QUAL.
+
+    A site that fails the enrichment test still gets its score, because FILTER
+    already says it failed and a reader may want to rank the failures.
+    """
+    q = site.stats.get("qvalue")
+    if q is None or q == "":
+        return "."
+    q = float(q)
+    if q <= 0:
+        return str(MAX_QUAL)
+    if q >= 1:
+        return "0"
+    return f"{min(MAX_QUAL, -10 * math.log10(q)):.1f}"
+
+
+def _confidence_interval(site, pos):
+    """How far the junction could be from pos, as the VCF CIPOS pair.
+
+    With split reads the position is exact and there is no interval. Without
+    them, the two sides of the junction give two estimates, and the junction
+    lies between them. If only one side has anchors there is no second
+    estimate, so the interval is the whole region the anchors cover, which is
+    the most that can honestly be said.
+    """
+    st = site.stats
+    estimates = [int(st[key]) for key in ("left_junction", "right_junction") if _given(st.get(key))]
+    if len(estimates) < 2:
+        estimates = [site.start + 1, site.end]
+    low = min(min(estimates), pos) - pos
+    high = max(max(estimates), pos) - pos
+    return low, high
+
+
+def _settings_lines(settings):
+    for key in sorted(settings):
+        yield f"##hgt_siteSetting=<ID={key},Value={settings[key]}>"
+
+
+def write_vcf(sites, path, version="unknown", contigs=None, command=None, settings=None,
+              sample=None, reference=None):
     """Write every candidate site as a VCF insertion record.
 
     FILTER is PASS for sites that passed every filter, otherwise the failing
     flags. The reference base is not known to hgt-site, so REF is N and ALT is
     the symbolic allele <INS>.
+
+    contigs maps contig name to length, taken from the alignment header, and is
+    written into the header so other tools can index the file. command and
+    settings are recorded so a file can be traced back to how it was made. If
+    path ends in .gz the output is block compressed and indexed with tabix.
+
+    A single sample column is written, with the paired and split read counts.
+    The genotype is always ./. because hgt-site counts the reads supporting a
+    junction and does not call how many copies of the host carry it.
     """
     ordered = sorted(sites, key=lambda s: (s.chrom, _junction(s)))
-    contigs = sorted({s.chrom for s in ordered})
-    with open(path, "w") as handle:
+    contigs = contigs or {}
+    names = sorted({s.chrom for s in ordered} | set(contigs))
+    sample = sample or "SAMPLE"
+    compress = str(path).endswith(".gz")
+    text_path = str(path)[: -len(".gz")] if compress else str(path)
+
+    with open(text_path, "w") as handle:
         handle.write("##fileformat=VCFv4.2\n")
+        handle.write(f"##fileDate={time.strftime('%Y%m%d')}\n")
         handle.write(f"##source=hgt-site {version}\n")
-        for contig in contigs:
-            handle.write(f"##contig=<ID={contig}>\n")
+        if reference:
+            handle.write(f"##reference={reference}\n")
+        if command:
+            handle.write(f"##hgt_siteCommand={command}\n")
+        if settings:
+            for line in _settings_lines(settings):
+                handle.write(line + "\n")
+        for name in names:
+            length = contigs.get(name)
+            if length:
+                handle.write(f"##contig=<ID={name},length={length}>\n")
+            else:
+                handle.write(f"##contig=<ID={name}>\n")
         handle.write('##ALT=<ID=INS,Description="Insertion of foreign sequence">\n')
         for name, text in VCF_FILTERS.items():
             handle.write(f'##FILTER=<ID={name},Description="{text}">\n')
         for line in (
             '##INFO=<ID=SVTYPE,Number=1,Type=String,Description="Type of structural variant">',
             '##INFO=<ID=END,Number=1,Type=Integer,Description="End position of the variant">',
+            '##INFO=<ID=CIPOS,Number=2,Type=Integer,Description="Confidence interval around POS for imprecise variants">',
+            '##INFO=<ID=CIEND,Number=2,Type=Integer,Description="Confidence interval around END for imprecise variants">',
             '##INFO=<ID=SITE_START,Number=1,Type=Integer,Description="Start of the host region covered by the anchors (1-based)">',
             '##INFO=<ID=SITE_END,Number=1,Type=Integer,Description="End of the host region covered by the anchors">',
             '##INFO=<ID=TAXID,Number=1,Type=Integer,Description="NCBI taxid of the main foreign taxon">',
@@ -251,12 +332,16 @@ def write_vcf(sites, path, version="unknown"):
             '##INFO=<ID=SPLIT_RIGHT,Number=1,Type=Integer,Description="Split reads at the junction on the reverse-anchor side">',
             '##INFO=<ID=IMPRECISE,Number=0,Type=Flag,Description="No split reads; position estimated from read pairs">',
             '##INFO=<ID=ONE_SIDED,Number=0,Type=Flag,Description="Anchors from only one side of the junction">',
+            '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype, always ./. because hgt-site does not genotype insertions">',
+            '##FORMAT=<ID=PR,Number=1,Type=Integer,Description="Read pairs supporting the junction">',
+            '##FORMAT=<ID=SR,Number=1,Type=Integer,Description="Split reads crossing the junction">',
         ):
             handle.write(line + "\n")
-        handle.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
+        handle.write(f"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t{sample}\n")
         for i, site in enumerate(ordered, start=1):
             st = site.stats
             pos = _junction(site)
+            split = int(st.get("left_split_reads") or 0) + int(st.get("right_split_reads") or 0)
             info = [
                 "SVTYPE=INS", f"END={pos}", f"SITE_START={site.start + 1}", f"SITE_END={site.end}",
                 f"TAXID={st['top_taxid']}", f"NPAIRS={st['n_pairs']}", f"NFWD={st['n_forward']}",
@@ -264,13 +349,31 @@ def write_vcf(sites, path, version="unknown"):
                 f"SPLIT_LEFT={st.get('left_split_reads', 0)}", f"SPLIT_RIGHT={st.get('right_split_reads', 0)}",
             ]
             if not _precise(site):
+                low, high = _confidence_interval(site, pos)
+                info.append(f"CIPOS={low},{high}")
+                info.append(f"CIEND={low},{high}")
                 info.append("IMPRECISE")
             if "ONE_SIDED" in site.flags:
                 info.append("ONE_SIDED")
             handle.write(
-                f"{site.chrom}\t{pos}\thgtsite_{i}\tN\t<INS>\t.\t{site_filter(site)}\t{';'.join(info)}\n"
+                f"{site.chrom}\t{pos}\thgtsite_{i}\tN\t<INS>\t{_qual(site)}\t{site_filter(site)}\t"
+                f"{';'.join(info)}\tGT:PR:SR\t./.:{st['n_pairs']}:{split}\n"
             )
+
+    if compress:
+        _compress_vcf(text_path, str(path))
     return len(ordered)
+
+
+def _compress_vcf(text_path, gz_path):
+    """Block compress a VCF and index it, so pipelines can use it directly."""
+    import os
+
+    import pysam
+
+    pysam.tabix_compress(text_path, gz_path, force=True)
+    pysam.tabix_index(gz_path, preset="vcf", force=True)
+    os.remove(text_path)
 
 
 def write_multiqc(sites, path, sample, summary=None):

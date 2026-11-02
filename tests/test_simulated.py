@@ -210,6 +210,73 @@ def test_vcf_uses_exact_junction(sim_split, tmp_path):
         assert int(r[1]) in truth  # POS is the last host base before the insertion
 
 
+def test_vcf_header_records_how_it_was_made(sim, tmp_path):
+    vcf = tmp_path / "s.vcf"
+    assert main([
+        "call", "--bam", f"{sim}.sam", "--kraken", f"{sim}.kraken2.txt",
+        "--host-taxid", str(HOST_TAXID), "-o", str(tmp_path / "s.tsv"), "--vcf", str(vcf),
+        "--sample-name", "testsample", "--min-support", "4",
+    ]) == 0
+    text = vcf.read_text()
+    # Contig lengths come from the alignment header, so other tools can index.
+    assert "##contig=<ID=chr1,length=" in text
+    assert "##hgt_siteCommand=hgt-site call " in text
+    # The limits actually used, not the defaults.
+    assert "##hgt_siteSetting=<ID=min_support,Value=4>" in text
+    header = next(line for line in text.splitlines() if line.startswith("#CHROM"))
+    assert header.split("\t")[8:] == ["FORMAT", "testsample"]
+
+
+def test_vcf_quality_and_confidence_interval(sim, tmp_path):
+    vcf = tmp_path / "s.vcf"
+    assert main([
+        "call", "--bam", f"{sim}.sam", "--kraken", f"{sim}.kraken2.txt",
+        "--host-taxid", str(HOST_TAXID), "-o", str(tmp_path / "s.tsv"), "--vcf", str(vcf),
+    ]) == 0
+    pysam = pytest.importorskip("pysam")
+    with pysam.VariantFile(str(vcf)) as handle:
+        records = list(handle)
+    passed = [r for r in records if list(r.filter.keys()) == ["PASS"]]
+    assert len(passed) == 5
+    for record in passed:
+        # A site that passed the enrichment test is well above the q-value
+        # threshold of 0.05, which is a QUAL of about 13.
+        assert record.qual > 13
+        assert record.samples[0]["PR"] == record.info["NPAIRS"]
+        assert record.samples[0]["GT"] == (None, None)
+    failed = [r for r in records if "NOT_ENRICHED" in r.filter.keys()]
+    assert failed and all(r.qual is not None for r in failed)
+    # Almost every junction here is estimated from read pairs rather than from
+    # split reads, and an estimated one has to carry an interval that contains
+    # the position reported.
+    imprecise = [r for r in records if "IMPRECISE" in r.info]
+    assert len(imprecise) > 0.9 * len(records)
+    for record in imprecise:
+        low, high = record.info["CIPOS"]
+        assert low <= 0 <= high
+        assert record.info["CIPOS"] == record.info["CIEND"]
+    # A junction found by split reads is exact, so it carries no interval.
+    for record in records:
+        if "IMPRECISE" not in record.info:
+            assert "CIPOS" not in record.info
+            assert record.samples[0]["SR"] > 0
+
+
+def test_vcf_gz_is_compressed_and_indexed(sim, tmp_path):
+    pysam = pytest.importorskip("pysam")
+    vcf = tmp_path / "s.vcf.gz"
+    assert main([
+        "call", "--bam", f"{sim}.sam", "--kraken", f"{sim}.kraken2.txt",
+        "--host-taxid", str(HOST_TAXID), "-o", str(tmp_path / "s.tsv"), "--vcf", str(vcf),
+    ]) == 0
+    assert vcf.exists() and (tmp_path / "s.vcf.gz.tbi").exists()
+    assert not (tmp_path / "s.vcf").exists()
+    assert vcf.read_bytes()[:2] == b"\x1f\x8b"
+    with pysam.VariantFile(str(vcf)) as handle:
+        # A region query only works on an indexed file.
+        assert list(handle.fetch("chr1"))
+
+
 def test_multiqc_table(sim, tmp_path):
     import json
 

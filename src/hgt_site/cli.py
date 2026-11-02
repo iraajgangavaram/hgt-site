@@ -42,7 +42,9 @@ def _add_common(parser, kraken_required):
     parser.add_argument("-o", "--output", required=True, help="Output TSV")
     parser.add_argument("--bed", help="Also write the sites that passed every filter as a BED file")
     parser.add_argument(
-        "--vcf", help="Also write every candidate site as a VCF file, with PASS or the failing flags in FILTER"
+        "--vcf",
+        help="Also write every candidate site as a VCF file, with PASS or the failing flags in FILTER. "
+             "A name ending in .gz is block compressed and indexed with tabix",
     )
     parser.add_argument("--multiqc", help="Also write a summary table for MultiQC (name it <something>_mqc.json)")
     parser.add_argument("--sample-name", help="Sample name for the MultiQC table (default: the alignment file name)")
@@ -90,12 +92,19 @@ def build_parser():
 
 def _write_outputs(args, sites, summary):
     write_table(sites, args.output)
+    sample = args.sample_name or Path(args.bam).name.split(".")[0]
     if args.bed:
         write_bed(sites, args.bed)
     if args.vcf:
-        write_vcf(sites, args.vcf, __version__)
+        write_vcf(
+            sites, args.vcf, __version__,
+            contigs=summary.get("contig_lengths"),
+            command=args.command_line,
+            settings=summary.get("settings"),
+            sample=sample,
+            reference=args.reference,
+        )
     if args.multiqc:
-        sample = args.sample_name or Path(args.bam).name.split(".")[0]
         write_multiqc(sites, args.multiqc, sample, summary)
     passed = sum(1 for s in sites if site_filter(s) == "PASS")
     print(f"{len(sites)} candidate sites, {passed} passed filters -> {args.output}", file=sys.stderr)
@@ -112,7 +121,12 @@ def _call(args, kraken):
 
 
 def main(argv=None):
-    args = build_parser().parse_args(argv)
+    given = sys.argv[1:] if argv is None else list(argv)
+    args = build_parser().parse_args(given)
+    # Recorded in the VCF header. Taken from what was parsed rather than from
+    # sys.argv, so an embedded call records its own arguments and not the
+    # arguments of whatever program called it.
+    args.command_line = " ".join(["hgt-site", *given])
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s", stream=sys.stderr)
     if args.command == "call":
         _call(args, args.kraken)

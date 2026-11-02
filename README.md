@@ -150,7 +150,7 @@ Other options:
 |---|---|
 | `--threads 4` | Uses more cores to read large BAM or CRAM files |
 | `--bed sites.bed` | Also writes the sites that passed every filter as a BED file, for genome browsers |
-| `--vcf sites.vcf` | Also writes every candidate site as a VCF file, with `PASS` or the failing flags in the FILTER column |
+| `--vcf sites.vcf` | Also writes every candidate site as a VCF file, with `PASS` or the failing flags in the FILTER column. A name ending in `.gz` is compressed and indexed with tabix |
 | `--multiqc sample_mqc.json` | Also writes a summary table that MultiQC picks up, so the counts appear in a pipeline report |
 | `--no-split-reads` | Skips the split-read search, so junctions come from read pairs only |
 | `--nodes nodes.dmp` | Excludes the whole host lineage, not just the host taxid |
@@ -190,7 +190,7 @@ A tab-separated table with one row per candidate site:
 
 With `--bed`, the sites that passed every filter are also written as BED: one line per site, named by the main taxid (for example `taxid_562`), with the number of supporting pairs as the score.
 
-With `--vcf`, every candidate site is written as a VCF 4.2 insertion record (`ALT` is `<INS>`, `SVTYPE=INS`), so the calls can go through the same tools as other structural variants. `POS` is the last host base before the insertion, taken from the split reads where there are any and otherwise from the anchors. The FILTER column holds `PASS` or the failing flags. INFO holds the main taxid, the number of supporting pairs, the pairs on each side of the junction, the q-value, the split-read counts, and an `IMPRECISE` flag when no split reads were found. hgt-site does not read the reference sequence, so `REF` is `N`.
+With `--vcf`, every candidate site is written as a VCF 4.2 insertion record (`ALT` is `<INS>`, `SVTYPE=INS`), so the calls can go through the same tools as other structural variants. `POS` is the last host base before the insertion, taken from the split reads where there are any and otherwise from the anchors. `QUAL` is the q-value on the phred scale, so the file can be filtered with `bcftools view -i 'QUAL>50'`. The FILTER column holds `PASS` or the failing flags. INFO holds the main taxid, the number of supporting pairs, the pairs on each side of the junction, the q-value and the split-read counts. A junction estimated from read pairs carries `IMPRECISE` with `CIPOS` and `CIEND`, which say how far the real junction could be from `POS`; a junction found in split reads is exact and carries no interval. There is one sample column with the paired and split read counts, and the header records the command and every threshold used. A name ending in `.gz` is block compressed and indexed with tabix. hgt-site does not read the reference sequence, so `REF` is `N`.
 
 With `--multiqc`, hgt-site writes a custom-content table that MultiQC finds on its own, as long as the file name ends in `_mqc.json`. It holds the number of candidate sites, the number that passed, how many have an exact junction, and the read counts behind them.
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- The VCF now carries a `QUAL` score, the q-value on the phred scale, so the file can be filtered with `bcftools view -i 'QUAL>50'` instead of being parsed by hand.
+- A junction estimated from read pairs now carries `CIPOS` and `CIEND`, saying how far the real junction could be from the reported position. A junction found in split reads is exact and carries no interval. This is the standard way to state positional uncertainty, and the SV comparison tools use it to decide whether two calls match.
+- The VCF header records the exact command and every threshold used, as `##hgt_siteCommand` and `##hgt_siteSetting` lines, and `##contig` lines now carry contig lengths from the alignment header.
+- The VCF has one sample column, named after the alignment or after `--sample-name`, with the supporting pair count in `PR` and the split-read count in `SR`. `GT` is always `./.`, because hgt-site counts reads supporting a junction and does not genotype it.
+- A `--vcf` name ending in `.gz` is block compressed and indexed with tabix, so it can be queried by region.
+- Fixed: the command recorded in the VCF header came from `sys.argv`, so calling `main()` from another program recorded that program's arguments.
+
 ## 0.3.0 (2026-11-02)
 
 - New `hgt-site run` command: give it a host alignment and a Kraken2 database and it pulls out the unmapped reads, classifies them with Kraken2 and calls the sites in one step. `hgt-site call` is unchanged, for reads a pipeline has already classified.
