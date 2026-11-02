@@ -4,7 +4,7 @@ hgt-site finds places where DNA from bacteria or other organisms may have been i
 
 It takes paired-end reads aligned to the host (BAM, CRAM or SAM) and Kraken2 classifications of the reads that did not align, and writes a table of candidate sites, with optional BED, VCF and MultiQC files. Where reads cross the junction itself, the insertion point is given to the base pair. It works with any host alignment and Kraken2 output, including the files produced by nf-core/hgtseq.
 
-In benchmarks on real human and bacterial genomes with added contamination, every site hgt-site reported was a real insertion. It is also fast: on a sample of 2.1 million reads it took about 3 seconds once the reads were aligned and classified, against about 2.5 minutes for LGTSeek.
+In benchmarks on real human and bacterial genomes with added contamination, hgt-site reported no false sites across 18 runs on fresh random seeds. It is also fast: on a sample of 2.1 million reads it took about 3 seconds once the reads were aligned and classified, against about 2.5 minutes for LGTSeek.
 
 ## Installation
 

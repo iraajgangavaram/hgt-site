@@ -110,3 +110,5 @@ At 8.4 million records the current version took a median of 9.8 s, against 25.5 
 - Fragment sizes are measured from properly paired reads, so if the input contains only pairs with an unmapped mate, the default clustering limits are used.
 - Exact junctions need reads that cross the junction, so they are found for fewer sites at low coverage, and for none when the input holds only pairs with an unmapped mate.
 - The speed comparison used five bacterial genomes as LGTSeek's reference, and the time for its second alignment depends on the size of that reference. All timings were measured on one 2-core machine and will differ on other hardware.
+- Across every benchmark run, including earlier versions of the code, one false site appeared in 4 of 59 simulated datasets, all of them in the samples with the fewest chance chimeras. The raw results are in the repository.
+- A single insertion is occasionally reported as two neighbouring sites. This happened to one insertion in 4 of 18 runs on fresh seeds.

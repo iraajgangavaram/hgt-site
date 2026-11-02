@@ -24,7 +24,7 @@
   <a href="#citation">Citation</a>
 </p>
 
-hgt-site finds places where DNA from bacteria or other organisms may have been inserted into a host genome, such as a human genome, using sequencing data. Most bacterial reads in these samples come from contamination or from DNA fragments joined by chance in the lab, so hgt-site checks each possible site against what chance alone would produce and keeps only the sites with clearly more support. In the benchmarks below, every site it reported was a real insertion, while an existing tool, LGTSeek, reported thousands of false sites in the noisiest samples.
+hgt-site finds places where DNA from bacteria or other organisms may have been inserted into a host genome, such as a human genome, using sequencing data. Most bacterial reads in these samples come from contamination or from DNA fragments joined by chance in the lab, so hgt-site checks each possible site against what chance alone would produce and keeps only the sites with clearly more support. In the benchmarks below it reported no false sites across 18 runs on fresh random seeds, 364 calls in all, while an existing tool, LGTSeek, reported thousands of false sites in the noisiest samples.
 
 It is also fast. On a sample of 2.1 million reads, hgt-site took about 3 seconds once the reads were aligned and classified, while LGTSeek needed about 2.5 minutes (see [Speed](#speed)).
 
@@ -101,6 +101,12 @@ pip install .
 pysam is installed as a dependency and is needed for BAM and CRAM input. Plain SAM files can be read without it.
 
 ## Usage
+
+To see it work before installing anything, open the quickstart notebook in Colab.
+It writes its own small dataset with known insertion sites, calls them, and checks
+the answers against the truth, in about a minute and with no data of your own.
+
+[![Open the quickstart in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/iraajgangavaram/hgt-site/blob/main/examples/quickstart.ipynb)
 
 If you have a host alignment and a Kraken2 database, one command does everything:
 
@@ -274,6 +280,21 @@ Read pairs place a junction only to within about one fragment length, so hgt-sit
 
 With split reads, 71% of junctions were exact and 98% were within 2 bp, against 41% exact and 57% within 2 bp from read pairs alone. The remaining 2% are the three sites with no split reads, where the estimate from read pairs is kept. The same sites passed the filters either way, and the extra step made no measurable difference to the run time, because only the sites that passed every other filter are searched and the alignment index is used to read just the reads around them.
 
+## Other tools in this area
+
+| Tool | Latest tagged release | Last commit |
+| --- | --- | --- |
+| [LGTSeek](https://github.com/rileydavidr/lgtseek) | v1.08, January 2015 | June 2016 |
+| [IGS lgtseek-pipeline](https://github.com/IGS/lgtseek-pipeline) | none tagged | February 2022 |
+| hgt-site | 0.2.0, November 2026 | actively developed |
+
+Read from the repositories on 2 November 2026.
+
+LGTSeek is the tool hgt-site is benchmarked against, and it has had no commit for
+nine years, so getting it to run at all now takes work. Pipelines that align
+reads and classify the unmapped ones solve a different part of the problem and
+produce the input hgt-site takes, rather than calling sites themselves.
+
 ## Speed
 
 hgt-site only needs read pairs where at least one mate is unmapped, and it skips every other read before doing any work on it. It reads the host alignment once and needs no second alignment.
@@ -321,6 +342,8 @@ The scripts are in [`benchmark/`](benchmark/). `run_benchmark.py` runs one repli
 - Fragment sizes are measured from properly paired reads, so if the input contains only pairs with an unmapped mate, the default clustering limits are used.
 - Exact junctions need an indexed alignment that still holds the reads whose pairs are fully mapped. They are found for fewer sites at low coverage, and for none when the input has been filtered down to pairs with an unmapped mate.
 - The speed comparison used five bacterial genomes as LGTSeek's reference, and the time for its second alignment depends on the size of that reference. All timings were measured on one 2-core machine and will differ on other hardware.
+- Across every benchmark run, including earlier versions of the code, one false site appeared in 4 of 59 simulated datasets, all of them in the samples with the fewest chance chimeras. The raw results are in the repository.
+- A single insertion is occasionally reported as two neighbouring sites. This happened to one insertion in 4 of 18 runs on fresh seeds.
 
 ## Future work
 
