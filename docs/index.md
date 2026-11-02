@@ -1,6 +1,6 @@
-# hgt-site
+# hgt-site: find where foreign DNA has inserted into a host genome
 
-hgt-site finds places where DNA from bacteria or other organisms may have been inserted into a host genome, such as a human genome, using sequencing data. Most bacterial reads in these samples come from contamination or from DNA fragments joined by chance in the lab, so hgt-site checks each possible site against what chance alone would produce and keeps only the sites with clearly more support.
+hgt-site detects candidate horizontal gene transfer and integration sites from short-read sequencing data. Give it paired-end reads aligned to a host genome, human or otherwise, and Kraken2 classifications of the reads that did not align, and it reports the host positions where bacterial or viral DNA may have inserted. Most bacterial reads in these samples come from contamination or from DNA fragments joined by chance in the lab, so hgt-site checks each possible site against what chance alone would produce and keeps only the sites with clearly more support.
 
 It works with any host alignment and Kraken2 output, including the files produced by pipelines that already run Kraken2.
 

@@ -1,5 +1,5 @@
 site_name: hgt-site
-site_description: Call candidate horizontal gene transfer sites from host alignments and Kraken2 read classifications
+site_description: Detect horizontal gene transfer and viral or bacterial integration sites from a host BAM and Kraken2 read classifications
 site_author: Iraaj Gangavaram
 site_url: https://iraajgangavaram.github.io/hgt-site/
 repo_url: https://github.com/iraajgangavaram/hgt-site
@@ -19,6 +19,7 @@ nav:
   - How it works: method.md
   - Benchmarks: benchmarks.md
   - Is it worth trying?: for-labs.md
+  - Compared with other tools: comparison.md
   - Citation: citation.md
 
 theme:

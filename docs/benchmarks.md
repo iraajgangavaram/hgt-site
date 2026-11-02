@@ -102,6 +102,9 @@ At 8.4 million records the current version took a median of 9.8 s, against 25.5 
 
 `run_benchmark.py` runs one replicate, `summarise.py` builds the tables from a folder of runs, `junctions.py` measures junction accuracy, and `figures.py` draws the figures. Add `--intvi-script` with the path to the independent simulator's `scripts/insert_virus.py` to use it instead of the built-in insertion step, and `--lgtseek-lib` with LGTSeek's `perl5` library folder to include LGTSeek.
 
+
+The simulated datasets, the known insertion sites and the full results for all 18 runs are packaged as a single archive, with one ready-to-run dataset included so another tool can be scored on the same data without rebuilding anything: [hgt-site-benchmark-v1.0.0.tar.gz](https://github.com/iraajgangavaram/hgt-site/releases/download/0.3.0/hgt-site-benchmark-v1.0.0.tar.gz). Its README explains the design and how to score a different tool against it.
+
 ## Limitations
 
 - The benchmarks use real sequence but simulated reads, a Kraken2 database far smaller than a standard one, and chimeras placed at random positions. Real data may include chimera hotspots and more reads classified above species level.

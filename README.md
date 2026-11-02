@@ -22,10 +22,11 @@
   <a href="#benchmark-on-real-genomes">Benchmarks</a> ·
   <a href="#speed">Speed</a> ·
   <a href="https://iraajgangavaram.github.io/hgt-site/for-labs/">Is it worth trying?</a> ·
+  <a href="https://iraajgangavaram.github.io/hgt-site/comparison/">Other tools</a> ·
   <a href="#citation">Citation</a>
 </p>
 
-hgt-site finds places where DNA from bacteria or other organisms may have been inserted into a host genome, such as a human genome, using sequencing data. Most bacterial reads in these samples come from contamination or from DNA fragments joined by chance in the lab, so hgt-site checks each possible site against what chance alone would produce and keeps only the sites with clearly more support. In the benchmarks below it reported no false sites across 18 runs on fresh random seeds, 364 calls in all, while an existing tool, LGTSeek, reported thousands of false sites in the noisiest samples.
+hgt-site detects candidate horizontal gene transfer and integration sites from short-read sequencing data. It finds places where DNA from bacteria, viruses or other organisms may have been inserted into a host genome, such as a human genome. Most bacterial reads in these samples come from contamination or from DNA fragments joined by chance in the lab, so hgt-site checks each possible site against what chance alone would produce and keeps only the sites with clearly more support. In the benchmarks below it reported no false sites across 18 runs on fresh random seeds, 364 calls in all, while an existing tool, LGTSeek, reported thousands of false sites in the noisiest samples.
 
 It is also fast. On a sample of 2.1 million reads, hgt-site took about 3 seconds once the reads were aligned and classified, while LGTSeek needed about 2.5 minutes (see [Speed](#speed)).
 
@@ -333,6 +334,9 @@ At 8.4 million records the current version took a median of 9.8 s, against 25.5 
 ### Reproducing the benchmarks
 
 The scripts are in [`benchmark/`](benchmark/). `run_benchmark.py` runs one replicate, `summarise.py` builds the table from a folder of runs, and `figures.py` draws the figures in this README. The numbers behind each figure are in [`benchmark/results/`](benchmark/results/). Add `--intvi-script` with the path to the simulator's `scripts/insert_virus.py` to use the independent simulator, and `--lgtseek-lib` with LGTSeek's `perl5` library folder to include LGTSeek.
+
+
+The simulated datasets, the known insertion sites and the full results for all 18 runs are packaged as a single archive, with one ready-to-run dataset included so another tool can be scored on the same data without rebuilding anything: [hgt-site-benchmark-v1.0.0.tar.gz](https://github.com/iraajgangavaram/hgt-site/releases/download/0.3.0/hgt-site-benchmark-v1.0.0.tar.gz). Its README explains the design and how to score a different tool against it.
 
 ## Limitations
 
