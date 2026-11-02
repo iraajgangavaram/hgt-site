@@ -1,5 +1,32 @@
 # Usage
 
+## One command, from an alignment
+
+```bash
+hgt-site run \
+  --bam sample.bam \
+  --kraken-db /path/to/kraken2-db \
+  --host-taxid 9606 \
+  --threads 8 \
+  -o sample.hgt-site.tsv \
+  --bed sample.hgt-site.bed \
+  --vcf sample.hgt-site.vcf
+```
+
+`run` pulls the unmapped reads out of the alignment, classifies them with Kraken2, and calls the sites. It needs `kraken2` on PATH:
+
+```bash
+conda install -c conda-forge -c bioconda kraken2
+```
+
+A Kraken2 database is also needed. The standard database is large, around 70 GB; a smaller one works if it holds the taxa you care about, and the pre-built databases at [benlangmead.github.io/aws-indexes/k2](https://benlangmead.github.io/aws-indexes/k2) include smaller options.
+
+The unmapped reads and the Kraken2 output go to a temporary folder that is deleted afterwards. Pass `--workdir reads/` to keep them, which is worth doing if you want to look at the classifications yourself or run the calling step again with different thresholds. Extra Kraken2 options can be passed through with `--kraken-arg`, for example `--kraken-arg --confidence=0.1`.
+
+## When the reads are already classified
+
+Pipelines such as nf-core/hgtseq run Kraken2 themselves. Use `call` with their output, which skips the classification step:
+
 ```bash
 hgt-site call \
   --bam sample.bam \

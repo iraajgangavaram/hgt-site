@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New `hgt-site run` command: give it a host alignment and a Kraken2 database and it pulls out the unmapped reads, classifies them with Kraken2 and calls the sites in one step. `hgt-site call` is unchanged, for reads a pipeline has already classified.
 - Junctions are now exact where reads cross them. Reads that are soft-clipped at the junction place the insertion point to the base pair, reported in four new columns and used for the VCF position. In the benchmark, 71% of junctions were exact and 98% were within 2 bp, against 41% and 57% from read pairs alone. This needs an indexed BAM or CRAM; without an index the estimate from read pairs is kept. `--no-split-reads` turns it off.
 - New `--multiqc` option writes a summary table that MultiQC picks up, so the counts appear in a pipeline report.
 - `hgt-site simulate` also writes the host reference, so its reads can be stored as CRAM.

@@ -39,6 +39,13 @@ Where reads cross the junction itself, hgt-site gives the insertion point to the
 
 <p align="center"><sub>Benchmark on real genomes with added contamination and chimeras. Read support alone gives the same numbers as LGTSeek. Details in <a href="#benchmark-on-real-genomes">Benchmark on real genomes</a>.</sub></p>
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/demo_dark.svg">
+    <img alt="A terminal showing hgt-site being installed and run on a sample, printing 1701 candidate sites of which 21 passed the filters, then the first rows of the output table." src="docs/images/demo_light.svg" width="760">
+  </picture>
+</p>
+
 ## The problem
 
 When a sample is aligned to its host genome, some reads do not map. Kraken2 often assigns many of these to bacteria or viruses. A small number may come from real integrations of foreign DNA into the host genome, but most come from contamination or from chimeric fragments formed during library preparation, where a host fragment and a contaminant fragment are joined by chance.
@@ -94,6 +101,21 @@ pip install .
 pysam is installed as a dependency and is needed for BAM and CRAM input. Plain SAM files can be read without it.
 
 ## Usage
+
+If you have a host alignment and a Kraken2 database, one command does everything:
+
+```bash
+hgt-site run \
+  --bam sample.bam \
+  --kraken-db /path/to/kraken2-db \
+  --host-taxid 9606 \
+  --threads 8 \
+  -o sample.hgt-site.tsv
+```
+
+This pulls the unmapped reads out of the alignment, classifies them with Kraken2, and calls the sites. It needs `kraken2` on PATH, which comes from `conda install -c conda-forge -c bioconda kraken2`. The reads and the Kraken2 output go to a temporary folder unless you give `--workdir`, which keeps them.
+
+If the reads have already been classified, for example by a pipeline that runs Kraken2 itself, use `call` with that output instead:
 
 ```bash
 hgt-site call \

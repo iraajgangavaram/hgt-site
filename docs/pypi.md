@@ -15,17 +15,17 @@ pip install hgt-site
 ## Usage
 
 ```bash
-hgt-site call \
+hgt-site run \
   --bam sample.bam \
-  --kraken sample.kraken2.txt \
+  --kraken-db /path/to/kraken2-db \
   --host-taxid 9606 \
-  --nodes taxonomy/nodes.dmp \
+  --threads 8 \
   -o sample.hgt-site.tsv \
   --bed sample.hgt-site.bed \
   --vcf sample.hgt-site.vcf
 ```
 
-Add `--threads 4` to read large BAM or CRAM files faster. `--kraken` accepts several files, such as the two that nf-core/hgtseq writes for each sample.
+This classifies the unmapped reads with Kraken2 and calls the sites in one step, and needs `kraken2` on PATH. If the reads have already been classified, use `hgt-site call --kraken sample.kraken2.txt` instead, which accepts several files at once.
 
 To try it on simulated data with known insertion sites:
 

@@ -10,6 +10,11 @@ It works with any host alignment and Kraken2 output, including the files that nf
   <figcaption>As chance chimeras become more common, read support alone reports thousands of false sites, while every hgt-site call stays a real insertion. Details in <a href="benchmarks/">Benchmarks</a>.</figcaption>
 </figure>
 
+<figure markdown>
+  ![A terminal showing hgt-site being installed and run](images/demo_light.svg#only-light){ width="760" }
+  ![A terminal showing hgt-site being installed and run](images/demo_dark.svg#only-dark){ width="760" }
+</figure>
+
 ## In short
 
 - Takes paired-end reads aligned to the host (BAM, CRAM or SAM) and Kraken2 calls for the reads that did not align.
@@ -26,8 +31,16 @@ A pair where one mate maps to the host and the other is foreign therefore does n
 
 ## Getting started
 
+On your own data, with a host alignment and a Kraken2 database:
+
 ```bash
 pip install hgt-site
+hgt-site run --bam sample.bam --kraken-db /path/to/kraken2-db --host-taxid 9606 -o sites.tsv
+```
+
+Or try it in a few seconds on simulated data with known insertion sites, which needs nothing else installed:
+
+```bash
 hgt-site simulate -o demo
 hgt-site call --bam demo.sam --kraken demo.kraken2.txt --host-taxid 9606 -o demo.tsv
 ```
