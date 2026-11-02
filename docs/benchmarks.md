@@ -87,7 +87,7 @@ Measured on one sample of 2.1 million paired reads (1 million pairs from human c
   ![Seconds after the host alignment for hgt-site and LGTSeek](images/benchmark_speed_dark.svg#only-dark){ width="720" }
 </figure>
 
-hgt-site times are the median of five runs. Kraken2 is already part of nf-core/hgtseq, so on hgtseq outputs hgt-site adds about 3 seconds for a sample of this size.
+hgt-site times are the median of five runs. Where a pipeline has already run Kraken2, hgt-site adds about 3 seconds for a sample of this size.
 
 Run time grows in proportion to the size of the alignment file. The same sample was subsampled to about 0.5 and 1 million records and concatenated to 4.2 and 8.4 million records, and each file was run three times with each version:
 

@@ -25,7 +25,7 @@ The unmapped reads and the Kraken2 output go to a temporary folder that is delet
 
 ## When the reads are already classified
 
-Pipelines such as nf-core/hgtseq run Kraken2 themselves. Use `call` with their output, which skips the classification step:
+Many pipelines run Kraken2 on the unmapped reads themselves. Use `call` with their output, which skips the classification step. Several Kraken2 files can be given at once, which suits a pipeline that writes one per read set:
 
 ```bash
 hgt-site call \
@@ -44,22 +44,6 @@ hgt-site call \
 | `--kraken` | The per-read output of Kraken2 (`--output`, not the report), run on the reads that did not map to the host. Read names ending in `/1` or `/2` are handled, as is output made with `--use-names`. Several files can be given at once. |
 | `--host-taxid` | NCBI taxonomy ID of the host, for example 9606 for human or 10090 for mouse. |
 | `--nodes` | Optional NCBI `nodes.dmp`. With it, reads classified anywhere in the host lineage are ignored, not only those assigned to the host taxid itself. |
-
-## With nf-core/hgtseq outputs
-
-hgtseq writes a sorted BAM and two Kraken2 per-read files for each sample, which is everything hgt-site needs:
-
-```bash
-hgt-site call \
-  --bam results/preprocess/alignment/sample01_sorted.bam \
-  --kraken results/results/classified/single_unmapped/sample01.kraken2.classifiedreads.txt \
-           results/results/classified/both_unmapped/sample01.kraken2.classifiedreads.txt \
-  --host-taxid 9606 \
-  -o sample01.hgt-site.tsv \
-  --bed sample01.hgt-site.bed \
-  --vcf sample01.hgt-site.vcf \
-  --multiqc sample01_mqc.json
-```
 
 ## Options
 

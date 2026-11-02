@@ -29,7 +29,7 @@ hgt-site finds places where DNA from bacteria or other organisms may have been i
 
 It is also fast. On a sample of 2.1 million reads, hgt-site took about 3 seconds once the reads were aligned and classified, while LGTSeek needed about 2.5 minutes (see [Speed](#speed)).
 
-Where reads cross the junction itself, hgt-site gives the insertion point to the base pair. It works with any host alignment and Kraken2 output, including the files that nf-core/hgtseq already produces.
+Where reads cross the junction itself, hgt-site gives the insertion point to the base pair. It works with any host alignment and Kraken2 output, including the files produced by pipelines that already run Kraken2.
 
 <p align="center">
   <picture>
@@ -133,7 +133,7 @@ hgt-site call \
   -o sample.hgt-site.tsv
 ```
 
-`--kraken` is the per-read output from Kraken2 (`--output`), run on the unmapped reads. Read names ending in `/1` or `/2` are handled, as is output made with `--use-names`. Several files can be given at once, which suits the two files nf-core/hgtseq writes for each sample:
+`--kraken` is the per-read output from Kraken2 (`--output`), run on the unmapped reads. Read names ending in `/1` or `/2` are handled, as is output made with `--use-names`. Several files can be given at once, which suits a pipeline that writes one file per read set:
 
 ```bash
 hgt-site call \
@@ -317,7 +317,7 @@ Measured on one sample of 2.1 million paired reads (1 million pairs from human c
 </p>
 
 
-hgt-site times are the median of five runs. Kraken2 is already part of nf-core/hgtseq, so on hgtseq outputs hgt-site adds about 3 seconds for a sample of this size. Compared with version 0.1.1, the calling step is more than twice as fast on the same file (median 5.9 s before, 2.7 s now), with identical results.
+hgt-site times are the median of five runs. Where a pipeline has already run Kraken2, hgt-site adds about 3 seconds for a sample of this size. Compared with version 0.1.1, the calling step is more than twice as fast on the same file (median 5.9 s before, 2.7 s now), with identical results.
 
 Run time grows in proportion to the size of the alignment file. The same sample was subsampled to about 0.5 and 1 million records and concatenated to 4.2 and 8.4 million records, and each file was run three times with each version:
 
@@ -348,7 +348,7 @@ The scripts are in [`benchmark/`](benchmark/). `run_benchmark.py` runs one repli
 
 ## Future work
 
-- Test on public sequencing data, including the datasets used to evaluate nf-core/hgtseq
+- Test on public sequencing data, including the datasets used to evaluate existing HGT pipelines
 - Combine reads that Kraken2 splits between related taxa without merging them with contamination
 - Contribute an nf-core module (the Bioconda package is under review)
 

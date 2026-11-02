@@ -2,7 +2,7 @@
 
 hgt-site finds places where DNA from bacteria or other organisms may have been inserted into a host genome, such as a human genome, using sequencing data. Most bacterial reads in these samples come from contamination or from DNA fragments joined by chance in the lab, so hgt-site checks each possible site against what chance alone would produce and keeps only the sites with clearly more support.
 
-It works with any host alignment and Kraken2 output, including the files that nf-core/hgtseq already produces.
+It works with any host alignment and Kraken2 output, including the files produced by pipelines that already run Kraken2.
 
 <figure markdown>
   ![Precision against the number of chimeric read pairs](images/benchmark_precision_light.svg#only-light){ width="640" }
