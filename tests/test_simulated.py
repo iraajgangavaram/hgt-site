@@ -274,3 +274,86 @@ def test_results_do_not_depend_on_read_order(sim_split, tmp_path):
     b = call_sites(str(shuffled), f"{sim_split}.kraken2.txt", HOST_TAXID)
     assert [(s.chrom, s.start, s.end, s.stats) for s in a] == [(s.chrom, s.start, s.end, s.stats) for s in b]
     _same_sites(a, b, "the original order", "the shuffled order")
+
+
+def test_unmapped_fastq_holds_every_unmapped_read(sim, tmp_path):
+    from hgt_site.prepare import write_unmapped_fastq
+
+    fastq = tmp_path / "unmapped.fq"
+    n = write_unmapped_fastq(f"{sim}.sam", fastq)
+    lines = fastq.read_text().splitlines()
+    assert len(lines) == 4 * n
+    names = {line[1:] for line in lines[::4]}
+    expected = set()
+    with open(f"{sim}.sam") as handle:
+        for line in handle:
+            if line.startswith("@"):
+                continue
+            cols = line.split("\t")
+            if int(cols[1]) & 0x4:
+                expected.add(cols[0])
+    assert names == expected
+    for seq, plus, qual in zip(lines[1::4], lines[2::4], lines[3::4]):
+        assert plus == "+" and len(qual) == len(seq) > 0
+
+
+def test_unmapped_fastq_matches_between_sam_and_bam(sim, tmp_path):
+    from hgt_site.prepare import write_unmapped_fastq
+
+    pysam = pytest.importorskip("pysam")
+    bam = tmp_path / "sample.bam"
+    pysam.sort("-o", str(bam), f"{sim}.sam")
+    from_sam, from_bam = tmp_path / "a.fq", tmp_path / "b.fq"
+    write_unmapped_fastq(f"{sim}.sam", from_sam)
+    write_unmapped_fastq(str(bam), from_bam)
+
+    def records(path):
+        lines = path.read_text().splitlines()
+        return {(name[1:], seq) for name, seq in zip(lines[::4], lines[1::4])}
+
+    assert records(from_sam) == records(from_bam)
+
+
+def _fake_kraken2(directory, kraken_output):
+    """A stand-in for kraken2 that copies a known per-read file to --output."""
+    directory.mkdir(parents=True, exist_ok=True)
+    script = directory / "kraken2"
+    script.write_text(
+        "#!/bin/sh\n"
+        "while [ $# -gt 0 ]; do\n"
+        '  if [ "$1" = "--output" ]; then shift; out=$1; fi\n'
+        "  shift\n"
+        "done\n"
+        f'cp "{kraken_output}" "$out"\n'
+        'echo "fake kraken2 ran" >&2\n'
+    )
+    script.chmod(0o755)
+    return directory
+
+
+def test_run_command_classifies_and_calls(sim, tmp_path, monkeypatch):
+    bin_dir = _fake_kraken2(tmp_path / "bin", f"{sim}.kraken2.txt")
+    monkeypatch.setenv("PATH", str(bin_dir), prepend=":")
+    database = tmp_path / "db"
+    database.mkdir()
+    out, work = tmp_path / "s.tsv", tmp_path / "work"
+    assert main([
+        "run", "--bam", f"{sim}.sam", "--kraken-db", str(database), "--host-taxid", str(HOST_TAXID),
+        "-o", str(out), "--workdir", str(work),
+    ]) == 0
+    with open(out) as handle:
+        rows = list(csv.DictReader(handle, delimiter="\t"))
+    assert sum(r["filter"] == "PASS" for r in rows) == 5
+    assert (work / "unmapped.fq").exists() and (work / "kraken2.txt").exists()
+
+
+def test_run_command_says_what_is_missing(sim, tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("PATH", str(tmp_path / "empty"))
+    database = tmp_path / "db"
+    database.mkdir()
+    code = main([
+        "run", "--bam", f"{sim}.sam", "--kraken-db", str(database), "--host-taxid", str(HOST_TAXID),
+        "-o", str(tmp_path / "s.tsv"),
+    ])
+    assert code == 1
+    assert "kraken2 was not found" in capsys.readouterr().err
