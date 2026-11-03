@@ -2,9 +2,15 @@
 
 hgt-site finds places where DNA from bacteria or other organisms may have been inserted into a host genome, such as a human genome, using sequencing data. Most bacterial reads in these samples come from contamination or from DNA fragments joined by chance in the lab, so hgt-site checks each possible site against what chance alone would produce and keeps only the sites with clearly more support.
 
-It takes paired-end reads aligned to the host (BAM, CRAM or SAM) and Kraken2 classifications of the reads that did not align, and writes a table of candidate sites, with optional BED, VCF and MultiQC files. Where reads cross the junction itself, the insertion point is given to the base pair. It works with any host alignment and Kraken2 output, including the files produced by pipelines that already run Kraken2.
+It takes paired-end reads aligned to the host (BAM, CRAM or SAM) and the per-read output of whatever classifier you ran on the reads that did not align, and writes a table of candidate sites, with optional BED, VCF and MultiQC files.
 
-In benchmarks on real human and bacterial genomes with added contamination, hgt-site reported no false sites across 18 runs on fresh random seeds. It is also fast: on a sample of 2.1 million reads it took about 3 seconds once the reads were aligned and classified, against about 2.5 minutes for LGTSeek.
+- **Any classifier.** Kraken2, KrakenUniq, Kaiju, Centrifuge, DIAMOND and BLAST tabular output are read directly, as is any two-column file of read name and taxid. All of them give identical calls on the same reads.
+- **Junctions to the base pair** where reads cross the junction, rather than an estimate from read pairs.
+- **The gene at each site**, with `--annotation` and a GTF or GFF3.
+- **`hgt-site selftest`** proves the installation works on data with known answers, in a few seconds, with no database and no network.
+- **One command** from a BAM and a Kraken2 database, with `hgt-site run`.
+
+In benchmarks on real human and bacterial genomes with added contamination, hgt-site reported no false sites across 18 runs on fresh random seeds, 364 calls in all, while keeping every position with enough read support gave 24,861 sites of which 390 were real. On a sample of 2.1 million reads it took about 3 seconds once the reads were aligned and classified, against about 2.5 minutes for LGTSeek.
 
 ## Installation
 

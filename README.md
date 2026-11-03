@@ -33,6 +33,17 @@ It is also fast. On a sample of 2.1 million reads, hgt-site took about 3 seconds
 
 Where reads cross the junction itself, hgt-site gives the insertion point to the base pair. It works with any host alignment and Kraken2 output, including the files produced by pipelines that already run Kraken2.
 
+### What it does
+
+- **Separates real insertions from lab artefacts.** Keep every position with enough supporting reads and you get 24,861 sites of which 390 are real. hgt-site reported 364 sites across 18 runs on fresh random seeds, with none of them false.
+- **One command from a BAM.** `hgt-site run` pulls out the unmapped reads, classifies them and calls the sites.
+- **Takes whatever classifier you already ran.** Kraken2, KrakenUniq, Kaiju, Centrifuge, DIAMOND, BLAST tabular, or any two-column file of read name and taxid. All six give byte-identical calls on the same reads, and there is a test that checks it.
+- **Junctions to the base pair.** Where reads cross the junction, the insertion point is exact: 71% of junctions exact and 98% within 2 bp, against 41% and 57% from read pairs alone.
+- **Tells you the gene.** Point `--annotation` at a GTF or GFF3 and every site comes back with the gene it landed in, or the nearest one.
+- **Proves its own installation.** `hgt-site selftest` builds a dataset with known answers, calls it, and checks them. No data, no database, no network.
+- **Three seconds** on a sample of 2.1 million reads, against about 2.5 minutes for LGTSeek.
+- **Shows its working.** Every rejected candidate stays in the table with the reason, so you can see what was considered and thrown out.
+
 ### Who this is for
 
 - **Anyone with foreign reads in a host sample and no way to triage them.** You have Kraken2 output from unmapped reads and a list of positions that might mean something. hgt-site tells you which positions have more support than chance would give, and flags the rest with the reason.
