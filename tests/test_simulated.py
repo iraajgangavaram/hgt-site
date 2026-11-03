@@ -419,6 +419,13 @@ def test_unreadable_classifier_output_says_so(tmp_path):
         detect_format(odd)
 
 
+def test_selftest_passes(capsys):
+    assert main(["selftest"]) == 0
+    message = capsys.readouterr().err
+    assert "is working" in message
+    assert "5 of the 5 insertions were found" in message
+
+
 def test_multiqc_table(sim, tmp_path):
     import json
 

@@ -100,6 +100,14 @@ def build_parser():
     call = sub.add_parser("call", help="Call candidate sites from an alignment and existing Kraken2 output")
     _add_common(call, kraken_required=True)
 
+    sub.add_parser(
+        "selftest",
+        help="Check the installation by calling a dataset whose answers are known",
+        description="Build a small dataset with known insertion sites, call it, and check the "
+                    "sites that come back are the ones that were put in. Needs no data and no "
+                    "database, and leaves nothing behind.",
+    )
+
     sim = sub.add_parser("simulate", help="Write a small simulated dataset with known insertion sites")
     sim.add_argument("-o", "--output-prefix", required=True)
     sim.add_argument("--seed", type=int, default=1)
@@ -137,6 +145,47 @@ def _call(args, kraken):
     _write_outputs(args, sites, summary)
 
 
+def _selftest():
+    """Call a dataset with known answers and report whether they came back.
+
+    This exists so that someone can tell a broken installation from a broken
+    input before they spend time on their own data.
+    """
+    import tempfile
+
+    from .evaluate import evaluate, read_truth
+    from .simulate import SimConfig, simulate
+
+    with tempfile.TemporaryDirectory(prefix="hgt-site-selftest-") as folder:
+        prefix = str(Path(folder) / "selftest")
+        truth = simulate(prefix, SimConfig(seed=1))
+        print(f"Built a dataset with {len(truth)} known insertions.", file=sys.stderr)
+        sites = call_sites(f"{prefix}.sam", [f"{prefix}.kraken2.txt"], 9606)
+        passed = [s for s in sites if site_filter(s) == "PASS"]
+        calls = [(s.chrom, s.start, s.end) for s in passed]
+        score = evaluate(calls, read_truth(f"{prefix}.truth.bed"))
+
+    print(
+        f"Called {len(sites)} candidate sites, of which {len(passed)} passed every filter.",
+        file=sys.stderr,
+    )
+    print(
+        f"Of those, {score['true_calls']} are real insertions, and "
+        f"{score['recovered']} of the {score['truth']} insertions were found.",
+        file=sys.stderr,
+    )
+    if score["true_calls"] == len(passed) and score["recovered"] == score["truth"]:
+        print(f"hgt-site {__version__} is working.", file=sys.stderr)
+        return 0
+    print(
+        "This installation did not reproduce the expected result. Please report it at "
+        "https://github.com/iraajgangavaram/hgt-site/issues with this output and your "
+        "Python version.",
+        file=sys.stderr,
+    )
+    return 1
+
+
 def main(argv=None):
     given = sys.argv[1:] if argv is None else list(argv)
     args = build_parser().parse_args(given)
@@ -169,6 +218,8 @@ def main(argv=None):
         finally:
             if temporary is not None:
                 temporary.cleanup()
+    elif args.command == "selftest":
+        return _selftest()
     elif args.command == "simulate":
         from .simulate import SimConfig, simulate
 

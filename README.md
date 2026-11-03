@@ -110,6 +110,15 @@ pysam is installed as a dependency and is needed for BAM and CRAM input. Plain S
 
 ## Usage
 
+To check the installation before using it on anything of your own:
+
+```bash
+hgt-site selftest
+```
+
+That builds a small dataset with known insertion sites, calls it, and checks the sites that come back are the ones that were put in. It needs no data and no database, takes a few seconds, and leaves nothing behind.
+
+
 To see it work before installing anything, open the quickstart notebook in Colab.
 It writes its own small dataset with known insertion sites, calls them, and checks
 the answers against the truth, in about a minute and with no data of your own.

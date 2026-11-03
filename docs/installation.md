@@ -32,3 +32,11 @@ pip install .
 ```bash
 hgt-site --version
 ```
+
+## Check it works
+
+```bash
+hgt-site selftest
+```
+
+hgt-site builds a small dataset with known insertion sites, calls it, and checks that what comes back is what went in. It needs no data, no Kraken2 database and no network, and it leaves nothing behind. If it prints that hgt-site is working, the installation is sound and any later problem is in the inputs rather than the install.
