@@ -1,5 +1,5 @@
 site_name: hgt-site
-site_description: Detect horizontal gene transfer and viral or bacterial integration sites from a host BAM and Kraken2 read classifications
+site_description: Tell real insertion sites from contamination and library-prep chimeras in the unmapped reads of a host sample, using a BAM and Kraken2 output
 site_author: Iraaj Gangavaram
 site_url: https://iraajgangavaram.github.io/hgt-site/
 repo_url: https://github.com/iraajgangavaram/hgt-site

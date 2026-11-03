@@ -10,7 +10,8 @@ readme = "docs/pypi.md"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{name = "Iraaj Gangavaram"}]
-keywords = ["bioinformatics", "horizontal gene transfer", "genomics", "kraken2", "metagenomics"]
+keywords = ["bioinformatics", "horizontal gene transfer", "genomics", "kraken2", "metagenomics",
+            "contamination", "viral integration", "integration sites", "chimeras", "unmapped reads"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",

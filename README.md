@@ -32,6 +32,12 @@ It is also fast. On a sample of 2.1 million reads, hgt-site took about 3 seconds
 
 Where reads cross the junction itself, hgt-site gives the insertion point to the base pair. It works with any host alignment and Kraken2 output, including the files produced by pipelines that already run Kraken2.
 
+### Who this is for
+
+- **Anyone with foreign reads in a host sample and no way to triage them.** You have Kraken2 output from unmapped reads and a list of positions that might mean something. hgt-site tells you which positions have more support than chance would give, and flags the rest with the reason.
+- **Horizontal gene transfer into host genomes.** The problem it was built for, benchmarked against LGTSeek.
+- **Viral integration.** The same method works unchanged on viral taxa, though it has not been benchmarked against the dedicated viral tools; see [other tools](https://iraajgangavaram.github.io/hgt-site/comparison/) before relying on it for that.
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/benchmark_precision_dark.svg">

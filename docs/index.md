@@ -1,6 +1,10 @@
-# hgt-site: find where foreign DNA has inserted into a host genome
+# Which foreign reads in your host sample actually mean something?
 
-hgt-site detects candidate horizontal gene transfer and integration sites from short-read sequencing data. Give it paired-end reads aligned to a host genome, human or otherwise, and Kraken2 classifications of the reads that did not align, and it reports the host positions where bacterial or viral DNA may have inserted. Most bacterial reads in these samples come from contamination or from DNA fragments joined by chance in the lab, so hgt-site checks each possible site against what chance alone would produce and keeps only the sites with clearly more support.
+You aligned your sample to its host genome, ran Kraken2 on the reads that did not map, and got back a pile of bacteria and viruses. Most of it is free contamination, or chimeric fragments made during library preparation, where a host fragment and a foreign fragment are joined at an arbitrary position. Those chimeras look exactly like integration sites and there are usually thousands of them.
+
+hgt-site groups the read pairs that point at the same host position and tests each group against the number of pairs chance alone would put there, given how common that taxon is across the sample. What comes back is the positions with more support than contamination and chimeras can explain, and every rejected candidate with the reason it failed. Where reads cross the junction itself, the insertion point is given to the base pair.
+
+It works on bacterial and viral taxa alike, takes any host alignment with any Kraken2 per-read output, and runs in seconds.
 
 It works with any host alignment and Kraken2 output, including the files produced by pipelines that already run Kraken2.
 
