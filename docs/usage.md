@@ -51,6 +51,8 @@ hgt-site call \
 |---|---|
 | `--bed sites.bed` | Also writes the sites that passed every filter as a BED file, for genome browsers |
 | `--vcf sites.vcf` | Also writes every candidate site as a VCF file, with `PASS` or the failing flags in the FILTER column |
+| `--annotation genes.gtf` | Reports the gene each site falls in, or the nearest one. GTF or GFF3, gzipped or not, as supplied by Ensembl, GENCODE or NCBI |
+| `--max-gene-distance 100000` | How far from a gene a site can be and still have it named (default 100000) |
 | `--multiqc sample_mqc.json` | Also writes a summary table that MultiQC picks up, so the counts appear in a pipeline report |
 | `--sample-name` | Sample name for the MultiQC table (the alignment file name by default) |
 | `--threads 4` | Uses more cores to read large BAM or CRAM files |

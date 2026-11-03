@@ -277,6 +277,87 @@ def test_vcf_gz_is_compressed_and_indexed(sim, tmp_path):
         assert list(handle.fetch("chr1"))
 
 
+def _truth_positions(prefix):
+    rows = [line.split("\t") for line in open(f"{prefix}.truth.bed")]
+    return [(r[0], int(r[1])) for r in rows]
+
+
+def test_annotation_names_the_gene(sim, tmp_path):
+    chrom, position = _truth_positions(sim)[0]
+    gtf = tmp_path / "genes.gtf"
+    gtf.write_text(
+        "#!comment\n"
+        # A gene containing the first real insertion.
+        f'{chrom}\tsrc\tgene\t{position - 800}\t{position + 800}\t.\t+\t.\t'
+        'gene_id "G1"; gene_name "INSIDE";\n'
+        # A gene well downstream of it, and a transcript line that must be ignored.
+        f'{chrom}\tsrc\tgene\t{position + 5000}\t{position + 6000}\t.\t-\t.\t'
+        'gene_id "G2"; gene_name "NEARBY";\n'
+        f'{chrom}\tsrc\ttranscript\t{position - 800}\t{position + 800}\t.\t+\t.\t'
+        'gene_id "G1"; transcript_id "T1";\n'
+    )
+    out = tmp_path / "s.tsv"
+    assert main([
+        "call", "--bam", f"{sim}.sam", "--kraken", f"{sim}.kraken2.txt",
+        "--host-taxid", str(HOST_TAXID), "-o", str(out), "--annotation", str(gtf),
+    ]) == 0
+    with open(out) as handle:
+        rows = list(csv.DictReader(handle, delimiter="\t"))
+    inside = [r for r in rows if r["gene"] == "INSIDE"]
+    assert inside, "the site at a known insertion should be inside the gene covering it"
+    assert all(r["gene_id"] == "G1" for r in inside)
+    assert any(r["gene_distance"] == "0" for r in inside)
+    # Every row has the columns, whether or not a gene was found.
+    assert all("gene" in r and "gene_distance" in r for r in rows)
+    # A site can sit inside the second gene too, so the only thing that has to
+    # hold is that a distance is reported whenever a gene is.
+    named = [r for r in rows if r["gene"]]
+    assert named and all(r["gene_distance"] != "" for r in named)
+
+
+def test_annotation_respects_the_distance_limit(sim, tmp_path):
+    chrom, position = _truth_positions(sim)[0]
+    gtf = tmp_path / "far.gtf"
+    gtf.write_text(
+        f'{chrom}\tsrc\tgene\t{position + 50000}\t{position + 51000}\t.\t+\t.\t'
+        'gene_id "G9"; gene_name "FAR";\n'
+    )
+    out = tmp_path / "s.tsv"
+    assert main([
+        "call", "--bam", f"{sim}.sam", "--kraken", f"{sim}.kraken2.txt",
+        "--host-taxid", str(HOST_TAXID), "-o", str(out),
+        "--annotation", str(gtf), "--max-gene-distance", "1000",
+    ]) == 0
+    with open(out) as handle:
+        rows = list(csv.DictReader(handle, delimiter="\t"))
+    named = [r for r in rows if r["gene"]]
+    assert all(int(r["gene_distance"]) <= 1000 for r in named)
+    # The known insertion is 50 kb from the only gene, so it gets none.
+    at_truth = [r for r in rows if int(r["start"]) <= position <= int(r["end"])]
+    assert at_truth and all(r["gene"] == "" for r in at_truth)
+
+
+def test_annotation_reads_gff3_and_rejects_a_file_with_no_genes(sim, tmp_path):
+    from hgt_site.annotate import load_genes
+
+    chrom, position = _truth_positions(sim)[0]
+    gff = tmp_path / "genes.gff3"
+    gff.write_text(
+        "##gff-version 3\n"
+        f"{chrom}\tEnsembl\tgene\t{position - 100}\t{position + 100}\t.\t+\t.\t"
+        "ID=gene:ENSG00000000001;Name=TP53LIKE\n"
+    )
+    genes = load_genes(str(gff))
+    starts, records = genes[chrom]
+    assert records[0][2] == "TP53LIKE"
+    assert records[0][3] == "ENSG00000000001"  # the "gene:" prefix is stripped
+
+    empty = tmp_path / "none.gtf"
+    empty.write_text("#!only a comment\n")
+    with pytest.raises(ValueError, match="No gene records"):
+        load_genes(str(empty))
+
+
 def test_multiqc_table(sim, tmp_path):
     import json
 

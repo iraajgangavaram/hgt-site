@@ -38,6 +38,9 @@ COLUMNS = [
     "n_pairs",
     "n_forward",
     "n_reverse",
+    "gene",
+    "gene_id",
+    "gene_distance",
     "top_taxid",
     "top_taxid_fraction",
     "n_taxa",
@@ -100,7 +103,8 @@ def fit_limits(pairs, settings, user_set):
 
 
 def call_sites(
-    alignments, kraken, host_taxid, nodes_dmp=None, exclude=(), reference=None, threads=1, split_reads=True, summary=None, **opts
+    alignments, kraken, host_taxid, nodes_dmp=None, exclude=(), reference=None, threads=1, split_reads=True,
+    annotation=None, max_gene_distance=100_000, summary=None, **opts
 ):
     """Call candidate sites. If summary is a dict, read counts are added to it."""
     user_set = {k for k, v in opts.items() if v is not None}
@@ -161,7 +165,18 @@ def call_sites(
     else:
         for site in sites:
             site.stats.update(left_breakpoint="", left_split_reads=0, right_breakpoint="", right_split_reads=0)
-    return add_info_flags(sites)
+    sites = add_info_flags(sites)
+    if annotation:
+        from .annotate import annotate
+
+        found = annotate(sites, annotation, _junction, max_gene_distance)
+        log.info("A gene was found at or near %d of %d candidate sites.", found, len(sites))
+    else:
+        for site in sites:
+            site.stats.setdefault("gene", "")
+            site.stats.setdefault("gene_id", "")
+            site.stats.setdefault("gene_distance", "")
+    return sites
 
 
 def _fmt(value):
@@ -328,6 +343,8 @@ def write_vcf(sites, path, version="unknown", contigs=None, command=None, settin
             '##INFO=<ID=NFWD,Number=1,Type=Integer,Description="Supporting pairs with a forward anchor">',
             '##INFO=<ID=NREV,Number=1,Type=Integer,Description="Supporting pairs with a reverse anchor">',
             '##INFO=<ID=QVAL,Number=1,Type=Float,Description="Benjamini-Hochberg q-value of the enrichment test">',
+            '##INFO=<ID=GENE,Number=1,Type=String,Description="Gene at the insertion point, or the nearest gene within 100 kb">',
+            '##INFO=<ID=GENEDIST,Number=1,Type=Integer,Description="Distance in bp from the insertion point to that gene, 0 if inside it">',
             '##INFO=<ID=SPLIT_LEFT,Number=1,Type=Integer,Description="Split reads at the junction on the forward-anchor side">',
             '##INFO=<ID=SPLIT_RIGHT,Number=1,Type=Integer,Description="Split reads at the junction on the reverse-anchor side">',
             '##INFO=<ID=IMPRECISE,Number=0,Type=Flag,Description="No split reads; position estimated from read pairs">',
@@ -348,6 +365,9 @@ def write_vcf(sites, path, version="unknown", contigs=None, command=None, settin
                 f"NREV={st['n_reverse']}", f"QVAL={st['qvalue']:.4g}",
                 f"SPLIT_LEFT={st.get('left_split_reads', 0)}", f"SPLIT_RIGHT={st.get('right_split_reads', 0)}",
             ]
+            if st.get("gene"):
+                info.append(f"GENE={st['gene']}")
+                info.append(f"GENEDIST={st['gene_distance']}")
             if not _precise(site):
                 low, high = _confidence_interval(site, pos)
                 info.append(f"CIPOS={low},{high}")

@@ -54,6 +54,12 @@ hgt-site call --bam sample.bam --kraken classified.txt --host-taxid 9606 \
 bcftools view sample.hgt-site.vcf.gz chr8:128000000-129000000
 ```
 
+## Genes
+
+With `--annotation genes.gtf`, three more columns are filled in: `gene`, `gene_id` and `gene_distance`. The gene reported is the one containing the position hgt-site called, with `gene_distance` 0, or the nearest gene within `--max-gene-distance` when the site falls between genes, with the distance in base pairs. A site with no gene within that distance leaves all three blank rather than naming something half a megabase away.
+
+Any GTF or GFF3 works, gzipped or not, including the files Ensembl, GENCODE and NCBI supply beside their reference genomes. Only the lines whose third column is `gene` are read, so a full annotation with every transcript and exon costs nothing extra. In the VCF the same information appears as `GENE` and `GENEDIST`.
+
 ## MultiQC
 
 With `--multiqc sample_mqc.json`, hgt-site writes a custom-content table that MultiQC finds on its own, as long as the file name ends in `_mqc.json`. It holds the number of candidate sites, the number that passed, how many have an exact junction, and the read counts behind them.

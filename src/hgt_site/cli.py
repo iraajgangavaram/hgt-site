@@ -34,6 +34,15 @@ def _add_common(parser, kraken_required):
         "--exclude-taxid", type=int, action="append", default=[], help="Extra taxid to ignore (repeatable)"
     )
     parser.add_argument("--reference", help="Reference FASTA, needed for CRAM input")
+    parser.add_argument(
+        "--annotation",
+        help="GTF or GFF3 file of gene annotations, gzipped or not. Each site is reported with the gene "
+             "it falls in, or the nearest gene within --max-gene-distance",
+    )
+    parser.add_argument(
+        "--max-gene-distance", type=int, default=100_000, metavar="BP",
+        help="How far from a gene a site can be and still have it reported as the nearest (default 100000)",
+    )
     parser.add_argument("--threads", type=int, default=1, help="Threads for reading files and for Kraken2 (default 1)")
     parser.add_argument(
         "--no-split-reads", action="store_true",
@@ -115,7 +124,8 @@ def _call(args, kraken):
     summary = {}
     sites = call_sites(
         args.bam, kraken, args.host_taxid, args.nodes, args.exclude_taxid, args.reference,
-        threads=args.threads, split_reads=not args.no_split_reads, summary=summary, **opts
+        threads=args.threads, split_reads=not args.no_split_reads, annotation=args.annotation,
+        max_gene_distance=args.max_gene_distance, summary=summary, **opts
     )
     _write_outputs(args, sites, summary)
 

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New `--annotation` option takes a GTF or GFF3 file and reports the gene each site falls in, or the nearest gene within `--max-gene-distance`, in three new columns and in the VCF as `GENE` and `GENEDIST`. A position on its own is hard to act on; the gene is the first thing anyone asks for.
 - The VCF now carries a `QUAL` score, the q-value on the phred scale, so the file can be filtered with `bcftools view -i 'QUAL>50'` instead of being parsed by hand.
 - A junction estimated from read pairs now carries `CIPOS` and `CIEND`, saying how far the real junction could be from the reported position. A junction found in split reads is exact and carries no interval. This is the standard way to state positional uncertainty, and the SV comparison tools use it to decide whether two calls match.
 - The VCF header records the exact command and every threshold used, as `##hgt_siteCommand` and `##hgt_siteSetting` lines, and `##contig` lines now carry contig lengths from the alignment header.

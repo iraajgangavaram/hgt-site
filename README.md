@@ -158,6 +158,7 @@ Other options:
 | `--threads 4` | Uses more cores to read large BAM or CRAM files |
 | `--bed sites.bed` | Also writes the sites that passed every filter as a BED file, for genome browsers |
 | `--vcf sites.vcf` | Also writes every candidate site as a VCF file, with `PASS` or the failing flags in the FILTER column. A name ending in `.gz` is compressed and indexed with tabix |
+| `--annotation genes.gtf` | Reports the gene each site falls in, or the nearest gene within `--max-gene-distance` (default 100 kb). GTF or GFF3, gzipped or not |
 | `--multiqc sample_mqc.json` | Also writes a summary table that MultiQC picks up, so the counts appear in a pipeline report |
 | `--no-split-reads` | Skips the split-read search, so junctions come from read pairs only |
 | `--nodes nodes.dmp` | Excludes the whole host lineage, not just the host taxid |
