@@ -1,45 +1,26 @@
-"""Read Kraken2 per-read output and decide which taxa count as non-host."""
+"""Decide which taxa count as non-host, and read per-read classifications.
 
-import re
-from pathlib import Path
+The reading of classifier output lives in classifiers.py, which handles the
+several formats people arrive with. This module keeps the taxonomy side and
+re-exports the readers so that existing code and scripts keep working.
+"""
 
-_TAXID_IN_NAME = re.compile(r"\(taxid (\d+)\)")
+from .classifiers import (  # noqa: F401
+    detect_format,
+    load_classifications,
+    normalise_read_name,
+    parse_taxid,
+    read_calls,
+)
 
 # Taxids that tell us nothing about where a read came from:
 # 0 = unclassified, 1 = root, 131567 = cellular organisms.
 UNINFORMATIVE = {0, 1, 131567}
 
 
-def normalise_read_name(name):
-    """Drop the /1 or /2 mate suffix so both mates share one name."""
-    if name.endswith("/1") or name.endswith("/2"):
-        return name[:-2]
-    return name
-
-
-def parse_taxid(field):
-    field = field.strip()
-    if field.isdigit():
-        return int(field)
-    match = _TAXID_IN_NAME.search(field)
-    if match:
-        return int(match.group(1))
-    raise ValueError(f"Could not read a taxid from Kraken2 field: {field!r}")
-
-
 def read_kraken(path):
-    """Return {read name: taxid} for every classified read in a Kraken2 output file."""
-    calls = {}
-    with open(path) as handle:
-        for line in handle:
-            if not line.strip():
-                continue
-            cols = line.rstrip("\n").split("\t")
-            if len(cols) < 3:
-                raise ValueError(f"Not a Kraken2 per-read line: {line!r}")
-            if cols[0] != "C":
-                continue
-            calls[normalise_read_name(cols[1])] = parse_taxid(cols[2])
+    """Kept for callers that used it directly; reads any supported format."""
+    calls, _ = read_calls(path)
     return calls
 
 
@@ -93,13 +74,3 @@ class TaxonFilter:
             result = not (in_host_clade or is_host_ancestor)
         self._cache[taxid] = result
         return result
-
-
-def load_classifications(paths):
-    """Read one or more Kraken2 per-read files into a single {read name: taxid} map."""
-    if isinstance(paths, (str, Path)):
-        paths = [paths]
-    calls = {}
-    for path in paths:
-        calls.update(read_kraken(Path(path)))
-    return calls

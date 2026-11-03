@@ -140,7 +140,7 @@ hgt-site call \
   -o sample.hgt-site.tsv
 ```
 
-`--kraken` is the per-read output from Kraken2 (`--output`), run on the unmapped reads. Read names ending in `/1` or `/2` are handled, as is output made with `--use-names`. Several files can be given at once, which suits a pipeline that writes one file per read set:
+`--classifications` (also accepted as `--kraken`) is the per-read output of a classifier run on the unmapped reads. Kraken2, KrakenUniq, Kaiju, Centrifuge, DIAMOND (`--outfmt 102`) and BLAST tabular output are all read directly, as is any two-column file of read name and taxid, gzipped or not. The format is worked out from the file; `--classifier` overrides it. Read names ending in `/1` or `/2` are handled, as is output made with `--use-names`. Several files can be given at once, which suits a pipeline that writes one file per read set:
 
 ```bash
 hgt-site call \

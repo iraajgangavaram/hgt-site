@@ -358,6 +358,67 @@ def test_annotation_reads_gff3_and_rejects_a_file_with_no_genes(sim, tmp_path):
         load_genes(str(empty))
 
 
+def _as_format(kraken_path, out_path, fmt):
+    """Rewrite Kraken2 per-read output in another classifier's layout."""
+    rows = []
+    for line in open(kraken_path):
+        cols = line.rstrip("\n").split("\t")
+        if cols and cols[0] == "C":
+            rows.append((cols[1], cols[2]))
+    with open(out_path, "w") as handle:
+        if fmt == "centrifuge":
+            handle.write("readID\tseqID\ttaxID\tscore\t2ndBestScore\thitLength\tqueryLength\tnumMatches\n")
+        for name, taxid in rows:
+            if fmt == "kaiju":
+                handle.write(f"C\t{name}\t{taxid}\n")
+            elif fmt == "centrifuge":
+                handle.write(f"{name}\tseq1\t{taxid}\t400\t0\t150\t150\t1\n")
+            elif fmt == "diamond":
+                handle.write(f"{name}\t{taxid}\t1e-40\n")
+            elif fmt == "blast":
+                handle.write(f"{name}\tref1\t98.5\t150\t2\t0\t1\t150\t1\t150\t1e-60\t250\t{taxid}\n")
+            else:
+                handle.write(f"{name}\t{taxid}\n")
+    return out_path
+
+
+@pytest.mark.parametrize("fmt", ["kaiju", "centrifuge", "diamond", "blast", "tsv"])
+def test_other_classifiers_give_the_same_sites(sim, tmp_path, fmt):
+    from hgt_site.classifiers import detect_format
+
+    converted = _as_format(f"{sim}.kraken2.txt", tmp_path / f"calls.{fmt}", fmt)
+    expected = "kraken2" if fmt == "kaiju" else fmt
+    assert detect_format(converted) == expected
+
+    baseline, other = tmp_path / "kraken.tsv", tmp_path / "other.tsv"
+    for output, calls in ((baseline, f"{sim}.kraken2.txt"), (other, str(converted))):
+        assert main([
+            "call", "--bam", f"{sim}.sam", "--classifications", str(calls),
+            "--host-taxid", str(HOST_TAXID), "-o", str(output),
+        ]) == 0
+    assert other.read_text() == baseline.read_text()
+
+
+def test_classifier_can_be_given_explicitly_and_reads_gzip(sim, tmp_path):
+    import gzip
+
+    from hgt_site.classifiers import load_classifications
+
+    plain = _as_format(f"{sim}.kraken2.txt", tmp_path / "calls.tsv", "tsv")
+    packed = tmp_path / "calls.tsv.gz"
+    packed.write_bytes(gzip.compress(plain.read_bytes()))
+    assert load_classifications([str(packed)], "tsv") == load_classifications([str(plain)])
+
+
+def test_unreadable_classifier_output_says_so(tmp_path):
+    from hgt_site.classifiers import detect_format
+
+    odd = tmp_path / "odd.txt"
+    odd.write_text("a\tb\tc\td\te\tf\n")
+    with pytest.raises(ValueError, match="Could not tell which classifier"):
+        detect_format(odd)
+
+
 def test_multiqc_table(sim, tmp_path):
     import json
 

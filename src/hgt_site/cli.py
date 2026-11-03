@@ -5,6 +5,7 @@ from pathlib import Path
 
 from . import __version__
 from .call import DEFAULTS, call_sites, write_bed, write_multiqc, write_table, write_vcf
+from .classifiers import FORMATS
 from .sites import site_filter
 
 THRESHOLD_HELP = {
@@ -25,13 +26,19 @@ def _add_common(parser, kraken_required):
     parser.add_argument("--bam", required=True, help="Paired-end reads aligned to the host (BAM, CRAM or SAM)")
     if kraken_required:
         parser.add_argument(
-            "--kraken", required=True, nargs="+",
-            help="Kraken2 per-read output for the unmapped reads (one or more files)",
+            "--classifications", "--kraken", dest="kraken", required=True, nargs="+",
+            help="Per-read taxonomic calls for the unmapped reads, from Kraken2, KrakenUniq, Kaiju, "
+                 "Centrifuge, DIAMOND or BLAST, or any two-column file of read name and taxid "
+                 "(one or more files, gzipped or not)",
         )
     parser.add_argument("--host-taxid", required=True, type=int, help="NCBI taxid of the host, e.g. 9606")
     parser.add_argument("--nodes", help="NCBI nodes.dmp, so the whole host lineage is excluded")
     parser.add_argument(
         "--exclude-taxid", type=int, action="append", default=[], help="Extra taxid to ignore (repeatable)"
+    )
+    parser.add_argument(
+        "--classifier", default="auto", choices=FORMATS,
+        help="Which classifier wrote the per-read calls (default: work it out from the file)",
     )
     parser.add_argument("--reference", help="Reference FASTA, needed for CRAM input")
     parser.add_argument(
@@ -125,7 +132,7 @@ def _call(args, kraken):
     sites = call_sites(
         args.bam, kraken, args.host_taxid, args.nodes, args.exclude_taxid, args.reference,
         threads=args.threads, split_reads=not args.no_split_reads, annotation=args.annotation,
-        max_gene_distance=args.max_gene_distance, summary=summary, **opts
+        max_gene_distance=args.max_gene_distance, classifier=args.classifier, summary=summary, **opts
     )
     _write_outputs(args, sites, summary)
 

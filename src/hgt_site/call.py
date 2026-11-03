@@ -104,15 +104,15 @@ def fit_limits(pairs, settings, user_set):
 
 def call_sites(
     alignments, kraken, host_taxid, nodes_dmp=None, exclude=(), reference=None, threads=1, split_reads=True,
-    annotation=None, max_gene_distance=100_000, summary=None, **opts
+    annotation=None, max_gene_distance=100_000, classifier="auto", summary=None, **opts
 ):
     """Call candidate sites. If summary is a dict, read counts are added to it."""
     user_set = {k for k, v in opts.items() if v is not None}
     settings = {**DEFAULTS, **{k: v for k, v in opts.items() if v is not None}}
     taxon_filter = TaxonFilter(host_taxid, nodes_dmp, exclude)
-    calls = load_classifications(kraken)
+    calls = load_classifications(kraken, classifier)
     if not calls:
-        log.warning("The Kraken2 file has no classified reads.")
+        log.warning("The classification file has no classified reads.")
     pairs = collect_pairs(alignments, settings["min_mapq"], reference, threads)
 
     with_call = [a for a in pairs.anchors if a.name in calls]

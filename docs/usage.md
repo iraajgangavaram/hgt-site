@@ -41,7 +41,8 @@ hgt-site call \
 | Input | Notes |
 |---|---|
 | `--bam` | Paired-end reads aligned to the host, as BAM, CRAM or SAM. An indexed BAM or CRAM also lets hgt-site find exact junctions from split reads. |
-| `--kraken` | The per-read output of Kraken2 (`--output`, not the report), run on the reads that did not map to the host. Read names ending in `/1` or `/2` are handled, as is output made with `--use-names`. Several files can be given at once. |
+| `--classifications` | Per-read taxonomic calls for the reads that did not map to the host, also accepted as `--kraken`. Kraken2 and KrakenUniq (`--output`, not the report), Kaiju, Centrifuge, DIAMOND `--outfmt 102` and BLAST tabular output all work, as does any two-column file of read name and taxid. Gzipped files are fine. Read names ending in `/1` or `/2` are handled, as is Kraken2 output made with `--use-names`. Several files can be given at once. |
+| `--classifier` | Which classifier wrote those files, if the automatic detection gets it wrong. One of kraken2, kaiju, centrifuge, diamond, blast, tsv. |
 | `--host-taxid` | NCBI taxonomy ID of the host, for example 9606 for human or 10090 for mouse. |
 | `--nodes` | Optional NCBI `nodes.dmp`. With it, reads classified anywhere in the host lineage are ignored, not only those assigned to the host taxid itself. |
 
