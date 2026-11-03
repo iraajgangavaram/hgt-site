@@ -426,6 +426,27 @@ def test_selftest_passes(capsys):
     assert "5 of the 5 insertions were found" in message
 
 
+def test_library_api(sim):
+    import hgt_site
+
+    sites = hgt_site.call_sites(f"{sim}.sam", [f"{sim}.kraken2.txt"], host_taxid=HOST_TAXID)
+    good = hgt_site.passed(sites)
+    assert len(good) == 5
+    assert len(sites) > len(good)  # rejected candidates are returned too
+    # Thresholds can be passed through by name, the same ones the CLI exposes.
+    strict = hgt_site.passed(
+        hgt_site.call_sites(f"{sim}.sam", [f"{sim}.kraken2.txt"], HOST_TAXID, min_support=1000)
+    )
+    assert strict == []
+    pandas = pytest.importorskip("pandas")
+    frame = hgt_site.to_dataframe(good)
+    assert isinstance(frame, pandas.DataFrame)
+    from hgt_site.call import COLUMNS
+
+    assert list(frame.columns) == COLUMNS
+    assert len(frame) == 5
+
+
 def test_multiqc_table(sim, tmp_path):
     import json
 

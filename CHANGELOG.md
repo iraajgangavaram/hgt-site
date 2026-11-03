@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- hgt-site can now be used as a library: `from hgt_site import call_sites, passed, to_dataframe`. The public names are importable from the package itself, loaded on demand so `import hgt_site` stays fast, and documented with examples.
+
 - New documentation page on reading the results: which columns decide whether a site is worth following up, which sites to be sceptical of, and how to confirm one.
 
 - New `hgt-site selftest` command builds a dataset with known insertion sites, calls it and checks the answers, so an installation can be shown to work before anyone spends time on their own data.

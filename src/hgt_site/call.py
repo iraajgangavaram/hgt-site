@@ -185,14 +185,20 @@ def _fmt(value):
     return str(value)
 
 
+def _row(site):
+    """One site as a {column: value} mapping, the same values the TSV holds."""
+    row = {"chrom": site.chrom, "start": site.start, "end": site.end, **site.stats}
+    row["flags"] = ";".join(site.flags) if site.flags else "."
+    row["filter"] = site_filter(site)
+    return {column: row.get(column, "") for column in COLUMNS}
+
+
 def write_table(sites, path):
     with open(path, "w", newline="") as handle:
         writer = csv.writer(handle, delimiter="\t", lineterminator="\n")
         writer.writerow(COLUMNS)
         for site in sorted(sites, key=lambda s: (s.chrom, s.start)):
-            row = {"chrom": site.chrom, "start": site.start, "end": site.end, **site.stats}
-            row["flags"] = ";".join(site.flags) if site.flags else "."
-            row["filter"] = site_filter(site)
+            row = _row(site)
             writer.writerow([_fmt(row[c]) for c in COLUMNS])
 
 

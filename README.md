@@ -382,6 +382,19 @@ pytest
 
 35 tests cover the units, the simulated data, BAM and CRAM input, the output formats, the exact junctions and that results do not depend on the order of records in the file. They run on GitHub for Python 3.10 to 3.13. Code style is checked with `ruff check src tests benchmark`.
 
+## Using it from Python
+
+Everything the command line does is available as a library:
+
+```python
+from hgt_site import call_sites, passed, to_dataframe
+
+sites = call_sites("sample.bam", ["classified.txt"], host_taxid=9606)
+frame = to_dataframe(passed(sites))
+```
+
+`call_sites` returns every candidate, not just the ones that passed, so a rejected position can still be inspected. See the [API reference](https://iraajgangavaram.github.io/hgt-site/api/).
+
 ## Contributing
 
 Bug reports, criticism of the method and runs on real data are all welcome, and there is no need to ask first. See [CONTRIBUTING.md](CONTRIBUTING.md).
