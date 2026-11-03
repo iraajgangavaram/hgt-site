@@ -16,6 +16,7 @@ nav:
   - Installation: installation.md
   - Usage: usage.md
   - Output: output.md
+  - Reading the results: interpreting.md
   - How it works: method.md
   - Benchmarks: benchmarks.md
   - Is it worth trying?: for-labs.md

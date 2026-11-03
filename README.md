@@ -19,6 +19,7 @@
   <a href="#installation">Installation</a> ·
   <a href="#usage">Usage</a> ·
   <a href="#output">Output</a> ·
+  <a href="https://iraajgangavaram.github.io/hgt-site/interpreting/">Reading the results</a> ·
   <a href="#benchmark-on-real-genomes">Benchmarks</a> ·
   <a href="#speed">Speed</a> ·
   <a href="https://iraajgangavaram.github.io/hgt-site/for-labs/">Is it worth trying?</a> ·

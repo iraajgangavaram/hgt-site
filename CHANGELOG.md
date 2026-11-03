@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- New documentation page on reading the results: which columns decide whether a site is worth following up, which sites to be sceptical of, and how to confirm one.
+
 - New `hgt-site selftest` command builds a dataset with known insertion sites, calls it and checks the answers, so an installation can be shown to work before anyone spends time on their own data.
 
 - Per-read classifications no longer have to come from Kraken2. KrakenUniq, Kaiju, Centrifuge, DIAMOND `--outfmt 102` and BLAST tabular output are read directly, as is any two-column file of read name and taxid, gzipped or not. The format is detected from the file and `--classifier` overrides it. The option is now `--classifications`, with `--kraken` kept as an alias. Every format gives byte-identical output on the same reads, which the tests check.
