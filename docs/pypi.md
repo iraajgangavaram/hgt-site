@@ -18,6 +18,8 @@ In benchmarks on real human and bacterial genomes with added contamination, hgt-
 pip install hgt-site
 ```
 
+or, with conda, `conda install -c conda-forge -c bioconda hgt-site`.
+
 ## Usage
 
 ```bash

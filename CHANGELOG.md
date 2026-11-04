@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- hgt-site is on Bioconda, so it installs with `conda install -c conda-forge -c bioconda hgt-site` and comes with a Docker and Singularity container built automatically.
+
 - New `hgt-site cohort` command merges the per-sample tables into one, so a position seen in every sample, which is usually an artefact of the protocol or the reference, can be told from one seen in a few. It reads the tables rather than the alignments, so samples called at different times can be combined without rerunning anything, and `--matrix` writes a position by sample grid.
 
 - hgt-site can now be used as a library: `from hgt_site import call_sites, passed, to_dataframe`. The public names are importable from the package itself, loaded on demand so `import hgt_site` stays fast, and documented with examples.
