@@ -35,6 +35,8 @@ It is also fast. On a sample of 2.1 million reads, hgt-site took about 3 seconds
 
 Where reads cross the junction itself, hgt-site gives the insertion point to the base pair. It works with any host alignment and Kraken2 output, including the files produced by pipelines that already run Kraken2.
 
+It is packaged on Bioconda and PyPI, with a container built from the Bioconda recipe, so there is nothing to compile and no reference bundle to download.
+
 ### What it does
 
 - **Separates real insertions from lab artefacts.** Keep every position with enough supporting reads and you get 24,861 sites of which 390 are real. hgt-site reported 364 sites across 18 runs on fresh random seeds, with none of them false.
@@ -45,6 +47,7 @@ Where reads cross the junction itself, hgt-site gives the insertion point to the
 - **Proves its own installation.** `hgt-site selftest` builds a dataset with known answers, calls it, and checks them. No data, no database, no network.
 - **Three seconds** on a sample of 2.1 million reads, against about 2.5 minutes for LGTSeek.
 - **Compares samples.** `hgt-site cohort` merges the tables from several samples and flags the positions that turn up in all of them, which are nearly always artefacts rather than biology.
+- **Installs in one line.** On [Bioconda](https://bioconda.github.io/recipes/hgt-site/README.html) and PyPI, with a Docker and Singularity container built from the Bioconda recipe, so it drops into a pipeline without anything to set up.
 - **Shows its working.** Every rejected candidate stays in the table with the reason, so you can see what was considered and thrown out.
 
 ### Who this is for
@@ -401,7 +404,7 @@ The simulated datasets, the known insertion sites and the full results for all 1
 
 - Test on public sequencing data, including the datasets used to evaluate existing HGT pipelines
 - Combine reads that Kraken2 splits between related taxa without merging them with contamination
-- Contribute an nf-core module (the Bioconda package is under review)
+- Contribute a standalone nf-core module and a Galaxy wrapper, both now possible since the Bioconda package provides the container they need
 
 ## Testing
 

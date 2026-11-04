@@ -22,11 +22,13 @@ The exact tag for a release is listed on its [Bioconda page](https://bioconda.gi
 
 ## From Bioconda
 
-A recipe is under review. Once it is merged:
-
 ```bash
 conda install -c conda-forge -c bioconda hgt-site
 ```
+
+Bioconda packages are built and tested on their own infrastructure before they
+are published, so a successful install is also a check that the package works
+on a clean machine.
 
 ## From source
 

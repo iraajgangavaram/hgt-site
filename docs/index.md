@@ -38,7 +38,7 @@ A pair where one mate maps to the host and the other is foreign therefore does n
 On your own data, with a host alignment and a Kraken2 database:
 
 ```bash
-pip install hgt-site
+conda install -c conda-forge -c bioconda hgt-site     # or: pip install hgt-site
 hgt-site run --bam sample.bam --kraken-db /path/to/kraken2-db --host-taxid 9606 -o sites.tsv
 ```
 

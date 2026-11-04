@@ -37,6 +37,7 @@ has and has not been shown to do.
 | Not an artefact of our own simulator | The benchmark was repeated with an independent published simulator and the conclusion held. |
 | Junctions to the base pair | Over 8 runs and 157 insertions, 71% of junctions were exact and 98% within 2 bp, against 41% and 57% from read pairs alone. |
 | Fast enough not to matter | About 3 seconds of calling on a sample of 2.1 million reads, on 2 cores. |
+| Installs without a fight | On Bioconda and PyPI, with a container built from the Bioconda recipe. Bioconda builds and tests a package on its own infrastructure before publishing it, so the install has been checked on a clean machine by somebody other than the author. |
 | Reproducible | Every benchmark rebuilds from a seed. The scripts and raw results are in the repository, and the datasets are archived separately. |
 
 ## What the evidence is not
@@ -63,7 +64,7 @@ Run it on something where you already know the answer, before running it on
 something where you do not.
 
 ```bash
-pip install hgt-site
+conda install -c conda-forge -c bioconda hgt-site     # or: pip install hgt-site
 hgt-site simulate -o demo --seed 1
 hgt-site call --bam demo.sam --kraken demo.kraken2.txt --host-taxid 9606 -o sites.tsv
 ```

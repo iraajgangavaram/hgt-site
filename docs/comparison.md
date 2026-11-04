@@ -55,8 +55,10 @@ reported, so a bacterium nobody expected is treated the same as one that was.
 output with the reason it failed, so a region can be checked without rerunning
 anything.
 
-**It is small and installs with pip.** One dependency, no Java, no reference
-bundle, no workflow engine. For LGTSeek in particular, which has had no commit
+**It is small and installs in one line.** It is on Bioconda and PyPI, with a
+container built from the Bioconda recipe. One dependency, no Java, no reference
+bundle, no workflow engine. VIRUSBreakend needs GRIDSS and a Java runtime, and
+ViFi needs its own reference data. For LGTSeek in particular, which has had no commit
 since 2016, getting it to run at all now takes real work.
 
 ## What has actually been compared
