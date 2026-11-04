@@ -85,11 +85,18 @@ decides which ones are worth that effort.
 
 ## Comparing several samples
 
-There is no cohort mode yet, so run each sample separately and compare the
-tables. A position that appears in every sample, including controls, is almost
+Call each sample separately, then merge the tables:
+
+```bash
+hgt-site cohort sample*.hgt-site.tsv -o cohort.tsv
+```
+
+A position that appears in every sample, including controls, is almost
 certainly an artefact of the protocol or a mismapping-prone region, however
-good its statistics look. A position in one sample of a group, with split
-reads, is the kind of thing worth following up.
+good its statistics look in any one sample. Those come back flagged `COMMON`.
+A position in one sample of a group, with split reads, is the kind of thing
+worth following up. `TAXA_DIFFER` means two samples named different organisms
+at the same position, which is a warning sign rather than a finding.
 
 ## When to distrust the whole run
 

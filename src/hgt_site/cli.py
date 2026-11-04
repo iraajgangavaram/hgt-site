@@ -6,6 +6,8 @@ from pathlib import Path
 from . import __version__
 from .call import DEFAULTS, call_sites, write_bed, write_multiqc, write_table, write_vcf
 from .classifiers import FORMATS
+from .cohort import COMMON_FRACTION
+from .cohort import WINDOW as COHORT_WINDOW
 from .sites import site_filter
 
 THRESHOLD_HELP = {
@@ -99,6 +101,34 @@ def build_parser():
 
     call = sub.add_parser("call", help="Call candidate sites from an alignment and existing Kraken2 output")
     _add_common(call, kraken_required=True)
+
+    cohort = sub.add_parser(
+        "cohort",
+        help="Combine the sites called in several samples and flag the recurrent ones",
+        description="Merge the per-sample tables hgt-site writes into one, so a position seen in "
+                    "every sample, which is usually an artefact, can be told from one seen in a "
+                    "few. Reads the output of calling, so samples called at different times can "
+                    "be combined without rerunning anything.",
+    )
+    cohort.add_argument("sites", nargs="+", help="Per-sample hgt-site TSV files, one per sample")
+    cohort.add_argument(
+        "--names", nargs="+",
+        help="Sample names, in the same order as the files (default: taken from the file names)",
+    )
+    cohort.add_argument("-o", "--output", required=True, help="Output TSV of merged positions")
+    cohort.add_argument("--matrix", help="Also write a position by sample presence grid")
+    cohort.add_argument(
+        "--window", type=int, default=COHORT_WINDOW, metavar="BP",
+        help=f"Positions this far apart or closer count as the same site (default {COHORT_WINDOW})",
+    )
+    cohort.add_argument(
+        "--common-fraction", type=float, default=COMMON_FRACTION, metavar="F",
+        help=f"Flag a site as COMMON when it appears in this share of the samples (default {COMMON_FRACTION})",
+    )
+    cohort.add_argument(
+        "--include-failed", action="store_true",
+        help="Use every candidate site, not only the ones that passed every filter",
+    )
 
     sub.add_parser(
         "selftest",
@@ -218,6 +248,25 @@ def main(argv=None):
         finally:
             if temporary is not None:
                 temporary.cleanup()
+    elif args.command == "cohort":
+        from .cohort import build, write_cohort, write_matrix
+
+        try:
+            rows, names = build(
+                args.sites, args.names, args.window, args.common_fraction, args.include_failed
+            )
+        except ValueError as problem:
+            print(f"ERROR: {problem}", file=sys.stderr)
+            return 1
+        write_cohort(rows, args.output)
+        if args.matrix:
+            write_matrix(rows, names, args.matrix)
+        common = sum(1 for r in rows if "COMMON" in r["flags"])
+        print(
+            f"{len(rows)} positions across {len(names)} samples, {common} of them in most samples "
+            f"-> {args.output}",
+            file=sys.stderr,
+        )
     elif args.command == "selftest":
         return _selftest()
     elif args.command == "simulate":

@@ -42,6 +42,7 @@ Where reads cross the junction itself, hgt-site gives the insertion point to the
 - **Tells you the gene.** Point `--annotation` at a GTF or GFF3 and every site comes back with the gene it landed in, or the nearest one.
 - **Proves its own installation.** `hgt-site selftest` builds a dataset with known answers, calls it, and checks them. No data, no database, no network.
 - **Three seconds** on a sample of 2.1 million reads, against about 2.5 minutes for LGTSeek.
+- **Compares samples.** `hgt-site cohort` merges the tables from several samples and flags the positions that turn up in all of them, which are nearly always artefacts rather than biology.
 - **Shows its working.** Every rejected candidate stays in the table with the reason, so you can see what was considered and thrown out.
 
 ### Who this is for

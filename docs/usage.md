@@ -36,6 +36,18 @@ hgt-site call \
   -o sample.hgt-site.tsv
 ```
 
+## Several samples at once
+
+Call each sample as usual, then merge the tables:
+
+```bash
+hgt-site cohort sample*.hgt-site.tsv -o cohort.tsv --matrix matrix.tsv
+```
+
+Each position is reported once, with the samples it appeared in. A site in most of the samples is flagged `COMMON`, which usually means the protocol, the reference or the reagents rather than the biology, and a site in more than one is flagged `RECURRENT`. `TAXA_DIFFER` means samples disagreed about which organism is there, which points at a mismapping-prone region.
+
+This reads the tables rather than the alignments, so samples called at different times can be combined without rerunning anything. `--names` sets the sample names, `--window` changes how close two positions must be to count as the same site (500 bp by default), `--common-fraction` changes the share of samples needed for `COMMON`, and `--include-failed` merges every candidate rather than only the sites that passed.
+
 ## Inputs
 
 | Input | Notes |

@@ -447,6 +447,62 @@ def test_library_api(sim):
     assert len(frame) == 5
 
 
+def _call_to(prefix, out):
+    assert main([
+        "call", "--bam", f"{prefix}.sam", "--kraken", f"{prefix}.kraken2.txt",
+        "--host-taxid", str(HOST_TAXID), "-o", str(out),
+    ]) == 0
+    return out
+
+
+def test_cohort_flags_sites_shared_by_every_sample(sim, tmp_path):
+    # The same sample three times: every site is in all three, which is what a
+    # protocol artefact looks like.
+    table = _call_to(sim, tmp_path / "one.tsv")
+    copies = []
+    for name in "ABC":
+        copy = tmp_path / f"{name}.tsv"
+        copy.write_text(table.read_text())
+        copies.append(str(copy))
+    out, matrix = tmp_path / "cohort.tsv", tmp_path / "matrix.tsv"
+    assert main(["cohort", *copies, "-o", str(out), "--matrix", str(matrix)]) == 0
+
+    with open(out) as handle:
+        rows = list(csv.DictReader(handle, delimiter="\t"))
+    assert len(rows) == 5
+    for row in rows:
+        assert row["n_samples"] == "3"
+        assert row["n_samples_passed"] == "3"
+        assert "COMMON" in row["flags"] and "RECURRENT" in row["flags"]
+        assert row["samples"] == "A;B;C"
+    header, *grid = matrix.read_text().splitlines()
+    assert header.split("\t") == ["site", "A", "B", "C"]
+    assert all(line.split("\t")[1:] == ["1", "1", "1"] for line in grid)
+
+
+def test_cohort_keeps_sites_apart_when_samples_differ(tmp_path, tmp_path_factory):
+    # Different seeds put insertions in different places, so nothing recurs.
+    tables = []
+    for seed in (1, 2):
+        prefix = tmp_path_factory.mktemp(f"s{seed}") / "sample"
+        simulate(str(prefix), SimConfig(seed=seed))
+        tables.append(str(_call_to(str(prefix), tmp_path / f"seed{seed}.tsv")))
+    out = tmp_path / "cohort.tsv"
+    assert main(["cohort", *tables, "-o", str(out), "--names", "first", "second"]) == 0
+    with open(out) as handle:
+        rows = list(csv.DictReader(handle, delimiter="\t"))
+    assert len(rows) == 10
+    assert all(row["n_samples"] == "1" for row in rows)
+    assert all(row["flags"] == "." for row in rows)
+    assert {row["samples"] for row in rows} == {"first", "second"}
+
+
+def test_cohort_rejects_a_mismatched_name_list(sim, tmp_path, capsys):
+    table = str(_call_to(sim, tmp_path / "one.tsv"))
+    assert main(["cohort", table, table, "-o", str(tmp_path / "c.tsv"), "--names", "only-one"]) == 1
+    assert "one name per file" in capsys.readouterr().err
+
+
 def test_multiqc_table(sim, tmp_path):
     import json
 
