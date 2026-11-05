@@ -404,7 +404,7 @@ The simulated datasets, the known insertion sites and the full results for all 1
 
 - Test on public sequencing data, including the datasets used to evaluate existing HGT pipelines
 - Combine reads that Kraken2 splits between related taxa without merging them with contamination
-- Contribute a standalone nf-core module and a Galaxy wrapper, both now possible since the Bioconda package provides the container they need
+- Submit the Galaxy wrapper in [`galaxy/`](galaxy/) to the Tool Shed, and contribute a standalone nf-core module, both now possible since the Bioconda package provides the container they need
 
 ## Testing
 
