@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- An nf-core module for `hgt-site call` is in `nextflow/`, ready to submit to nf-core/modules, so the tool can be dropped into a Nextflow pipeline. Not yet run, because neither Nextflow nor nf-test was available where it was written.
+
 ## 0.4.0 (2026-11-06)
 
 - Per-read classifications no longer have to come from Kraken2. KrakenUniq, Kaiju, Centrifuge, DIAMOND `--outfmt 102` and BLAST tabular output are read directly, as is any two-column file of read name and taxid, gzipped or not. The format is detected from the file and `--classifier` overrides it. The option is now `--classifications`, with `--kraken` kept as an alias. Every format gives byte-identical output on the same reads, which the tests check.
