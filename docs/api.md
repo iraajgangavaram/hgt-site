@@ -67,7 +67,7 @@ from hgt_site import write_table, write_bed, write_vcf, write_multiqc
 
 write_table(sites, "sites.tsv")
 write_bed(sites, "sites.bed")
-write_vcf(sites, "sites.vcf.gz", version="0.3.0", contigs={"chr21": 46709983})
+write_vcf(sites, "sites.vcf.gz", version="0.4.0", contigs={"chr21": 46709983})
 write_multiqc(sites, "sample_mqc.json", sample="sample01")
 ```
 

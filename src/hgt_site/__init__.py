@@ -12,7 +12,7 @@ a classifier's per-read output, `simulate` for building a dataset with known
 insertion sites, and the `write_*` functions for the output formats.
 """
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = [
     "__version__",

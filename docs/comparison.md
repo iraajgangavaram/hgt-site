@@ -14,7 +14,7 @@ Dates were read from the repositories on 2 November 2026.
 | [VIRUSBreakend](https://github.com/PapenfussLab/gridss) | Viral integration, using single breakends | v2.13.2, February 2022 | May 2025 |
 | [ViFi](https://github.com/namphuon/ViFi) | Viral integration, using HMMs over viral families | none tagged | July 2021 |
 | [nf-core/hgtseq](https://github.com/nf-core/hgtseq) | A pipeline that aligns reads and classifies the unmapped ones | 1.1.0, May 2023 | actively developed |
-| hgt-site | Bacterial or viral insertion sites, tested against chance chimeras | 0.3.0, November 2026 | actively developed |
+| hgt-site | Bacterial or viral insertion sites, tested against chance chimeras | 0.4.0, November 2026 | actively developed |
 
 ## When another tool is the better choice
 
