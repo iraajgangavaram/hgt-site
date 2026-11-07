@@ -47,6 +47,33 @@ The pattern matches the first benchmark. The three insertions hgt-site missed at
 
 The simulator needs Biopython 1.77. For these runs, the few Biopython functions it uses (FASTA reading, sequence slicing and reverse complement) were supplied by a small compatibility module, which passed the simulator's own test suite.
 
+## Viral insertions
+
+The benchmark above inserts bacterial DNA. Viral integration is the other case people look for, and the donor genome there is much smaller, so the whole benchmark was repeated with a virus in place of *Escherichia coli*.
+
+| | Sites reported | Of those, real | Insertions found |
+| --- | ---: | ---: | ---: |
+| hgt-site, bacterial donor | 364 | 364 | 360 of 360 |
+| hgt-site, viral donor | 361 | 357 | 357 of 360 |
+| Read support alone, viral donor | 24,320 | 384 | 360 of 360 |
+
+Eighteen runs for each donor, three seeds across six settings of coverage and chimera rate. With a viral donor, precision is 0.989 with a 95% confidence interval of 0.972 to 0.996, against 1.000 for the bacterial donor. Read support alone gives 0.016 either way, because the chimeras come from the contaminating bacteria rather than from the donor, so the problem is the same size in both cases.
+
+The errors appear where there are fewest chimeras, not most. At 2,000 and 10,000 chimeric pairs the viral runs report one false site each in four of the twelve runs; at 30,000 they report none. The expected count at a position scales with how many chance chimeras the sample contains, so when chimeras are rare the expected count is small and a modest cluster of pairs clears the test more easily. A 30 kb donor gives less sequence over which to estimate that background than a 4.6 Mb one, which is why the effect shows up with a virus and not with a bacterium.
+
+**The virus used is a stand-in.** It is SARS-CoV-2, chosen because it is the right order of magnitude in size and base composition, and it does not integrate into host genomes. The benchmark tests whether the statistics hold when the donor genome is small, not whether hgt-site finds real viral integrations. A benchmark on a virus that does integrate, such as HPV or HBV, and a comparison against VIRUSBreakend, are both still to be done.
+
+To reproduce it, build a Kraken2 database containing the host, the four contaminants and the viral genome, then run the same script with the virus as the donor:
+
+```bash
+python3 benchmark/run_benchmark.py \
+    --host host.fa --donor virus.fa \
+    --contaminants klebsiella.fa salmonella.fa pseudomonas.fa acinetobacter.fa \
+    --kraken-db k2db --nodes k2db/taxonomy/nodes.dmp \
+    --coverage 10 --chimera-pairs 30000 --seed 1 \
+    --outdir viral_run
+```
+
 ## Libraries with long fragments
 
 Reads from one insertion lie within about one fragment length of the junction, so with fixed clustering limits, libraries with long fragments can have one insertion split into two candidate sites. hgt-site measures the fragment size from properly paired reads and widens its limits when needed. The built-in simulator was run with mean fragment lengths of 400, 800 and 1000 bp, with 20 random seeds each, 5 insertions per seed, 300 chimeric pairs and 4,000 contaminant pairs:

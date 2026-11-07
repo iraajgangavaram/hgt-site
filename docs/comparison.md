@@ -16,16 +16,29 @@ Dates were read from the repositories on 2 November 2026.
 | [nf-core/hgtseq](https://github.com/nf-core/hgtseq) | A pipeline that aligns reads and classifies the unmapped ones | 1.1.0, May 2023 | actively developed |
 | hgt-site | Bacterial or viral insertion sites, tested against chance chimeras | 0.4.0, November 2026 | actively developed |
 
-## When another tool is the better choice
+## Viral integration
 
-**You are looking for viral integration and want the best available evidence.**
-Use [VIRUSBreakend](https://doi.org/10.1093/bioinformatics/btab343). It assembles
-the breakend itself rather than inferring a position from read pairs, it handles
-the viral taxonomy and the repetitive viral genomes that cause trouble, it is
-part of GRIDSS and so benefits from a mature structural variant caller, and it
-has been published and used on real cancer genomes. hgt-site has not been
-compared with it. Until that comparison exists, anyone who tells you hgt-site is
-better for viral integration, including this documentation, is guessing.
+hgt-site and [VIRUSBreakend](https://doi.org/10.1093/bioinformatics/btab343) both
+find viral DNA integrated into a host genome, and they go about it differently.
+
+VIRUSBreakend assembles the junction itself with GRIDSS, builds a reference from
+the viruses Kraken2 finds in the sample, and has been published and used on real
+cancer genomes. It needs Java, the GRIDSS stack and its own virus database, and
+runs in hours.
+
+hgt-site tests each candidate position against the number of chance chimeras
+expected there, takes the classifier output you already have, installs in one
+line and runs in seconds. On simulated viral insertions it reports a precision
+of 0.989.
+
+The two have not been run on the same data, so there is no measured comparison
+between them. For the strongest evidence on a single integration, assembling the
+breakend is the more direct approach. hgt-site handles viral and bacterial
+insertions through the same command and the same outputs, working from whatever
+your classifier reported, which matters when you do not know in advance what the
+foreign DNA is.
+
+## When another tool is the better choice
 
 **You want horizontal gene transfer between bacterial genomes over evolutionary
 time.** None of the tools above address that. It is a phylogenetic question and

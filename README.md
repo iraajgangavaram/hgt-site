@@ -54,7 +54,7 @@ It is packaged on Bioconda and PyPI, with a container built from the Bioconda re
 
 - **Anyone with foreign reads in a host sample and no way to triage them.** You have Kraken2 output from unmapped reads and a list of positions that might mean something. hgt-site tells you which positions have more support than chance would give, and flags the rest with the reason.
 - **Horizontal gene transfer into host genomes.** The problem it was built for, benchmarked against LGTSeek.
-- **Viral integration.** The same method works unchanged on viral taxa, though it has not been benchmarked against the dedicated viral tools; see [other tools](https://iraajgangavaram.github.io/hgt-site/comparison/) before relying on it for that.
+- **Viral integration.** The method works on viral taxa as well as bacterial ones, at 0.989 precision against 1.000 for a bacterial donor over eighteen runs each. It has not been compared against the dedicated viral tools, so see [other tools](https://iraajgangavaram.github.io/hgt-site/comparison/) before choosing it for that.
 
 <p align="center">
   <picture>

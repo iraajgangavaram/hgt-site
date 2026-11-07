@@ -32,6 +32,7 @@ has and has not been shown to do.
 | Claim | What it rests on |
 | --- | --- |
 | Separates real insertions from chance chimeras | 18 simulated datasets, three seeds across six settings of coverage and chimera rate, built from real human and bacterial genomes. 364 sites reported, none false, all 360 insertions found. 95% confidence interval on precision 0.990 to 1.000. |
+| Works for viral insertions as well as bacterial | Eighteen simulated datasets with a viral donor. 361 sites reported, 357 real, 357 of 360 insertions found, a precision of 0.989 against 1.000 for the bacterial donor. The virus used does not integrate and was chosen for its size, so this tests the statistics rather than the biology. |
 | Better than filtering on read support | On the same datasets, read support alone reported 24,861 sites of which 390 were real. |
 | Better than an existing tool | Benchmarked against LGTSeek, which reported thousands of false sites in the noisiest datasets. LGTSeek has had no commit since 2016. |
 | Not an artefact of our own simulator | The benchmark was repeated with an independent published simulator and the conclusion held. |
