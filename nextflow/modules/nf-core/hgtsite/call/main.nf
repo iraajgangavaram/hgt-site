@@ -4,8 +4,8 @@ process HGTSITE_CALL {
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine in ['singularity', 'apptainer'] && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/hgt-site:0.3.0--pyhdfd78af_0' :
-        'biocontainers/hgt-site:0.3.0--pyhdfd78af_0' }"
+        'https://depot.galaxyproject.org/singularity/hgt-site:0.4.0--pyhdfd78af_0' :
+        'biocontainers/hgt-site:0.4.0--pyhdfd78af_0' }"
 
     input:
     tuple val(meta), path(alignment), path(index)
