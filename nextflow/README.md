@@ -54,11 +54,12 @@ Their CI runs the test on every pull request.
 
 Three places carry the version, and all three have to move together:
 
-- `environment.yml`: `bioconda::hgt-site=0.3.0`
+- `environment.yml`: `bioconda::hgt-site=0.4.0`
 - `main.nf`: both container URLs
 
-The version must exist on Bioconda first. The current pin is 0.3.0; it moves to
-0.4.0 once that recipe merges and the container is built.
+The pin is 0.4.0, which is the first version with the `--classifications` option
+the module uses. The container has to exist on Bioconda before the module can
+run, so this cannot be submitted until that recipe merges.
 
 ## Conventions this follows
 

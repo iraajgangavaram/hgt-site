@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- A Snakemake wrapper is in `snakemake/`, ready to submit to snakemake-wrappers, so the tool can be used from a Snakemake workflow.
 - An nf-core module for `hgt-site call` is in `nextflow/`, ready to submit to nf-core/modules, so the tool can be dropped into a Nextflow pipeline. Not yet run, because neither Nextflow nor nf-test was available where it was written.
 
 ## 0.4.0 (2026-11-06)
