@@ -5,6 +5,8 @@
   </picture>
 </h1>
 
+<p align="center"><b>Find where foreign DNA has inserted into a host genome, from a BAM and your classifier's output.</b></p>
+
 <p align="center">
   <a href="https://github.com/iraajgangavaram/hgt-site/actions/workflows/tests.yml"><img alt="tests" src="https://github.com/iraajgangavaram/hgt-site/actions/workflows/tests.yml/badge.svg"></a>
   <a href="https://github.com/iraajgangavaram/hgt-site/releases"><img alt="release" src="https://img.shields.io/github/v/release/iraajgangavaram/hgt-site?color=2a78d6"></a>
@@ -14,6 +16,7 @@
   <img alt="Python 3.10 to 3.13" src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-2a78d6">
   <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-52514e"></a>
   <a href="https://doi.org/10.5281/zenodo.23842712"><img alt="DOI" src="https://zenodo.org/badge/1441009191.svg"></a>
+  <a href="https://www.repostatus.org/#active"><img alt="Project status: active" src="https://www.repostatus.org/badges/latest/active.svg"></a>
 </p>
 
 <p align="center">
@@ -28,6 +31,21 @@
   <a href="https://iraajgangavaram.github.io/hgt-site/comparison/">Other tools</a> ·
   <a href="#citation">Citation</a>
 </p>
+
+```bash
+conda install -c conda-forge -c bioconda hgt-site
+
+hgt-site run --bam sample.bam --kraken-db /path/to/kraken2-db \
+    --host-taxid 9606 --threads 8 -o sites.tsv
+```
+
+```
+chrom      start    end      left_breakpoint  split_reads  n_pairs  top_taxid  qvalue
+chr21_20M  1870963  1871693  1871390          4            16       562        1.295e-12
+chr21_20M  2646531  2646869  2646659          4            5        562        3.33e-08
+```
+
+Every candidate stays in the table with the reason it failed, so you can see what was considered and rejected. Full options under [Usage](#usage).
 
 hgt-site detects candidate horizontal gene transfer and integration sites from short-read sequencing data. It finds places where DNA from bacteria, viruses or other organisms may have been inserted into a host genome, such as a human genome. Most bacterial reads in these samples come from contamination or from DNA fragments joined by chance in the lab, so hgt-site checks each possible site against what chance alone would produce and keeps only the sites with clearly more support. In the benchmarks below it reported no false sites across 18 runs on fresh random seeds, 364 calls in all, while an existing tool, LGTSeek, reported thousands of false sites in the noisiest samples.
 
