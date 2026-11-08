@@ -74,6 +74,24 @@ python3 benchmark/run_benchmark.py \
     --outdir viral_run
 ```
 
+### Samples that contain free donor as well as integrated donor
+
+The chance chimeras above were built from the contaminating bacteria, so the foreign half never carried the virus that was really inserted. A real sample is rarely so tidy. A transduced cell line or a virus-positive tissue sample holds a lot of free donor alongside the integrated copy, and that free donor makes chimeras with host DNA during library preparation. Those chimeras carry the same taxon as the genuine insertion, so nothing about the classification separates them.
+
+`--donor-chimera-fraction` sets the share of chance chimeras taken from the donor rather than the contaminants. The runs below use the viral donor at coverage 10, three seeds each.
+
+| Donor share of chimeras | Sites | Real | False | Precision | Recall |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 0 | 61 | 60 | 1 | 0.984 | 60 of 60 |
+| 0.1 | 61 | 60 | 1 | 0.984 | 60 of 60 |
+| 0.3 | 60 | 60 | 0 | 1.000 | 60 of 60 |
+| 0.6 | 59 | 59 | 0 | 1.000 | 59 of 60 |
+| 0.6, 30,000 chimeras | 56 | 56 | 0 | 1.000 | 56 of 60 |
+
+Precision holds. In the last row about 17,900 of the 30,000 chimeras carried the integrated virus, around 3,660 positions had enough read support to look like sites, and none of the 56 reported sites was false. Read support alone reported all 3,660.
+
+What gives way is sensitivity. Chimeras made from the donor are anchored pairs, so they raise the rate at which that taxon is expected anywhere in the genome, and a cluster of donor reads becomes less surprising. The insertions that were missed all had few supporting pairs and were rejected as NOT_ENRICHED. That is the test being cautious rather than wrong, but it has a practical consequence: in a sample heavy with free donor, a weakly supported site will be dropped. More coverage, or reads that cross the junction, is the way to recover it. Loosening the threshold is not.
+
 ## Libraries with long fragments
 
 Reads from one insertion lie within about one fragment length of the junction, so with fixed clustering limits, libraries with long fragments can have one insertion split into two candidate sites. hgt-site measures the fragment size from properly paired reads and widens its limits when needed. The built-in simulator was run with mean fragment lengths of 400, 800 and 1000 bp, with 20 random seeds each, 5 insertions per seed, 300 chimeric pairs and 4,000 contaminant pairs:

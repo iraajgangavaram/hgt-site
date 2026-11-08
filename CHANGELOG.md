@@ -3,6 +3,7 @@
 ## Unreleased
 
 - The benchmark was repeated with a viral donor in place of the bacterial one. Precision is 0.989 over eighteen runs against 1.000 for a bacterial donor, with the errors appearing where chimeras are fewest rather than most. The virus used does not integrate and stands in for size and composition only.
+- The benchmark can now draw a share of its chance chimeras from the donor rather than only from the contaminating genomes, which is what a sample containing free donor alongside the integrated copy does. With six chimeras in ten coming from the donor, precision stayed at 1.000 and recall fell from 1.000 to 0.933 as the chimera load rose. `--donor-chimera-fraction` defaults to 0, so every earlier result is unchanged.
 
 - A Snakemake wrapper is in `snakemake/`, ready to submit to snakemake-wrappers, so the tool can be used from a Snakemake workflow.
 - An nf-core module for `hgt-site call` is in `nextflow/`, ready to submit to nf-core/modules, so the tool can be dropped into a Nextflow pipeline. Not yet run, because neither Nextflow nor nf-test was available where it was written.
