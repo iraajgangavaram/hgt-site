@@ -108,23 +108,37 @@ def build_sample_intvi(args, out):
     return host_name, sample[host_name], truth
 
 
-def build_chimeras(host_seq, contaminants, n, rng, molecule=500):
-    """Host-contaminant molecules of the kind made by chance during library preparation.
+def build_chimeras(host_seq, contaminants, n, rng, molecule=500, donor=None, donor_fraction=0.0):
+    """Host-foreign molecules of the kind made by chance during library preparation.
 
     Molecules are 500 bp because wgsim skips sequences shorter than the
     insert size plus three standard deviations (460 bp here).
+
+    By default the foreign half comes from the contaminating genomes only, so
+    chance chimeras never carry the sequence that was really inserted. Where a
+    sample holds free donor as well as integrated donor, as a transduced cell
+    line or a virus-positive tissue sample does, some chance chimeras carry the
+    donor instead. donor_fraction is the share that do, and those are the ones
+    that land near a real insertion site by coincidence and cannot be told
+    apart from it by taxon.
     """
     contam = [s for genome in contaminants for s in genome.values() if len(s) > 10_000]
+    donor_seqs = [s for s in (donor or {}).values() if len(s) >= molecule]
+    if donor_fraction and not donor_seqs:
+        raise SystemExit("--donor-chimera-fraction needs a donor sequence of at least 500 bp")
     molecules = {}
     for i in range(n):
         host_len = rng.randint(250, 300)
         hstart = rng.randint(0, len(host_seq) - host_len)
-        source = rng.choice(contam)
+        # Only drawn when donor chimeras are asked for, so that the default
+        # leaves the random stream, and every published result, unchanged.
+        from_donor = bool(donor_fraction) and rng.random() < donor_fraction
+        source = rng.choice(donor_seqs if from_donor else contam)
         cstart = rng.randint(0, len(source) - molecule)
         seq = host_seq[hstart : hstart + host_len] + source[cstart : cstart + molecule - host_len]
         if rng.random() < 0.5:
             seq = revcomp(seq)
-        molecules[f"chim{i}"] = seq
+        molecules[f"{'dchim' if from_donor else 'chim'}{i}"] = seq
     return molecules
 
 
@@ -200,6 +214,10 @@ def main():
     p.add_argument("--coverage", type=float, default=10.0)
     p.add_argument("--contaminant-pairs", type=int, default=50_000)
     p.add_argument("--chimera-pairs", type=int, default=2_000)
+    p.add_argument("--donor-chimera-fraction", type=float, default=0.0,
+                   help="share of chance chimeras whose foreign half comes from the donor rather than"
+                        " the contaminants, as happens when free donor is present alongside the"
+                        " integrated copy (default 0)")
     p.add_argument("--threads", type=int, default=2)
     p.add_argument("--seed", type=int, default=1)
     p.add_argument("--intvi-script", help="insert_virus.py from the Scott et al. simulator; used instead of the built-in insertion step")
@@ -237,7 +255,9 @@ def main():
     wgsim(contam_fa, args.contaminant_pairs, out / "c_1.fq", out / "c_2.fq", args.seed + 1)
 
     (host_seq,) = host.values()
-    write_fasta(out / "chimeras.fa", build_chimeras(host_seq, contaminants, args.chimera_pairs, rng))
+    chimeras = build_chimeras(host_seq, contaminants, args.chimera_pairs, rng,
+                              donor=read_fasta(args.donor), donor_fraction=args.donor_chimera_fraction)
+    write_fasta(out / "chimeras.fa", chimeras)
     wgsim(out / "chimeras.fa", args.chimera_pairs, out / "x_1.fq", out / "x_2.fq", args.seed + 2, insert=400, sd=20)
 
     concat([out / "s_1.fq", out / "c_1.fq", out / "x_1.fq"], out / "reads_1.fq")
@@ -289,6 +309,8 @@ def main():
         "coverage": args.coverage,
         "contaminant_pairs": args.contaminant_pairs,
         "chimera_pairs": args.chimera_pairs,
+        "donor_chimera_fraction": args.donor_chimera_fraction,
+        "donor_chimeras": sum(1 for name in chimeras if name.startswith("dchim")),
         "hgt_site": evaluate(passed, truth),
         "support_only": evaluate(support_only, truth),
     }
