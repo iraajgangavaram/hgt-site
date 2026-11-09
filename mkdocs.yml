@@ -13,6 +13,7 @@ exclude_docs: |
 
 nav:
   - Home: index.md
+  - Contamination or a real insertion?: contamination-or-insertion.md
   - Installation: installation.md
   - Usage: usage.md
   - Output: output.md
