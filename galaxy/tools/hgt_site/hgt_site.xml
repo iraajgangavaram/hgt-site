@@ -1,7 +1,7 @@
 <tool id="hgt_site_call" name="hgt-site" version="@TOOL_VERSION@+galaxy0" profile="23.0">
-    <description>call candidate horizontal gene transfer sites from host alignments and Kraken2 calls</description>
+    <description>call candidate horizontal gene transfer sites from host alignments and per-read taxonomic calls</description>
     <macros>
-        <token name="@TOOL_VERSION@">0.3.0</token>
+        <token name="@TOOL_VERSION@">0.4.0</token>
     </macros>
     <xrefs>
         <xref type="bio.tools">hgt-site</xref>
@@ -20,8 +20,8 @@
 #end if
 hgt-site call
     --bam '$aln'
-    --kraken
-    #for $k in $kraken
+    --classifications
+    #for $k in $classifications
         '$k'
     #end for
     --host-taxid $host_taxid
@@ -38,8 +38,8 @@ hgt-site call
     ]]></command>
     <inputs>
         <param name="alignment" type="data" format="bam,sam" label="Paired-end reads aligned to the host genome"/>
-        <param name="kraken" type="data" format="tabular" multiple="true" label="Kraken2 per-read output for the unmapped reads"
-               help="The per-read output of Kraken2 (not the report). Read names must match the alignment. Several files can be selected if a pipeline wrote more than one per sample."/>
+        <param name="classifications" type="data" format="tabular" multiple="true" label="Per-read taxonomic calls for the unmapped reads"
+               help="Per-read output from Kraken2, KrakenUniq, Kaiju, Centrifuge, DIAMOND or BLAST, or a two-column file of read name and taxid. Not a Kraken2 report. The format is detected from the file. Read names must match the alignment. Several files can be selected if a pipeline wrote more than one per sample."/>
         <param name="host_taxid" type="integer" value="9606" min="1" label="NCBI taxonomy ID of the host" help="For example 9606 for human or 10090 for mouse."/>
         <param name="nodes" type="data" format="txt" optional="true" label="NCBI nodes.dmp (optional)"
                help="With the NCBI taxonomy, reads classified anywhere in the host lineage are ignored, not only those assigned to the host taxid itself."/>
@@ -57,7 +57,7 @@ hgt-site call
     <tests>
         <test expect_num_outputs="3">
             <param name="alignment" value="sim.bam"/>
-            <param name="kraken" value="sim.kraken2.txt"/>
+            <param name="classifications" value="sim.kraken2.txt"/>
             <param name="host_taxid" value="9606"/>
             <output name="sites" ftype="tabular">
                 <assert_contents>
@@ -87,7 +87,7 @@ hgt-site finds places where DNA from bacteria or other organisms may have been i
 **Inputs**
 
 - Paired-end reads aligned to the host genome (BAM or SAM).
-- Kraken2 per-read output for the reads that did not map to the host. Read names must match those in the alignment.
+- Per-read taxonomic calls for the reads that did not map to the host, from Kraken2, KrakenUniq, Kaiju, Centrifuge, DIAMOND or BLAST, or a two-column file of read name and taxid. The format is worked out from the file. Read names must match those in the alignment.
 - The NCBI taxonomy ID of the host.
 
 **Outputs**
