@@ -92,6 +92,23 @@ Precision holds. In the last row about 17,900 of the 30,000 chimeras carried the
 
 What gives way is sensitivity. Chimeras made from the donor are anchored pairs, so they raise the rate at which that taxon is expected anywhere in the genome, and a cluster of donor reads becomes less surprising. The insertions that were missed all had few supporting pairs and were rejected as NOT_ENRICHED. That is the test being cautious rather than wrong, but it has a practical consequence: in a sample heavy with free donor, a weakly supported site will be dropped. More coverage, or reads that cross the junction, is the way to recover it. Loosening the threshold is not.
 
+## Uneven host coverage
+
+The expected number of chance chimeras at a position assumes foreign pairs fall evenly across the host genome. A chimera's host half is drawn from the host DNA in the library, so a region present at several copies contributes chimeras in proportion to its copy number, and the even assumption reads the excess as an insertion. This is the case in any tumour with copy-number gains, in an amplified or low-input library, and in RNA-seq.
+
+`--amplify START:LENGTH:FACTOR` puts a region of the host genome into the simulated sample at several copies, with both the extra host reads and the extra chance chimeras that follow from it. The runs below use a 500 kb region at six copies, coverage 10 and 10,000 chimeric pairs.
+
+| Background | Runs | Sites | Real | False | Precision | Insertions found |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Genome-wide rate (the default) | 3 | 69 | 59 | 10 | 0.855 | 59 of 60 |
+| `--local-background` | 3 | 59 | 59 | 0 | 1.000 | 59 of 60 |
+| Genome-wide rate, no amplified region | 1 | 20 | 20 | 0 | 1.000 | 20 of 20 |
+| `--local-background`, no amplified region | 1 | 20 | 20 | 0 | 1.000 | 20 of 20 |
+
+Every one of the 10 false sites was inside the amplified region, with 6 to 9 supporting pairs against an expected count between 0.17 and 0.63. Measuring coverage locally removed all 10 and lost no true site. The insertion missed in one seed was missed by both, so it is not a cost of the option. On the matched run with no amplified region the two gave the same sites, as they should, since the measured ratio there is close to 1 everywhere.
+
+This matters for the viral case in particular. An integrated virus often sits in a region that is itself amplified, and a tumour genome is rarely at an even copy number anywhere.
+
 ## Libraries with long fragments
 
 Reads from one insertion lie within about one fragment length of the junction, so with fixed clustering limits, libraries with long fragments can have one insertion split into two candidate sites. hgt-site measures the fragment size from properly paired reads and widens its limits when needed. The built-in simulator was run with mean fragment lengths of 400, 800 and 1000 bp, with 20 random seeds each, 5 insertions per seed, 300 chimeric pairs and 4,000 contaminant pairs:

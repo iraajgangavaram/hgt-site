@@ -56,6 +56,29 @@ Donor reads are reported under taxid 32630, NCBI's taxon for a sequence that was
 
 Two things to know. This is k-mer matching and not alignment, so a donor that differs from your reads throughout, by more than a few per cent, will not be found this way: align the reads and use a classifier for that case. And a donor sharing sequence with the host, a vector carrying a human promoter for instance, will match host reads too, so mask those parts of the FASTA or expect the shared region to produce sites.
 
+## When host coverage is uneven
+
+The test asks how many foreign pairs chance would put at a position, and by default it assumes they fall evenly across the genome. A chimera is a host fragment joined to a foreign fragment, so the chance its host half comes from a given region depends on how much host DNA from that region is in the library. Three copies of a region contribute three times the chimeras, and the even assumption will read the excess as an insertion.
+
+That matters in a tumour with copy-number gains, in an amplified or low-input library, and in RNA-seq where coverage follows expression over several orders of magnitude.
+
+```bash
+hgt-site call \
+  --bam sample.bam \
+  --classifications sample.kraken2.txt \
+  --host-taxid 9606 \
+  --local-background \
+  -o sample.hgt-site.tsv
+```
+
+Host coverage is counted in 10 kb bins during the scan the tool already does, and the expected count at each site is multiplied by the local rate over the genome mean. That ratio is reported in the `depth_ratio` column, where 1 means the site was tested against the genome-wide rate as usual.
+
+A site keeps a ratio of 1, and so is tested exactly as it would be without the option, when the local estimate cannot be trusted: fewer than 200 mapped reads in the bins around it, or a ratio below 0.1 or above 10, which is more often a mapping artefact or a reference gap than real copy number.
+
+**It needs the whole alignment.** If you pass a BAM already filtered down to the pairs with an unmapped mate, the host coverage has been thrown away. hgt-site notices, says so, and falls back to the genome-wide rate rather than giving you a confident wrong answer.
+
+On the benchmark, with a 500 kb region present at six copies, the even assumption reported 69 sites across three seeds of which 10 were false, all of them inside the amplified region. With `--local-background` the same three runs reported 59 sites and none was false, with no true site lost. On a run with no amplified region the two gave the same sites, since the measured ratio is then close to 1 everywhere.
+
 ## Several samples at once
 
 Call each sample as usual, then merge the tables:
@@ -92,6 +115,7 @@ This reads the tables rather than the alignments, so samples called at different
 | `--threads 4` | Uses more cores to read large BAM or CRAM files |
 | `--reference genome.fa` | Reference FASTA, needed for CRAM input |
 | `--exclude-taxid 1234` | Ignores a taxon, for example a known contaminant (can be repeated) |
+| `--local-background` | Works out how many chance chimeras to expect at a site from host coverage near that site, rather than from one genome-wide rate. Worth using wherever coverage is uneven: a tumour with copy-number changes, an amplified or low-input library, RNA-seq. Needs the whole alignment, not one filtered down to the pairs with an unmapped mate |
 | `--exclude-regions artefacts.bed` | Leaves out positions listed in a BED file. A candidate overlapping one is reported with `EXCLUDED` instead of passing, for the artefacts a protocol or a reference produces in every sample |
 | `--no-split-reads` | Skips the split-read search, so junctions come from read pairs only |
 

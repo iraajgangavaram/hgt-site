@@ -49,6 +49,7 @@ COLUMNS = [
     "taxon_anchored_pairs",
     "taxon_unanchored_pairs",
     "expected_pairs",
+    "depth_ratio",
     "pvalue",
     "qvalue",
     "expected_other_pairs",
@@ -105,14 +106,15 @@ def fit_limits(pairs, settings, user_set):
 def call_sites(
     alignments, kraken, host_taxid, nodes_dmp=None, exclude=(), reference=None, threads=1, split_reads=True,
     annotation=None, max_gene_distance=100_000, classifier="auto", exclude_regions=None,
-    donor=None, donor_taxid=None, summary=None, **opts
+    donor=None, donor_taxid=None, local_background=False, summary=None, **opts
 ):
     """Call candidate sites. If summary is a dict, read counts are added to it."""
     user_set = {k for k, v in opts.items() if v is not None}
     settings = {**DEFAULTS, **{k: v for k, v in opts.items() if v is not None}}
     taxon_filter = TaxonFilter(host_taxid, nodes_dmp, exclude)
     pairs = collect_pairs(
-        alignments, settings["min_mapq"], reference, threads, keep_both_unmapped_seqs=bool(donor)
+        alignments, settings["min_mapq"], reference, threads, keep_both_unmapped_seqs=bool(donor),
+        count_coverage=local_background,
     )
     if donor:
         from .donor import SYNTHETIC_CONSTRUCT, classify_against_donor
@@ -173,6 +175,20 @@ def call_sites(
         raise ValueError("The alignment header lists no reference contigs and lengths.")
 
     sites = cluster_anchors(foreign, settings["max_gap"], settings["max_span"])
+    if local_background:
+        from .background import apply_ratios, unusable_reason
+
+        reason = unusable_reason(pairs.coverage, genome_length)
+        if reason:
+            log.warning("Local host coverage was not used because %s.", reason)
+        else:
+            scaled = apply_ratios(
+                sites, pairs.coverage, genome_length, settings["window"], pairs.contig_lengths
+            )
+            log.info(
+                "Local host coverage measured for %d of %d candidate sites; the rest are tested "
+                "against the genome-wide rate.", scaled, len(sites),
+            )
     sites = score_sites(
         sites, calls, pairs.unmapped_mate_seqs, background, genome_length,
         settings["window"], settings,

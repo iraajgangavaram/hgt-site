@@ -60,6 +60,7 @@ It is packaged on Bioconda and PyPI, with a container built from the Bioconda re
 - **Separates real insertions from lab artefacts.** Keep every position with enough supporting reads and you get 24,861 sites of which 390 are real. hgt-site reported 364 sites across 18 runs on fresh random seeds, with none of them false.
 - **One command from a BAM.** `hgt-site run` pulls out the unmapped reads, classifies them and calls the sites.
 - **Takes whatever classifier you already ran.** Kraken2, KrakenUniq, Kaiju, Centrifuge, DIAMOND, BLAST tabular, or any two-column file of read name and taxid. All six give byte-identical calls on the same reads, and there is a test that checks it.
+- **Copes with uneven coverage.** `--local-background` expects more chimeras where there is more host DNA, so a copy-number gain or an amplified library does not turn into a list of false sites. On the benchmark it removed all 10 false sites a 6-copy region produced, and cost none of the real ones.
 - **Or no classifier at all.** If you put the DNA there, point `--donor` at the vector, transgene or viral genome and skip the classifier and its database entirely.
 - **Junctions to the base pair.** Where reads cross the junction, the insertion point is exact: 71% of junctions exact and 98% within 2 bp, against 41% and 57% from read pairs alone.
 - **Tells you the gene.** Point `--annotation` at a GTF or GFF3 and every site comes back with the gene it landed in, or the nearest one.
@@ -268,6 +269,7 @@ A tab-separated table with one row per candidate site:
 | `taxon_anchored_pairs` | Anchored pairs for this taxon across the genome |
 | `taxon_unanchored_pairs` | Pairs for this taxon where neither mate mapped |
 | `expected_pairs`, `pvalue`, `qvalue` | Enrichment test |
+| `depth_ratio` | Host coverage at the site over the genome mean, used to scale `expected_pairs`. Always 1 unless `--local-background` was given and the local estimate was trustworthy |
 | `expected_other_pairs`, `other_pvalue` | Pairs from other taxa expected by chance, and the test for an excess of them |
 | `flags`, `filter` | Flags raised and the overall filter result |
 

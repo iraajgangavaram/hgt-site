@@ -61,6 +61,12 @@ def _add_common(parser, kraken_required):
              "reported with EXCLUDED in the filter column instead of passing. Use it for the "
              "artefacts a protocol or a reference produces in every sample",
     )
+    parser.add_argument(
+        "--local-background", action="store_true",
+        help="Estimate the expected number of chance chimeras at a site from host coverage near "
+             "that site rather than from one genome-wide rate. Worth using where coverage is "
+             "uneven, as in a tumour with copy-number changes, an amplified library or RNA-seq",
+    )
     parser.add_argument("--reference", help="Reference FASTA, needed for CRAM input")
     parser.add_argument(
         "--annotation",
@@ -192,7 +198,8 @@ def _call(args, kraken):
         threads=args.threads, split_reads=not args.no_split_reads, annotation=args.annotation,
         max_gene_distance=args.max_gene_distance, classifier=args.classifier,
         exclude_regions=args.exclude_regions, donor=donor,
-        donor_taxid=getattr(args, "donor_taxid", DONOR_TAXID), summary=summary, **opts
+        donor_taxid=getattr(args, "donor_taxid", DONOR_TAXID),
+        local_background=args.local_background, summary=summary, **opts
     )
     _write_outputs(args, sites, summary)
 

@@ -66,6 +66,10 @@ class Site:
     complexity: list = field(default_factory=list)
     stats: dict = field(default_factory=dict)
     flags: list = field(default_factory=list)
+    # Local host coverage over the genome mean. 1 means the uniform
+    # background, which is what every site gets unless --local-background
+    # is used and the estimate for that site is trustworthy.
+    depth_ratio: float = 1.0
 
 
 def cluster_anchors(anchors, max_gap, max_span):
@@ -132,12 +136,16 @@ def score_sites(sites, calls, mate_seqs, background, genome_length, window, thre
         fwd_ends = [a.end for a in site.anchors if not a.reverse]
         rev_starts = [a.start for a in site.anchors if a.reverse]
         span = (site.end - site.start) + window
-        expected = anchored_per_taxon[top_taxid] * span / genome_length
+        # A chimera's host half comes from the host DNA in the library, so
+        # where there is more host DNA there are more chimeras. depth_ratio
+        # is 1 unless local coverage was measured and trusted.
+        share = site.depth_ratio * span / genome_length
+        expected = anchored_per_taxon[top_taxid] * share
         pvalue = poisson_sf(top_count, expected)
         pvalues.append(pvalue)
         # Pairs from other taxa that chance chimeras alone would put in this window.
         other_total = sum(anchored_per_taxon.values()) - anchored_per_taxon[top_taxid]
-        expected_other = other_total * span / genome_length
+        expected_other = other_total * share
         other_count = n_pairs - top_count
         site.stats = {
             "n_pairs": n_pairs,
@@ -155,6 +163,7 @@ def score_sites(sites, calls, mate_seqs, background, genome_length, window, thre
             "taxon_anchored_pairs": anchored_per_taxon[top_taxid],
             "taxon_unanchored_pairs": background.get(top_taxid, 0),
             "expected_pairs": expected,
+            "depth_ratio": site.depth_ratio,
             "pvalue": pvalue,
             "expected_other_pairs": expected_other,
             "other_pvalue": poisson_sf(other_count, expected_other),

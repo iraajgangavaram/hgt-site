@@ -814,3 +814,92 @@ def test_donor_fasta_must_hold_sequence(tmp_path):
     empty.write_text("")
     with pytest.raises(ValueError, match="no FASTA records"):
         read_fasta(empty)
+
+
+def test_local_background_leaves_even_coverage_alone(sim, tmp_path):
+    """Where coverage is even the option should change nothing but the column."""
+    plain, local = tmp_path / "plain.tsv", tmp_path / "local.tsv"
+    base = ["call", "--bam", f"{sim}.sam", "--kraken", f"{sim}.kraken2.txt",
+            "--host-taxid", str(HOST_TAXID)]
+    assert main(base + ["-o", str(plain)]) == 0
+    assert main(base + ["-o", str(local), "--local-background"]) == 0
+
+    def rows(path):
+        with open(path) as handle:
+            return list(csv.DictReader(handle, delimiter="\t"))
+
+    before, after = rows(plain), rows(local)
+    assert {r["depth_ratio"] for r in before} == {"1"}, "off by default"
+    ratios = [float(r["depth_ratio"]) for r in after]
+    assert any(r != 1.0 for r in ratios), "coverage should have been measured"
+    assert all(0.5 < r < 2.0 for r in ratios), "even coverage should give ratios near 1"
+
+    passed = lambda rs: {(r["chrom"], r["start"]) for r in rs if r["filter"] == "PASS"}
+    assert passed(after) == passed(before)
+
+
+def test_local_background_falls_back_on_a_filtered_alignment(sim, tmp_path, caplog):
+    """Without the mapped pairs there is no coverage to measure."""
+    filtered = tmp_path / "filtered.sam"
+    with open(f"{sim}.sam") as source, open(filtered, "w") as out:
+        for line in source:
+            if line.startswith("@"):
+                out.write(line)
+                continue
+            flag = int(line.split("\t")[1])
+            if flag & 0x4 or flag & 0x8:
+                out.write(line)
+
+    out_tsv = tmp_path / "s.tsv"
+    with caplog.at_level("WARNING"):
+        assert main([
+            "call", "--bam", str(filtered), "--kraken", f"{sim}.kraken2.txt",
+            "--host-taxid", str(HOST_TAXID), "-o", str(out_tsv), "--local-background",
+        ]) == 0
+    assert "appears to have been filtered" in caplog.text
+    with open(out_tsv) as handle:
+        rows = list(csv.DictReader(handle, delimiter="\t"))
+    assert rows and {r["depth_ratio"] for r in rows} == {"1"}, "every site falls back"
+
+
+def test_coverage_rate_and_guards():
+    from hgt_site.alignments import Coverage
+    from hgt_site.background import MAX_RATIO, MIN_LOCAL_READS, apply_ratios, unusable_reason
+    from hgt_site.sites import Site
+
+    coverage = Coverage(bin_size=1000)
+    # chr1 bin 0 is busy, bin 1 is quiet, chr1 bin 5 is extreme.
+    for _ in range(MIN_LOCAL_READS * 2):
+        coverage.add(0, "chr1", 10)
+    for _ in range(MIN_LOCAL_READS // 4):
+        coverage.add(0, "chr1", 1010)
+    for _ in range(MIN_LOCAL_READS * 100):
+        coverage.add(0, "chr1", 5010)
+
+    rate, reads = coverage.rate("chr1", 0, 1)
+    assert reads == MIN_LOCAL_READS * 2
+    assert rate == reads / 1000, "a narrow range still uses the whole bin"
+    assert coverage.rate("chr1", 0, 1001)[1] == MIN_LOCAL_READS * 2 + MIN_LOCAL_READS // 4
+
+    genome = 100_000
+    busy, quiet, extreme = (Site("chr1", 0, 1), Site("chr1", 1000, 1001), Site("chr1", 5000, 5001))
+    scaled = apply_ratios([busy, quiet, extreme], coverage, genome, window=0)
+    assert busy.depth_ratio > 1, "a region above the mean should raise the expectation"
+    assert quiet.depth_ratio == 1.0, "too few reads nearby to trust the estimate"
+    assert extreme.depth_ratio == 1.0, f"a ratio above {MAX_RATIO} should be ignored"
+    assert scaled == 1
+
+    assert unusable_reason(None, genome) is not None
+    assert unusable_reason(Coverage(bin_size=1000), genome) is not None, "no reads at all"
+
+
+def test_unmapped_reads_do_not_count_as_coverage():
+    from hgt_site.alignments import Coverage
+
+    coverage = Coverage(bin_size=100)
+    coverage.add(0x4, "chr1", 50)
+    coverage.add(0, "*", -1)
+    assert coverage.mapped_reads == 0 and not coverage.bins
+    coverage.add(0x8, "chr1", 50)
+    assert coverage.mapped_reads == 1, "a mapped read whose mate is unmapped is still coverage"
+    assert coverage.fully_mapped_reads == 0, "but it is not a fully mapped pair"

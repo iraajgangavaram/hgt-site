@@ -108,7 +108,8 @@ def build_sample_intvi(args, out):
     return host_name, sample[host_name], truth
 
 
-def build_chimeras(host_seq, contaminants, n, rng, molecule=500, donor=None, donor_fraction=0.0):
+def build_chimeras(host_seq, contaminants, n, rng, molecule=500, donor=None, donor_fraction=0.0,
+                   amplify=None):
     """Host-foreign molecules of the kind made by chance during library preparation.
 
     Molecules are 500 bp because wgsim skips sequences shorter than the
@@ -127,9 +128,21 @@ def build_chimeras(host_seq, contaminants, n, rng, molecule=500, donor=None, don
     if donor_fraction and not donor_seqs:
         raise SystemExit("--donor-chimera-fraction needs a donor sequence of at least 500 bp")
     molecules = {}
+    # A chimera's host half is drawn from the host DNA in the library, so a
+    # region present at several copies contributes chimeras in proportion to
+    # its copy number. Without this the amplified region would get extra host
+    # reads but no extra chimeras, which is not what a real library does.
+    p_amplified = 0.0
+    if amplify:
+        a_start, a_len, factor = amplify
+        extra = (factor - 1) * a_len
+        p_amplified = extra / (len(host_seq) + extra)
     for i in range(n):
         host_len = rng.randint(250, 300)
-        hstart = rng.randint(0, len(host_seq) - host_len)
+        if p_amplified and rng.random() < p_amplified:
+            hstart = rng.randint(a_start, a_start + a_len - host_len)
+        else:
+            hstart = rng.randint(0, len(host_seq) - host_len)
         # Only drawn when donor chimeras are asked for, so that the default
         # leaves the random stream, and every published result, unchanged.
         from_donor = bool(donor_fraction) and rng.random() < donor_fraction
@@ -214,6 +227,16 @@ def main():
     p.add_argument("--coverage", type=float, default=10.0)
     p.add_argument("--contaminant-pairs", type=int, default=50_000)
     p.add_argument("--chimera-pairs", type=int, default=2_000)
+    p.add_argument(
+        "--amplify",
+        help="START:LENGTH:FACTOR, a host region present at FACTOR copies, which gets both extra "
+             "host reads and extra chance chimeras",
+    )
+    p.add_argument(
+        "--local-background", action="store_true",
+        help="pass --local-background to hgt-site, and give it the whole alignment rather than the "
+             "filtered one, since local coverage cannot be measured without the mapped pairs",
+    )
     p.add_argument("--donor-chimera-fraction", type=float, default=0.0,
                    help="share of chance chimeras whose foreign half comes from the donor rather than"
                         " the contaminants, as happens when free donor is present alongside the"
@@ -255,13 +278,24 @@ def main():
     wgsim(contam_fa, args.contaminant_pairs, out / "c_1.fq", out / "c_2.fq", args.seed + 1)
 
     (host_seq,) = host.values()
+    amplify = None
+    if args.amplify:
+        amplify = tuple(int(x) for x in args.amplify.split(":"))
+        a_start, a_len, factor = amplify
+        amp_fa = out / "amplified.fa"
+        write_fasta(amp_fa, {"amp": host_seq[a_start : a_start + a_len]})
+        extra_pairs = int(args.coverage * a_len * (factor - 1) / 300)
+        wgsim(amp_fa, extra_pairs, out / "a_1.fq", out / "a_2.fq", args.seed + 3)
     chimeras = build_chimeras(host_seq, contaminants, args.chimera_pairs, rng,
-                              donor=read_fasta(args.donor), donor_fraction=args.donor_chimera_fraction)
+                              donor=read_fasta(args.donor), donor_fraction=args.donor_chimera_fraction,
+                              amplify=amplify)
     write_fasta(out / "chimeras.fa", chimeras)
     wgsim(out / "chimeras.fa", args.chimera_pairs, out / "x_1.fq", out / "x_2.fq", args.seed + 2, insert=400, sd=20)
 
-    concat([out / "s_1.fq", out / "c_1.fq", out / "x_1.fq"], out / "reads_1.fq")
-    concat([out / "s_2.fq", out / "c_2.fq", out / "x_2.fq"], out / "reads_2.fq")
+    amp_reads = [out / "a_1.fq"] if amplify else []
+    concat([out / "s_1.fq", out / "c_1.fq", out / "x_1.fq", *amp_reads], out / "reads_1.fq")
+    amp_reads2 = [out / "a_2.fq"] if amplify else []
+    concat([out / "s_2.fq", out / "c_2.fq", out / "x_2.fq", *amp_reads2], out / "reads_2.fq")
 
     # Primary alignments only, in read order. LGTSeek needs this order, and
     # hgt-site ignores secondary and supplementary records anyway.
@@ -279,11 +313,20 @@ def main():
         stderr=subprocess.DEVNULL,
     )
 
-    cmd = [sys.executable, "-m", "hgt_site", "call", "--bam", str(out / "aligned.sam"),
+    called_on = out / "aligned.sam"
+    if args.local_background:
+        # Local coverage comes from the mapped pairs, which the filtered SAM
+        # does not hold. Sorted and indexed so split reads still work.
+        run(["samtools", "sort", "-@", str(args.threads), "-o", out / "full.bam", out / "host.bam"])
+        run(["samtools", "index", out / "full.bam"])
+        called_on = out / "full.bam"
+    cmd = [sys.executable, "-m", "hgt_site", "call", "--bam", str(called_on),
            "--kraken", str(out / "kraken2.txt"), "--host-taxid", str(args.host_taxid),
            "-o", str(out / "sites.tsv")]
     if args.nodes:
         cmd += ["--nodes", args.nodes]
+    if args.local_background:
+        cmd += ["--local-background"]
     run(cmd)
 
     import csv
@@ -309,6 +352,8 @@ def main():
         "coverage": args.coverage,
         "contaminant_pairs": args.contaminant_pairs,
         "chimera_pairs": args.chimera_pairs,
+        "amplify": args.amplify,
+        "local_background": args.local_background,
         "donor_chimera_fraction": args.donor_chimera_fraction,
         "donor_chimeras": sum(1 for name in chimeras if name.startswith("dchim")),
         "hgt_site": evaluate(passed, truth),

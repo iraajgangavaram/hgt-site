@@ -51,6 +51,61 @@ class Anchor:
         return self.start if self.reverse else self.end
 
 
+# Width of the bins host coverage is counted in. Wide enough that a bin holds
+# enough reads for a steady estimate, narrow enough to follow an amplified
+# region or a highly expressed gene.
+COVERAGE_BIN = 10_000
+
+
+class Coverage:
+    """Mapped reads per bin, for estimating local host coverage.
+
+    Counted inside the readers rather than in collect_pairs, because the
+    readers drop the fully mapped pairs before anything else is done with
+    them and those pairs are most of the host coverage. Only built when the
+    caller asks for it, so the usual path keeps its speed.
+    """
+
+    __slots__ = ("bins", "bin_size", "mapped_reads", "fully_mapped_reads")
+
+    def __init__(self, bin_size=None, bins=None, mapped_reads=0, fully_mapped_reads=0):
+        self.bins = Counter() if bins is None else bins
+        self.bin_size = bin_size
+        self.mapped_reads = mapped_reads
+        self.fully_mapped_reads = fully_mapped_reads
+
+    def add(self, flag, chrom, pos):
+        if flag & UNMAPPED or pos < 0 or chrom == "*":
+            return
+        self.bins[(chrom, pos // self.bin_size)] += 1
+        self.mapped_reads += 1
+        if not flag & MATE_UNMAPPED:
+            self.fully_mapped_reads += 1
+
+    def rate(self, chrom, start, end, contig_length=None):
+        """Mapped reads per base over [start, end), from the bins it touches.
+
+        The whole of every bin the range touches is used, so the estimate is
+        over at least one bin's width however narrow the range is. A site is a
+        few hundred bases, where read counts are far too noisy to divide by.
+
+        The last bin of a contig stops at the contig end rather than a bin
+        boundary, so its width is clipped. Without that, a site near the end
+        of a contig would be divided by more bases than exist there, giving a
+        rate below the truth and an expected count too low, which is the
+        direction that lets a false site through.
+        """
+        first, last = start // self.bin_size, (max(end - 1, start)) // self.bin_size
+        reads = sum(self.bins.get((chrom, b), 0) for b in range(first, last + 1))
+        width = (last - first + 1) * self.bin_size
+        if contig_length is not None:
+            width = min(width, max(contig_length - first * self.bin_size, 1))
+        return reads / width, reads
+
+    def mean_rate(self, genome_length):
+        return self.mapped_reads / genome_length if genome_length else 0.0
+
+
 @dataclass
 class ReadPairs:
     anchors: list
@@ -62,6 +117,7 @@ class ReadPairs:
     # Sequences of the pairs with both mates unmapped, kept only when the
     # caller asks, since on a whole-genome file there can be a great many.
     both_unmapped_seqs: dict = field(default_factory=dict)
+    coverage: "Coverage" = None
 
 
 # Number of properly paired reads sampled to estimate the fragment size.
@@ -106,7 +162,7 @@ def _wanted(flag):
     return bool(flag & PAIRED) and not flag & SKIP and bool(flag & (UNMAPPED | MATE_UNMAPPED))
 
 
-def _iter_sam_text(path, sample):
+def _iter_sam_text(path, sample, coverage=None):
     lengths = {}
     records = []
     sampling = True
@@ -121,6 +177,8 @@ def _iter_sam_text(path, sample):
             flag = int(cols[1])
             if sampling:
                 sampling = sample.add(flag, int(cols[8]), len(cols[9]))
+            if coverage is not None:
+                coverage.add(flag, cols[2], int(cols[3]) - 1)
             if not _wanted(flag):
                 continue
             pos = int(cols[3]) - 1
@@ -130,7 +188,7 @@ def _iter_sam_text(path, sample):
     return lengths, records
 
 
-def _iter_pysam(path, sample, reference=None, threads=1):
+def _iter_pysam(path, sample, reference=None, threads=1, coverage=None):
     import pysam
 
     mode = "rc" if str(path).endswith(".cram") else "rb"
@@ -143,6 +201,11 @@ def _iter_pysam(path, sample, reference=None, threads=1):
             flag = read.flag
             if sampling:
                 sampling = sample.add(flag, read.template_length, read.query_length)
+            if coverage is not None:
+                coverage.add(
+                    flag, read.reference_name or "*",
+                    read.reference_start if read.reference_start is not None else -1,
+                )
             if not _wanted(flag):
                 continue
             yield Record(
@@ -158,17 +221,21 @@ def _iter_pysam(path, sample, reference=None, threads=1):
     return lengths, generate()
 
 
-def open_alignments(path, sample, reference=None, threads=1):
+def open_alignments(path, sample, reference=None, threads=1, coverage=None):
     path = str(path)
     if path.endswith(".sam"):
-        return _iter_sam_text(path, sample)
-    return _iter_pysam(path, sample, reference, threads)
+        return _iter_sam_text(path, sample, coverage)
+    return _iter_pysam(path, sample, reference, threads, coverage)
 
 
-def collect_pairs(path, min_mapq=20, reference=None, threads=1, keep_both_unmapped_seqs=False):
+def collect_pairs(
+    path, min_mapq=20, reference=None, threads=1, keep_both_unmapped_seqs=False,
+    count_coverage=False, bin_size=COVERAGE_BIN,
+):
     """Scan the alignments once and sort read pairs into the groups we need."""
     sample = _Sample()
-    lengths, records = open_alignments(path, sample, reference, threads)
+    coverage = Coverage(bin_size) if count_coverage else None
+    lengths, records = open_alignments(path, sample, reference, threads, coverage)
     anchors = []
     mate_seqs = {}
     both_unmapped = set()
@@ -192,7 +259,7 @@ def collect_pairs(path, min_mapq=20, reference=None, threads=1, keep_both_unmapp
             mate_seqs[name] = rec.seq
     return ReadPairs(
         anchors, mate_seqs, both_unmapped, lengths, sample.insert_sizes, sample.read_lengths,
-        both_unmapped_seqs,
+        both_unmapped_seqs, coverage,
     )
 
 
