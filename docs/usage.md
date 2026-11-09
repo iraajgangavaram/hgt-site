@@ -73,11 +73,11 @@ hgt-site call \
 
 Host coverage is counted in 10 kb bins during the scan the tool already does, and the expected count at each site is multiplied by the local rate over the genome mean. That ratio is reported in the `depth_ratio` column, where 1 means the site was tested against the genome-wide rate as usual.
 
-A site keeps a ratio of 1, and so is tested exactly as it would be without the option, when the local estimate cannot be trusted: fewer than 200 mapped reads in the bins around it, or a ratio below 0.1 or above 10, which is more often a mapping artefact or a reference gap than real copy number.
+The expectation is only ever raised, never lowered. The ratio carries a few per cent of noise, so allowing it below 1 would lower the bar and pass marginal candidates, which is what an early version did. A site keeps a ratio of 1, and so is tested exactly as it would be without the option, when its local coverage is at or below the genome mean, when fewer than 200 mapped reads lie in the bins around it, or when the ratio exceeds 10, which is more often a mapping artefact or a reference gap than real copy number.
 
 **It needs the whole alignment.** If you pass a BAM already filtered down to the pairs with an unmapped mate, the host coverage has been thrown away. hgt-site notices, says so, and falls back to the genome-wide rate rather than giving you a confident wrong answer.
 
-On the benchmark, with a 500 kb region present at six copies, the even assumption reported 69 sites across three seeds of which 10 were false, all of them inside the amplified region. With `--local-background` the same three runs reported 59 sites and none was false, with no true site lost. On a run with no amplified region the two gave the same sites, since the measured ratio is then close to 1 everywhere.
+On the benchmark, with a 500 kb region present at six copies, the even assumption reported 69 sites across three seeds of which 10 were false, all of them inside the amplified region. With `--local-background` the same three runs reported 59 sites and none was false, with no true site lost. With no amplified region the two reported exactly the same sites on all three seeds.
 
 ## Several samples at once
 

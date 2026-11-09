@@ -17,12 +17,16 @@ mean, which multiplies the expected count. A site in a region at three times
 the average coverage is then expected to hold three times the chimeras, which
 is what it does hold.
 
-Two things make the estimate untrustworthy, and in both the ratio falls back
-to 1, which is the uniform model:
+The expectation is only ever raised, never lowered, so this option can cost
+sensitivity but cannot cost precision. See apply_ratios for why.
+
+Three things leave a site at a ratio of 1, tested exactly as it would be
+without this option:
 
 - An alignment filtered down to the pairs with an unmapped mate. Most of the
   host coverage has been thrown away, so what is left says nothing about it.
 - Too few reads in the bins around a site to divide by.
+- Local coverage at or below the genome mean.
 """
 
 import logging
@@ -32,10 +36,10 @@ import logging
 MIN_FULLY_MAPPED = 1_000
 # Mapped reads needed in the bins around a site before its own rate is used.
 MIN_LOCAL_READS = 200
-# Ratios outside this range are more likely a mapping artefact, a reference
-# gap or a contig edge than real copy number, and a huge ratio would hide a
-# real site behind an expected count nothing could exceed.
-MIN_RATIO, MAX_RATIO = 0.1, 10.0
+# A ratio this large is more likely a mapping artefact or a reference gap
+# than real copy number, and it would hide a real site behind an expected
+# count nothing could exceed.
+MAX_RATIO = 10.0
 
 log = logging.getLogger("hgt_site")
 
@@ -75,7 +79,15 @@ def apply_ratios(sites, coverage, genome_length, window, contig_lengths=None):
         if reads < MIN_LOCAL_READS:
             continue
         ratio = rate / mean
-        if not MIN_RATIO <= ratio <= MAX_RATIO:
+        # The bar is only ever raised, never lowered. A 10 kb bin at ordinary
+        # coverage holds a few hundred reads, so the ratio carries a few per
+        # cent of noise, and a ratio landing a little under 1 would lower the
+        # expected count and let a marginal candidate through. On a benchmark
+        # with even coverage that cost one false site in three runs. Scaling
+        # up only keeps the gain where coverage is high and gives up nothing
+        # where it is not: a genuinely quiet region is then tested against
+        # the genome-wide rate, which is the stricter of the two.
+        if ratio <= 1.0 or ratio > MAX_RATIO:
             continue
         site.depth_ratio = ratio
         scaled += 1

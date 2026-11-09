@@ -903,3 +903,28 @@ def test_unmapped_reads_do_not_count_as_coverage():
     coverage.add(0x8, "chr1", 50)
     assert coverage.mapped_reads == 1, "a mapped read whose mate is unmapped is still coverage"
     assert coverage.fully_mapped_reads == 0, "but it is not a fully mapped pair"
+
+
+def test_local_background_never_lowers_the_bar():
+    """A quiet region is tested against the genome-wide rate, not a lower one.
+
+    The ratio carries a few per cent of noise, so letting it fall below 1
+    would lower the expected count and pass marginal candidates. On an even
+    coverage benchmark that cost a false site.
+    """
+    from hgt_site.alignments import Coverage
+    from hgt_site.background import MIN_LOCAL_READS, apply_ratios
+    from hgt_site.sites import Site
+
+    coverage = Coverage(bin_size=1000)
+    for _ in range(MIN_LOCAL_READS * 4):
+        coverage.add(0, "chr1", 10)
+    for _ in range(MIN_LOCAL_READS):
+        coverage.add(0, "chr1", 1010)
+
+    # Genome mean sits between the two bins' rates.
+    genome = 2000
+    busy, quiet = Site("chr1", 0, 1), Site("chr1", 1000, 1001)
+    apply_ratios([busy, quiet], coverage, genome, window=0, contig_lengths={"chr1": 2000})
+    assert busy.depth_ratio > 1, "a crowded region should raise the expectation"
+    assert quiet.depth_ratio == 1.0, "a quiet region must not lower it"

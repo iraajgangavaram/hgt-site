@@ -102,10 +102,12 @@ The expected number of chance chimeras at a position assumes foreign pairs fall 
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Genome-wide rate (the default) | 3 | 69 | 59 | 10 | 0.855 | 59 of 60 |
 | `--local-background` | 3 | 59 | 59 | 0 | 1.000 | 59 of 60 |
-| Genome-wide rate, no amplified region | 1 | 20 | 20 | 0 | 1.000 | 20 of 20 |
-| `--local-background`, no amplified region | 1 | 20 | 20 | 0 | 1.000 | 20 of 20 |
+| Genome-wide rate, no amplified region | 3 | 59 | 59 | 0 | 1.000 | 59 of 60 |
+| `--local-background`, no amplified region | 3 | 59 | 59 | 0 | 1.000 | 59 of 60 |
 
-Every one of the 10 false sites was inside the amplified region, with 6 to 9 supporting pairs against an expected count between 0.17 and 0.63. Measuring coverage locally removed all 10 and lost no true site. The insertion missed in one seed was missed by both, so it is not a cost of the option. On the matched run with no amplified region the two gave the same sites, as they should, since the measured ratio there is close to 1 everywhere.
+Every one of the 10 false sites was inside the amplified region, with 6 to 9 supporting pairs against an expected count between 0.17 and 0.63. Measuring coverage locally removed all 10 and lost no true site. The insertion missed in one seed was missed by both, so it is not a cost of the option. With no amplified region the two reported exactly the same sites on all three seeds.
+
+The expectation is only ever raised, never lowered. A 10 kb bin at this coverage holds a few hundred reads, so the ratio carries a few per cent of noise, and an early version that also scaled downwards let a marginal candidate through on one of the even-coverage seeds. A region above the genome mean is therefore held to a higher bar, while a quiet region is tested against the genome-wide rate, which is the stricter of the two. The option can cost sensitivity and cannot cost precision.
 
 This matters for the viral case in particular. An integrated virus often sits in a region that is itself amplified, and a tumour genome is rarely at an even copy number anywhere.
 
