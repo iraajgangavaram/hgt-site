@@ -60,6 +60,7 @@ It is packaged on Bioconda and PyPI, with a container built from the Bioconda re
 - **Separates real insertions from lab artefacts.** Keep every position with enough supporting reads and you get 24,861 sites of which 390 are real. hgt-site reported 364 sites across 18 runs on fresh random seeds, with none of them false.
 - **One command from a BAM.** `hgt-site run` pulls out the unmapped reads, classifies them and calls the sites.
 - **Takes whatever classifier you already ran.** Kraken2, KrakenUniq, Kaiju, Centrifuge, DIAMOND, BLAST tabular, or any two-column file of read name and taxid. All six give byte-identical calls on the same reads, and there is a test that checks it.
+- **Or no classifier at all.** If you put the DNA there, point `--donor` at the vector, transgene or viral genome and skip the classifier and its database entirely.
 - **Junctions to the base pair.** Where reads cross the junction, the insertion point is exact: 71% of junctions exact and 98% within 2 bp, against 41% and 57% from read pairs alone.
 - **Tells you the gene.** Point `--annotation` at a GTF or GFF3 and every site comes back with the gene it landed in, or the nearest one.
 - **Proves its own installation.** `hgt-site selftest` builds a dataset with known answers, calls it, and checks them. No data, no database, no network.
@@ -124,6 +125,7 @@ flowchart LR
 | `LOW_MAPQ` | Mean mapping quality of the anchors below 20 |
 | `LOW_COMPLEXITY` | Unmapped mates have low 3-mer entropy (repeats or low-complexity sequence) |
 | `NOT_ENRICHED` | Q-value above 0.05 |
+| `EXCLUDED` | Overlaps a region given to `--exclude-regions` |
 | `ONE_SIDED` | Anchors from only one side of the junction (information only, does not fail a site) |
 
 All thresholds can be changed on the command line.
@@ -211,6 +213,18 @@ hgt-site call \
   --host-taxid 9606 \
   -o sample01.hgt-site.tsv
 ```
+
+If you already know what the foreign DNA is, because you put it there, give the sequence instead of classifier output and skip the classifier entirely:
+
+```bash
+hgt-site call \
+  --bam sample.bam \
+  --donor vector.fa \
+  --host-taxid 9606 \
+  -o sample.hgt-site.tsv
+```
+
+The unmapped reads are matched against the donor by exact 31-mer matching in both orientations, at about 50,000 reads a second, and everything after that step is the same. Donor reads are reported under taxid 32630, NCBI's taxon for a built sequence, and `--donor-taxid` sets the real taxon if the donor has one. This is matching rather than alignment, so a donor diverged from your reads throughout needs a classifier instead, and a donor sharing sequence with the host will match host reads.
 
 Other options:
 

@@ -104,16 +104,33 @@ def fit_limits(pairs, settings, user_set):
 
 def call_sites(
     alignments, kraken, host_taxid, nodes_dmp=None, exclude=(), reference=None, threads=1, split_reads=True,
-    annotation=None, max_gene_distance=100_000, classifier="auto", summary=None, **opts
+    annotation=None, max_gene_distance=100_000, classifier="auto", exclude_regions=None,
+    donor=None, donor_taxid=None, summary=None, **opts
 ):
     """Call candidate sites. If summary is a dict, read counts are added to it."""
     user_set = {k for k, v in opts.items() if v is not None}
     settings = {**DEFAULTS, **{k: v for k, v in opts.items() if v is not None}}
     taxon_filter = TaxonFilter(host_taxid, nodes_dmp, exclude)
-    calls = load_classifications(kraken, classifier)
-    if not calls:
-        log.warning("The classification file has no classified reads.")
-    pairs = collect_pairs(alignments, settings["min_mapq"], reference, threads)
+    pairs = collect_pairs(
+        alignments, settings["min_mapq"], reference, threads, keep_both_unmapped_seqs=bool(donor)
+    )
+    if donor:
+        from .donor import SYNTHETIC_CONSTRUCT, classify_against_donor
+
+        calls = classify_against_donor(
+            donor, [pairs.unmapped_mate_seqs, pairs.both_unmapped_seqs],
+            SYNTHETIC_CONSTRUCT if donor_taxid is None else donor_taxid,
+        )
+        log.info("%d unmapped reads match the donor sequence.", len(calls))
+        if not calls:
+            log.warning(
+                "No unmapped read matches the donor. Check that the FASTA is the sequence you "
+                "expect to find, and that it is not diverged from the reads throughout."
+            )
+    else:
+        calls = load_classifications(kraken, classifier)
+        if not calls:
+            log.warning("The classification file has no classified reads.")
 
     with_call = [a for a in pairs.anchors if a.name in calls]
     foreign = [a for a in with_call if taxon_filter.is_foreign(calls[a.name])]
@@ -122,14 +139,20 @@ def call_sites(
         len(pairs.anchors), settings["min_mapq"], len(pairs.both_unmapped),
     )
     log.info(
-        "%d anchored pairs have a Kraken2 call; %d of these are from taxa outside the host.",
+        "%d anchored pairs have a taxonomic call; %d of these are from taxa outside the host.",
         len(with_call), len(foreign),
     )
     if pairs.anchors and calls and not with_call:
-        log.warning(
-            "None of the anchored reads has a Kraken2 call. Check that the Kraken2 file was made "
-            "from the unmapped reads of this alignment, and that the read names match."
-        )
+        if donor:
+            log.warning(
+                "Reads match the donor, but none of them is the unmapped mate of a read anchored "
+                "on the host, so there is no junction to report."
+            )
+        else:
+            log.warning(
+                "None of the anchored reads has a Kraken2 call. Check that the Kraken2 file was made "
+                "from the unmapped reads of this alignment, and that the read names match."
+            )
     if summary is not None:
         summary.update(
             anchored_pairs=len(pairs.anchors), anchored_pairs_with_call=len(with_call),
@@ -154,6 +177,11 @@ def call_sites(
         sites, calls, pairs.unmapped_mate_seqs, background, genome_length,
         settings["window"], settings,
     )
+    if exclude_regions:
+        from .regions import flag_excluded, load_regions
+
+        excluded = flag_excluded(sites, load_regions(exclude_regions))
+        log.info("%d of %d candidate sites fall in an excluded region.", excluded, len(sites))
     if split_reads:
         # Only the sites that passed their other filters are worth searching.
         passing = [s for s in sites if site_filter(s) == "PASS"]
@@ -222,6 +250,7 @@ VCF_FILTERS = {
     "LOW_MAPQ": "Low mean mapping quality of the anchors",
     "LOW_COMPLEXITY": "Low-complexity sequence in the unmapped mates",
     "NOT_ENRICHED": "Not enriched over chance chimeras (q-value above the threshold)",
+    "EXCLUDED": "Overlaps a region given to --exclude-regions",
 }
 
 

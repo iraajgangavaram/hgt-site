@@ -650,3 +650,167 @@ def test_run_command_says_what_is_missing(sim, tmp_path, monkeypatch, capsys):
     ])
     assert code == 1
     assert "kraken2 was not found" in capsys.readouterr().err
+
+
+def _filters(path):
+    with open(path) as handle:
+        return {(r["chrom"], r["start"]): r["filter"] for r in csv.DictReader(handle, delimiter="\t")}
+
+
+def test_excluded_region_stops_a_site_passing(sim, tmp_path):
+    chrom, position = _truth_positions(sim)[0]
+    bed = tmp_path / "blacklist.bed"
+    bed.write_text(
+        "track name=artefacts\n"
+        f"{chrom}\t{position - 2000}\t{position + 2000}\n"
+    )
+    plain, filtered = tmp_path / "plain.tsv", tmp_path / "filtered.tsv"
+    base = ["call", "--bam", f"{sim}.sam", "--kraken", f"{sim}.kraken2.txt",
+            "--host-taxid", str(HOST_TAXID)]
+    assert main(base + ["-o", str(plain)]) == 0
+    assert main(base + ["-o", str(filtered), "--exclude-regions", str(bed)]) == 0
+
+    before, after = _filters(plain), _filters(filtered)
+    covered = [k for k, v in before.items() if k[0] == chrom and abs(int(k[1]) - position) < 2000]
+    assert covered, "the simulated insertion should give a candidate site to exclude"
+    for key in covered:
+        assert "EXCLUDED" in after[key]
+        assert after[key] != "PASS"
+    # Sites outside the region are untouched.
+    for key, value in before.items():
+        if key not in covered:
+            assert after[key] == value
+
+
+def test_excluded_region_elsewhere_changes_nothing(sim, tmp_path):
+    bed = tmp_path / "other.bed"
+    bed.write_text("chrUnplaced\t0\t100000\n")
+    plain, filtered = tmp_path / "a.tsv", tmp_path / "b.tsv"
+    base = ["call", "--bam", f"{sim}.sam", "--kraken", f"{sim}.kraken2.txt",
+            "--host-taxid", str(HOST_TAXID)]
+    assert main(base + ["-o", str(plain)]) == 0
+    assert main(base + ["-o", str(filtered), "--exclude-regions", str(bed)]) == 0
+    assert _filters(plain) == _filters(filtered)
+
+
+def test_regions_merge_and_respect_half_open_bounds(tmp_path):
+    import gzip as _gzip
+
+    from hgt_site.regions import load_regions, overlaps
+
+    bed = tmp_path / "r.bed.gz"
+    with _gzip.open(bed, "wt") as handle:
+        handle.write("#comment\n\nchr1\t100\t200\nchr1\t150\t300\nchr1\t1000\t1100\nchr2\t0\t50\n")
+    regions = load_regions(bed)
+    assert regions["chr1"] == ((100, 1000), (300, 1100)), "overlapping intervals should merge"
+
+    assert overlaps(regions, "chr1", 250, 260)
+    assert overlaps(regions, "chr1", 50, 101), "a site ending one base inside the region overlaps"
+    assert not overlaps(regions, "chr1", 50, 100), "BED end is exclusive, so touching is not overlapping"
+    assert not overlaps(regions, "chr1", 300, 400), "BED start begins at 300 only for the next region"
+    assert not overlaps(regions, "chr1", 400, 900), "between two regions"
+    assert overlaps(regions, "chr2", 10, 20)
+    assert not overlaps(regions, "chr3", 10, 20), "a contig with no regions"
+
+
+def test_malformed_exclude_region_says_which_line(tmp_path):
+    from hgt_site.regions import load_regions
+
+    bed = tmp_path / "bad.bed"
+    bed.write_text("chr1\t100\t200\nchr1\t300\n")
+    with pytest.raises(ValueError, match="line 2"):
+        load_regions(bed)
+
+    bed.write_text("chr1\t500\t400\n")
+    with pytest.raises(ValueError, match="not a valid interval"):
+        load_regions(bed)
+
+
+def test_donor_mode_finds_the_real_insertions(sim, tmp_path):
+    """A donor FASTA should stand in for the classifier output.
+
+    The site boundaries are not expected to match the classifier run exactly.
+    Clustering is taxon-blind, so in the classifier run a contaminant anchor
+    that happens to land beside a real site widens it, while in donor mode
+    that read has no call at all. What must match is which insertions are
+    found.
+    """
+    from hgt_site.simulate import DONOR_TAXID
+
+    classified, from_donor = tmp_path / "classified.tsv", tmp_path / "donor.tsv"
+    assert main([
+        "call", "--bam", f"{sim}.sam", "--kraken", f"{sim}.kraken2.txt",
+        "--host-taxid", str(HOST_TAXID), "-o", str(classified),
+    ]) == 0
+    assert main([
+        "call", "--bam", f"{sim}.sam", "--donor", f"{sim}.donor.fa",
+        "--host-taxid", str(HOST_TAXID), "--donor-taxid", str(DONOR_TAXID),
+        "-o", str(from_donor),
+    ]) == 0
+
+    def passed(path):
+        with open(path) as handle:
+            return [
+                (r["chrom"], int(r["start"]), int(r["end"]))
+                for r in csv.DictReader(handle, delimiter="\t") if r["filter"] == "PASS"
+            ]
+
+    truth = _truth_positions(sim)
+    for label, sites in (("classifier", passed(classified)), ("donor", passed(from_donor))):
+        assert len(sites) == len(truth), f"{label} should report one site per insertion"
+        for chrom, position in truth:
+            assert any(
+                c == chrom and start - 500 <= position <= end + 500 for c, start, end in sites
+            ), f"{label} missed the insertion at {chrom}:{position}"
+
+
+def test_donor_mode_reports_the_taxid_it_was_given(sim, tmp_path):
+    out = tmp_path / "s.tsv"
+    assert main([
+        "call", "--bam", f"{sim}.sam", "--donor", f"{sim}.donor.fa",
+        "--host-taxid", str(HOST_TAXID), "-o", str(out),
+    ]) == 0
+    with open(out) as handle:
+        rows = [r for r in csv.DictReader(handle, delimiter="\t") if r["filter"] == "PASS"]
+    assert rows
+    # The default, NCBI's taxon for a built sequence, when none was given.
+    assert {r["top_taxid"] for r in rows} == {"32630"}
+
+
+def test_donor_and_classifications_are_alternatives(sim, tmp_path, capsys):
+    base = ["call", "--bam", f"{sim}.sam", "--host-taxid", str(HOST_TAXID),
+            "-o", str(tmp_path / "s.tsv")]
+    assert main(base) == 1, "one of the two must be given"
+    assert "either --classifications" in capsys.readouterr().err
+    both = base + ["--kraken", f"{sim}.kraken2.txt", "--donor", f"{sim}.donor.fa"]
+    assert main(both) == 1, "giving both is ambiguous"
+    assert "but not both" in capsys.readouterr().err
+
+
+def test_donor_matching_is_strand_agnostic_and_needs_several_kmers():
+    from hgt_site.donor import KMER, build_index, classify, revcomp
+
+    donor = "".join(
+        "ACGT"[(i * 7 + i // 3) % 4] for i in range(2000)
+    )
+    index = build_index({"d": donor})
+    read = donor[500:650]
+    calls = classify({"fwd": read, "rev": revcomp(read)}, index, taxid=7)
+    assert calls == {"fwd": 7, "rev": 7}, "both orientations should match"
+
+    # A read sharing less than the minimum number of k-mers is not called.
+    shared = donor[:KMER + 2]
+    unrelated = "".join("TTAGC"[(i * 3) % 5] for i in range(150 - len(shared)))
+    assert classify({"edge": shared + unrelated}, index, taxid=7) == {}, (
+        "a few k-mers of overlap should not be enough"
+    )
+    assert classify({"short": "ACGT"}, index, taxid=7) == {}, "a read shorter than k"
+
+
+def test_donor_fasta_must_hold_sequence(tmp_path):
+    from hgt_site.donor import read_fasta
+
+    empty = tmp_path / "empty.fa"
+    empty.write_text("")
+    with pytest.raises(ValueError, match="no FASTA records"):
+        read_fasta(empty)

@@ -231,4 +231,9 @@ def simulate(out_prefix, cfg=None):
         for chrom, seq in host_chroms.items():
             fh.write(f">{chrom}\n")
             fh.writelines(seq[i : i + 60] + "\n" for i in range(0, len(seq), 60))
+    # The donor, so the dataset can also be called with --donor instead of
+    # the classifier output.
+    with open(f"{out_prefix}.donor.fa", "w") as fh:
+        fh.write(f">donor taxid={DONOR_TAXID}\n")
+        fh.writelines(donor[i : i + 60] + "\n" for i in range(0, len(donor), 60))
     return truth

@@ -8,6 +8,7 @@ from .call import DEFAULTS, call_sites, write_bed, write_multiqc, write_table, w
 from .classifiers import FORMATS
 from .cohort import COMMON_FRACTION
 from .cohort import WINDOW as COHORT_WINDOW
+from .donor import SYNTHETIC_CONSTRUCT as DONOR_TAXID
 from .sites import site_filter
 
 THRESHOLD_HELP = {
@@ -27,11 +28,23 @@ THRESHOLD_HELP = {
 def _add_common(parser, kraken_required):
     parser.add_argument("--bam", required=True, help="Paired-end reads aligned to the host (BAM, CRAM or SAM)")
     if kraken_required:
+        # Not required by argparse, because --donor is the other way to supply
+        # the same information. _call checks that exactly one was given.
         parser.add_argument(
-            "--classifications", "--kraken", dest="kraken", required=True, nargs="+",
+            "--classifications", "--kraken", dest="kraken", nargs="+",
             help="Per-read taxonomic calls for the unmapped reads, from Kraken2, KrakenUniq, Kaiju, "
                  "Centrifuge, DIAMOND or BLAST, or any two-column file of read name and taxid "
-                 "(one or more files, gzipped or not)",
+                 "(one or more files, gzipped or not). Use this or --donor",
+        )
+        parser.add_argument(
+            "--donor",
+            help="FASTA of the donor sequence, gzipped or not, for a vector, transgene or viral "
+                 "genome you already know. The unmapped reads are matched against it directly, so "
+                 "no classifier and no classifier database are needed. Use this or --classifications",
+        )
+        parser.add_argument(
+            "--donor-taxid", type=int, default=DONOR_TAXID,
+            help=f"Taxid to report donor reads under (default {DONOR_TAXID}, NCBI's synthetic construct)",
         )
     parser.add_argument("--host-taxid", required=True, type=int, help="NCBI taxid of the host, e.g. 9606")
     parser.add_argument("--nodes", help="NCBI nodes.dmp, so the whole host lineage is excluded")
@@ -41,6 +54,12 @@ def _add_common(parser, kraken_required):
     parser.add_argument(
         "--classifier", default="auto", choices=FORMATS,
         help="Which classifier wrote the per-read calls (default: work it out from the file)",
+    )
+    parser.add_argument(
+        "--exclude-regions",
+        help="BED file of positions to leave out, gzipped or not. A candidate overlapping one is "
+             "reported with EXCLUDED in the filter column instead of passing. Use it for the "
+             "artefacts a protocol or a reference produces in every sample",
     )
     parser.add_argument("--reference", help="Reference FASTA, needed for CRAM input")
     parser.add_argument(
@@ -167,10 +186,13 @@ def _write_outputs(args, sites, summary):
 def _call(args, kraken):
     opts = {k: getattr(args, k) for k in DEFAULTS}
     summary = {}
+    donor = getattr(args, "donor", None)
     sites = call_sites(
         args.bam, kraken, args.host_taxid, args.nodes, args.exclude_taxid, args.reference,
         threads=args.threads, split_reads=not args.no_split_reads, annotation=args.annotation,
-        max_gene_distance=args.max_gene_distance, classifier=args.classifier, summary=summary, **opts
+        max_gene_distance=args.max_gene_distance, classifier=args.classifier,
+        exclude_regions=args.exclude_regions, donor=donor,
+        donor_taxid=getattr(args, "donor_taxid", DONOR_TAXID), summary=summary, **opts
     )
     _write_outputs(args, sites, summary)
 
@@ -225,6 +247,13 @@ def main(argv=None):
     args.command_line = " ".join(["hgt-site", *given])
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s", stream=sys.stderr)
     if args.command == "call":
+        if bool(args.kraken) == bool(args.donor):
+            print(
+                "ERROR: give either --classifications, for output from a classifier, or --donor, "
+                "for a FASTA of the sequence you are looking for, but not both.",
+                file=sys.stderr,
+            )
+            return 1
         _call(args, args.kraken)
     elif args.command == "run":
         import tempfile

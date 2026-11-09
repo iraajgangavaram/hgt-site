@@ -36,6 +36,26 @@ hgt-site call \
   -o sample.hgt-site.tsv
 ```
 
+## When you already know what you are looking for
+
+If the foreign DNA is a vector, a transgene or a particular viral genome, there is no reason to build a classifier database to find out where it went. Give hgt-site the sequence instead and it matches the unmapped reads against it directly:
+
+```bash
+hgt-site call \
+  --bam sample.bam \
+  --donor vector.fa \
+  --host-taxid 9606 \
+  -o sample.hgt-site.tsv
+```
+
+No Kraken2, no database, no taxonomy files. Everything after that step is the same, so the enrichment test, the flags, the split-read junctions and all the output formats behave exactly as they do with classifier output.
+
+Matching is exact 31-mer matching in both orientations, and a read needs five matching k-mers to count. A 150 bp read holds 120 k-mers and one sequencing error spoils at most 31 of them, so the bar is low for a real donor read and high for anything else. It runs at roughly 50,000 reads a second, or about 20 seconds per million unmapped reads.
+
+Donor reads are reported under taxid 32630, NCBI's taxon for a sequence that was built rather than sampled, which is the honest label for a vector. Use `--donor-taxid` to report them under the real taxon if your donor has one, for example 333760 for HPV16.
+
+Two things to know. This is k-mer matching and not alignment, so a donor that differs from your reads throughout, by more than a few per cent, will not be found this way: align the reads and use a classifier for that case. And a donor sharing sequence with the host, a vector carrying a human promoter for instance, will match host reads too, so mask those parts of the FASTA or expect the shared region to produce sites.
+
 ## Several samples at once
 
 Call each sample as usual, then merge the tables:
@@ -55,6 +75,7 @@ This reads the tables rather than the alignments, so samples called at different
 | `--bam` | Paired-end reads aligned to the host, as BAM, CRAM or SAM. An indexed BAM or CRAM also lets hgt-site find exact junctions from split reads. |
 | `--classifications` | Per-read taxonomic calls for the reads that did not map to the host, also accepted as `--kraken`. Kraken2 and KrakenUniq (`--output`, not the report), Kaiju, Centrifuge, DIAMOND `--outfmt 102` and BLAST tabular output all work, as does any two-column file of read name and taxid. Gzipped files are fine. Read names ending in `/1` or `/2` are handled, as is Kraken2 output made with `--use-names`. Several files can be given at once. |
 | `--classifier` | Which classifier wrote those files, if the automatic detection gets it wrong. One of kraken2, kaiju, centrifuge, diamond, blast, tsv. |
+| `--donor` | FASTA of the donor sequence, gzipped or not, instead of `--classifications`. The unmapped reads are matched against it directly, so no classifier and no database are needed. `--donor-taxid` sets the taxid they are reported under. |
 | `--host-taxid` | NCBI taxonomy ID of the host, for example 9606 for human or 10090 for mouse. |
 | `--nodes` | Optional NCBI `nodes.dmp`. With it, reads classified anywhere in the host lineage are ignored, not only those assigned to the host taxid itself. |
 
@@ -71,6 +92,7 @@ This reads the tables rather than the alignments, so samples called at different
 | `--threads 4` | Uses more cores to read large BAM or CRAM files |
 | `--reference genome.fa` | Reference FASTA, needed for CRAM input |
 | `--exclude-taxid 1234` | Ignores a taxon, for example a known contaminant (can be repeated) |
+| `--exclude-regions artefacts.bed` | Leaves out positions listed in a BED file. A candidate overlapping one is reported with `EXCLUDED` instead of passing, for the artefacts a protocol or a reference produces in every sample |
 | `--no-split-reads` | Skips the split-read search, so junctions come from read pairs only |
 
 ### Thresholds

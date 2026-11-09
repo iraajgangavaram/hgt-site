@@ -59,6 +59,9 @@ class ReadPairs:
     contig_lengths: dict
     insert_sizes: list = field(default_factory=list)
     read_lengths: list = field(default_factory=list)
+    # Sequences of the pairs with both mates unmapped, kept only when the
+    # caller asks, since on a whole-genome file there can be a great many.
+    both_unmapped_seqs: dict = field(default_factory=dict)
 
 
 # Number of properly paired reads sampled to estimate the fragment size.
@@ -162,13 +165,14 @@ def open_alignments(path, sample, reference=None, threads=1):
     return _iter_pysam(path, sample, reference, threads)
 
 
-def collect_pairs(path, min_mapq=20, reference=None, threads=1):
+def collect_pairs(path, min_mapq=20, reference=None, threads=1, keep_both_unmapped_seqs=False):
     """Scan the alignments once and sort read pairs into the groups we need."""
     sample = _Sample()
     lengths, records = open_alignments(path, sample, reference, threads)
     anchors = []
     mate_seqs = {}
     both_unmapped = set()
+    both_unmapped_seqs = {}
     for rec in records:
         if not rec.flag & PAIRED or rec.flag & SKIP:
             continue
@@ -177,6 +181,8 @@ def collect_pairs(path, min_mapq=20, reference=None, threads=1):
         mate_unmapped = bool(rec.flag & MATE_UNMAPPED)
         if read_unmapped and mate_unmapped:
             both_unmapped.add(name)
+            if keep_both_unmapped_seqs and name not in both_unmapped_seqs:
+                both_unmapped_seqs[name] = rec.seq
         elif not read_unmapped and mate_unmapped:
             if rec.mapq >= min_mapq:
                 anchors.append(
@@ -184,7 +190,10 @@ def collect_pairs(path, min_mapq=20, reference=None, threads=1):
                 )
         elif read_unmapped and not mate_unmapped:
             mate_seqs[name] = rec.seq
-    return ReadPairs(anchors, mate_seqs, both_unmapped, lengths, sample.insert_sizes, sample.read_lengths)
+    return ReadPairs(
+        anchors, mate_seqs, both_unmapped, lengths, sample.insert_sizes, sample.read_lengths,
+        both_unmapped_seqs,
+    )
 
 
 def count_by_taxon(names, calls, taxon_filter):
