@@ -7,6 +7,18 @@ The short version: a site that passed is a lead, not a finding. The point of
 the tool is that it has already thrown away the thousands of positions that
 chance alone explains, so what is left is small enough to look at properly.
 
+## Base composition
+
+Three columns describe how foreign the reads at a site actually look. `gc_foreign` is their GC fraction, `gc_difference` is that minus the host's own, and `kmer_ratio` compares their 3-mer usage with the host's, divided by the difference sampling noise alone would produce at that read count.
+
+A `kmer_ratio` near 1 means the reads are indistinguishable from host sequence. That is the useful case: it usually means the classifier called host reads foreign, which happens in repeats and with small databases, and a site built on those is suspect however good its read support looks.
+
+**It does not separate real insertions from chance chimeras, and should not be used as a filter.** A chimera formed during library preparation carries genuine foreign sequence, so it looks exactly as foreign as an insertion does. On a benchmark run with 20 real insertions and 6 false sites, the real ones gave ratios of 2.86 to 6.72 and the false ones 2.85 to 3.94. The best single threshold that removes all the false sites also removes 19 of the 20 real ones.
+
+Both figures are noisy at low read counts. A site with three or four reads can show a GC difference of 0.1 from chance alone, so read them alongside `n_pairs`.
+
+The host background comes from the host-mapped mates of the anchored pairs, which are host sequence by definition. Those reads sit beside junctions rather than being spread evenly over the genome, which is a mild bias for GC and a negligible one for 3-mer usage.
+
 ## Start with the sites that passed
 
 ```bash

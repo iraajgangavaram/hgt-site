@@ -7,6 +7,7 @@ without pysam, which keeps the test suite light.
 from collections import Counter
 from dataclasses import dataclass, field
 
+from .composition import Background
 from .kraken import normalise_read_name
 
 PAIRED = 0x1
@@ -118,6 +119,7 @@ class ReadPairs:
     # caller asks, since on a whole-genome file there can be a great many.
     both_unmapped_seqs: dict = field(default_factory=dict)
     coverage: "Coverage" = None
+    host_composition: "Background" = None
 
 
 # Number of properly paired reads sampled to estimate the fragment size.
@@ -235,6 +237,7 @@ def collect_pairs(
     """Scan the alignments once and sort read pairs into the groups we need."""
     sample = _Sample()
     coverage = Coverage(bin_size) if count_coverage else None
+    host_composition = Background()
     lengths, records = open_alignments(path, sample, reference, threads, coverage)
     anchors = []
     mate_seqs = {}
@@ -255,11 +258,14 @@ def collect_pairs(
                 anchors.append(
                     Anchor(name, rec.chrom, rec.start, rec.end, bool(rec.flag & REVERSE), rec.mapq)
                 )
+                # This read is host sequence by definition, so it gives the
+                # host's own base composition for nothing.
+                host_composition.add(rec.seq)
         elif read_unmapped and not mate_unmapped:
             mate_seqs[name] = rec.seq
     return ReadPairs(
         anchors, mate_seqs, both_unmapped, lengths, sample.insert_sizes, sample.read_lengths,
-        both_unmapped_seqs, coverage,
+        both_unmapped_seqs, coverage, host_composition,
     )
 
 

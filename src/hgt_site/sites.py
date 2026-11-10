@@ -5,6 +5,8 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from itertools import product
 
+from .composition import summarise as composition_summary
+
 KMER = 3
 _ALL_KMERS = len(list(product("ACGT", repeat=KMER)))
 
@@ -64,6 +66,8 @@ class Site:
     anchors: list = field(default_factory=list)
     taxa: Counter = field(default_factory=Counter)
     complexity: list = field(default_factory=list)
+    # Sequences of the unmapped mates, for base composition.
+    foreign_seqs: list = field(default_factory=list)
     stats: dict = field(default_factory=dict)
     flags: list = field(default_factory=list)
     # Local host coverage over the genome mean. 1 means the uniform
@@ -109,7 +113,8 @@ def cluster_anchors(anchors, max_gap, max_span):
     ]
 
 
-def score_sites(sites, calls, mate_seqs, background, genome_length, window, thresholds):
+def score_sites(sites, calls, mate_seqs, background, genome_length, window, thresholds,
+                host_composition=None):
     """Fill in the statistics and flags for each site.
 
     The enrichment test asks whether a site has more anchored pairs for its
@@ -129,6 +134,10 @@ def score_sites(sites, calls, mate_seqs, background, genome_length, window, thre
             seq = mate_seqs.get(anchor.name)
             if seq:
                 site.complexity.append(sequence_complexity(seq))
+                site.foreign_seqs.append(seq)
+        gc, gc_difference, kmer_ratio = composition_summary(
+            site.foreign_seqs, host_composition
+        )
         top_taxid, top_count = site.taxa.most_common(1)[0]
         n_pairs = len(site.anchors)
         n_rev = sum(a.reverse for a in site.anchors)
@@ -165,6 +174,9 @@ def score_sites(sites, calls, mate_seqs, background, genome_length, window, thre
             "top_taxid_fraction": top_count / n_pairs,
             "n_taxa": len(site.taxa),
             "mean_mapq": sum(a.mapq for a in site.anchors) / n_pairs,
+            "gc_foreign": gc if gc is not None else "",
+            "gc_difference": gc_difference if gc_difference is not None else "",
+            "kmer_ratio": kmer_ratio if kmer_ratio is not None else "",
             "mean_mate_complexity": (
                 sum(site.complexity) / len(site.complexity) if site.complexity else ""
             ),

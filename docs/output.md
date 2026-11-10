@@ -17,6 +17,7 @@ One row per candidate site, tab separated.
 | `taxon_anchored_pairs` | Anchored pairs for this taxon across the genome |
 | `taxon_unanchored_pairs` | Pairs for this taxon where neither mate mapped |
 | `expected_pairs`, `pvalue`, `qvalue` | Enrichment test |
+| `gc_foreign`, `gc_difference`, `kmer_ratio` | Base composition of the foreign reads, and how far it sits from the host's own. `kmer_ratio` is near 1 when the reads are indistinguishable from host sequence, which usually means the classifier got them wrong |
 | `depth_ratio` | Host coverage at the site over the genome mean, used to scale `expected_pairs`. Always 1 unless `--local-background` was given and the local estimate was trustworthy |
 | `expected_other_pairs`, `other_pvalue` | Pairs from other taxa expected by chance, and the test for an excess of them |
 | `flags`, `filter` | Flags raised and the overall filter result |

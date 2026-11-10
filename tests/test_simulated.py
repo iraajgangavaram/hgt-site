@@ -928,3 +928,88 @@ def test_local_background_never_lowers_the_bar():
     apply_ratios([busy, quiet], coverage, genome, window=0, contig_lengths={"chr1": 2000})
     assert busy.depth_ratio > 1, "a crowded region should raise the expectation"
     assert quiet.depth_ratio == 1.0, "a quiet region must not lower it"
+
+
+def test_composition_reports_how_foreign_the_reads_look(sim, tmp_path):
+    """A real donor differs from the host in GC and in k-mer usage."""
+    out = tmp_path / "s.tsv"
+    assert main([
+        "call", "--bam", f"{sim}.sam", "--kraken", f"{sim}.kraken2.txt",
+        "--host-taxid", str(HOST_TAXID), "-o", str(out),
+    ]) == 0
+    with open(out) as handle:
+        rows = [r for r in csv.DictReader(handle, delimiter="\t") if r["filter"] == "PASS"]
+    assert rows
+    for row in rows:
+        # The simulated donor is built at a higher GC than the host, so the
+        # difference is positive and the k-mer profile sits well outside what
+        # sampling noise would give.
+        assert float(row["gc_difference"]) > 0.05, row["gc_difference"]
+        assert float(row["kmer_ratio"]) > 1.2, row["kmer_ratio"]
+
+
+def test_host_reads_called_foreign_look_like_the_host(sim, tmp_path):
+    """The case the composition columns are actually for.
+
+    Composition cannot separate a chance chimera from a real insertion, since
+    both carry genuinely foreign sequence. What it can catch is a classifier
+    calling host reads foreign, which leaves a site whose reads look exactly
+    like the host.
+    """
+    import gzip
+    import random
+
+    # Build a classification file that calls the unmapped mates host-derived
+    # sequence instead of the donor: same read names, but the sequence they
+    # carry is host, so the composition should match the host.
+    rng = random.Random(11)
+    host = {}
+    for line in open(f"{sim}.host.fa"):
+        if line.startswith(">"):
+            name = line[1:].split()[0]
+            host[name] = []
+        else:
+            host[name].append(line.strip())
+    host = {k: "".join(v) for k, v in host.items()}
+    chrom, seq = next(iter(host.items()))
+
+    sam_out = tmp_path / "hostlike.sam"
+    calls_out = tmp_path / "hostlike.kraken2.txt"
+    kept = []
+    with open(f"{sim}.sam") as source, open(sam_out, "w") as sam:
+        for line in source:
+            if line.startswith("@"):
+                sam.write(line)
+                continue
+            f = line.rstrip("\n").split("\t")
+            flag = int(f[1])
+            if flag & 0x4:
+                # Replace the unmapped mate's sequence with host sequence.
+                start = rng.randint(0, len(seq) - len(f[9]))
+                f[9] = seq[start : start + len(f[9])]
+                kept.append(f[0])
+            sam.write("\t".join(f) + "\n")
+    with open(calls_out, "w") as handle:
+        for name in kept:
+            handle.write(f"C\t{name}\t562\t100\t562:50\n")
+
+    out = tmp_path / "hostlike.tsv"
+    assert main([
+        "call", "--bam", str(sam_out), "--kraken", str(calls_out),
+        "--host-taxid", str(HOST_TAXID), "-o", str(out), "--min-complexity", "0",
+    ]) == 0
+    import statistics
+
+    with open(out) as handle:
+        rows = [
+            r for r in csv.DictReader(handle, delimiter="\t")
+            if r["kmer_ratio"] and int(r["n_pairs"]) >= 5
+        ]
+    assert rows, "the run should produce candidate sites with several reads each"
+    ratios = [float(r["kmer_ratio"]) for r in rows]
+    differences = [abs(float(r["gc_difference"])) for r in rows]
+    # A ratio near 1 is what sampling noise alone gives, which is the point:
+    # these reads are host sequence wearing a foreign label. Individual sites
+    # with a handful of reads are noisy, so this is about the typical site.
+    assert statistics.median(ratios) < 1.5, f"host-derived reads look foreign: {ratios}"
+    assert statistics.median(differences) < 0.05, f"and their GC is off: {differences}"

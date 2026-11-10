@@ -45,6 +45,9 @@ COLUMNS = [
     "top_taxid_fraction",
     "n_taxa",
     "mean_mapq",
+    "gc_foreign",
+    "gc_difference",
+    "kmer_ratio",
     "mean_mate_complexity",
     "taxon_anchored_pairs",
     "taxon_unanchored_pairs",
@@ -191,7 +194,7 @@ def call_sites(
             )
     sites = score_sites(
         sites, calls, pairs.unmapped_mate_seqs, background, genome_length,
-        settings["window"], settings,
+        settings["window"], settings, pairs.host_composition,
     )
     if exclude_regions:
         from .regions import flag_excluded, load_regions
