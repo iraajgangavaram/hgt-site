@@ -14,7 +14,8 @@ Dates were read from the repositories on 2 November 2026.
 | [VIRUSBreakend](https://github.com/PapenfussLab/gridss) | Viral integration, using single breakends | v2.13.2, February 2022 | May 2025 |
 | [ViFi](https://github.com/namphuon/ViFi) | Viral integration, using HMMs over viral families | none tagged | July 2021 |
 | [nf-core/hgtseq](https://github.com/nf-core/hgtseq) | A pipeline that aligns reads and classifies the unmapped ones | 1.1.0, May 2023 | actively developed |
-| hgt-site | Bacterial or viral insertion sites, tested against chance chimeras | 0.4.0, November 2026 | actively developed |
+| [VISPA2](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5702242/) | Vector integration sites from amplicon data, for gene therapy | v2, 2017 | see publication |
+| hgt-site | Bacterial, viral or vector insertion sites, tested against chance chimeras | 0.4.0, November 2026 | actively developed |
 
 ## Viral integration
 
@@ -37,6 +38,16 @@ breakend is the more direct approach. hgt-site handles viral and bacterial
 insertions through the same command and the same outputs, working from whatever
 your classifier reported, which matters when you do not know in advance what the
 foreign DNA is.
+
+## Vector and transgene integration
+
+Finding where a vector or a transgene landed is the same problem with a known donor, and it has its own tools. [VISPA2](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5702242/) and similar packages are built for integration site analysis in gene therapy, working from amplicon data produced by LAM-PCR or sonication-linker PCR, where the library is deliberately enriched around the junctions.
+
+That difference in data type matters more than any difference in method. Those tools expect enrichment and are built to count and track clones from it. hgt-site expects an ordinary whole-genome library and tests each candidate against the chimera rate in it, so an enriched library breaks its assumption outright: if the reads around junctions have been amplified on purpose, a genome-wide rate says nothing about what to expect at a junction.
+
+So the two are not alternatives for the same data. Use an amplicon-based tool on amplicon data. hgt-site suits the case where you have plain whole-genome sequencing of a transduced or transgenic sample and want the insertion sites out of it, with `--donor` pointing at the construct and no classifier involved.
+
+What has been measured is in the [benchmarks](benchmarks.md#vectors-and-transgenes), and it is simulated data only. No real transduced sample has been tried, and a real plasmid carries repeated elements and often a promoter shared with the host, neither of which the simulated construct had.
 
 ## When another tool is the better choice
 

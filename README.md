@@ -74,6 +74,7 @@ It is packaged on Bioconda and PyPI, with a container built from the Bioconda re
 
 - **Anyone with foreign reads in a host sample and no way to triage them.** You have Kraken2 output from unmapped reads and a list of positions that might mean something. hgt-site tells you which positions have more support than chance would give, and flags the rest with the reason.
 - **Horizontal gene transfer into host genomes.** The problem it was built for, benchmarked against LGTSeek.
+- **Vectors and transgenes.** Point `--donor` at the construct and no classifier or database is needed. On simulated data, constructs of 1 kb, 3 kb and 8 kb gave 100 of 100 insertions found, nothing false and every junction exact. With a sample full of free construct, which is what a transduced culture holds, nine chance chimeras in ten carried the construct and 6,187 positions looked like candidates; the 20 real insertions were the only ones reported.
 - **Viral integration.** The method works on viral taxa as well as bacterial ones, at 0.989 precision against 1.000 for a bacterial donor over eighteen runs each. It has not been compared against the dedicated viral tools, so see [other tools](https://iraajgangavaram.github.io/hgt-site/comparison/) before choosing it for that.
 
 <p align="center">

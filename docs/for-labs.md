@@ -11,6 +11,8 @@ has and has not been shown to do.
   want to know which of those positions are worth following up.
 - You have a list of candidate integration sites from read support and it is too
   long to check by hand.
+- You put the DNA there yourself, as a vector, a transgene or a knock-in construct, and want to
+  know where it landed. Give hgt-site the construct's sequence and it needs no classifier.
 - You need the junction to the base pair so a primer can be designed around it.
 - You want the reasoning behind each call to be visible, rather than a score from
   a model you cannot inspect.
@@ -36,6 +38,7 @@ has and has not been shown to do.
 | Claim | What it rests on |
 | --- | --- |
 | Separates real insertions from chance chimeras | 18 simulated datasets, three seeds across six settings of coverage and chimera rate, built from real human and bacterial genomes. 364 sites reported, none false, all 360 insertions found. 95% confidence interval on precision 0.990 to 1.000. |
+| Works for vectors and transgenes | Five simulated datasets with constructs of 1 kb, 3 kb and 8 kb, called from the construct's sequence with no classifier: 100 sites reported, all real, all 100 insertions found, every junction exact. Repeated with free construct in the sample, so that nine chance chimeras in ten carried it: 6,187 candidate positions, 302 with enough reads to be tested, all 302 rejected, and the 20 real insertions the only sites reported. The construct is bacterial sequence rather than a real plasmid, so it has none of a plasmid's repeated elements. |
 | Works for viral insertions as well as bacterial | Eighteen simulated datasets with a viral donor: 361 sites reported, 357 real, 357 of 360 insertions found, a precision of 0.989. Repeated with free donor present, so that up to six chance chimeras in ten carried the integrated virus itself and taxon gave no help: precision 1.000 over twelve further runs, with recall falling from 1.000 to 0.933 as the chimera load rose. The virus used does not integrate and was chosen for its size, so this tests the statistics rather than the biology. |
 | Better than filtering on read support | On the same datasets, read support alone reported 24,861 sites of which 390 were real. |
 | Better than an existing tool | Benchmarked against LGTSeek, which reported thousands of false sites in the noisiest datasets. LGTSeek has had no commit since 2016. |

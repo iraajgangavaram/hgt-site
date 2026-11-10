@@ -4,9 +4,9 @@ You aligned your sample to its host genome, ran Kraken2 on the reads that did no
 
 hgt-site groups the read pairs that point at the same host position and tests each group against the number of pairs chance alone would put there, given how common that taxon is across the sample. What comes back is the positions with more support than contamination and chimeras can explain, and every rejected candidate with the reason it failed. Where reads cross the junction itself, the insertion point is given to the base pair.
 
-It works on bacterial and viral taxa alike, takes any host alignment with any Kraken2 per-read output, and runs in seconds.
+It works on bacterial and viral taxa alike, and on a vector or transgene you supply the sequence of. It takes any host alignment with per-read calls from Kraken2, KrakenUniq, Kaiju, Centrifuge, DIAMOND or BLAST, and runs in seconds.
 
-It works with any host alignment and Kraken2 output, including the files produced by pipelines that already run Kraken2.
+If the foreign DNA is something you put there, `--donor` takes its sequence directly and no classifier or database is needed at all.
 
 <figure markdown>
   ![Precision against the number of chimeric read pairs](images/benchmark_precision_light.svg#only-light){ width="640" }
@@ -21,11 +21,12 @@ It works with any host alignment and Kraken2 output, including the files produce
 
 ## In short
 
-- Takes paired-end reads aligned to the host (BAM, CRAM or SAM) and Kraken2 calls for the reads that did not align.
+- Takes paired-end reads aligned to the host (BAM, CRAM or SAM) and per-read taxonomic calls for the reads that did not align, from any of six classifiers, or the donor's own sequence instead.
 - Groups the reads that point at the same host position, and tests each group against the number of chance chimeras expected there.
 - Gives the junction to the base pair where reads cross it.
 - Writes a table, a BED file, a VCF file and a MultiQC summary.
 - Takes about 3 seconds on a sample of 2.1 million reads once the reads are aligned and classified.
+- Handles bacterial and viral insertions, and vectors or transgenes given the construct's sequence.
 
 ## The problem
 
