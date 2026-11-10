@@ -60,7 +60,7 @@ Two things to know. This is k-mer matching and not alignment, so a donor that di
 
 The test asks how many foreign pairs chance would put at a position, and by default it assumes they fall evenly across the genome. A chimera is a host fragment joined to a foreign fragment, so the chance its host half comes from a given region depends on how much host DNA from that region is in the library. Three copies of a region contribute three times the chimeras, and the even assumption will read the excess as an insertion.
 
-That matters in a tumour with copy-number gains, in an amplified or low-input library, and in RNA-seq where coverage follows expression over several orders of magnitude.
+That matters in a tumour with copy-number gains and in an amplified or low-input library. RNA-seq has the same problem several times over, and this option alone does not solve it, which the [benchmarks](benchmarks.md#rna-seq) set out.
 
 ```bash
 hgt-site call \
@@ -115,8 +115,8 @@ This reads the tables rather than the alignments, so samples called at different
 | `--threads 4` | Uses more cores to read large BAM or CRAM files |
 | `--reference genome.fa` | Reference FASTA, needed for CRAM input |
 | `--exclude-taxid 1234` | Ignores a taxon, for example a known contaminant (can be repeated) |
-| `--local-background` | Works out how many chance chimeras to expect at a site from host coverage near that site, rather than from one genome-wide rate. Worth using wherever coverage is uneven: a tumour with copy-number changes, an amplified or low-input library, RNA-seq. Needs the whole alignment, not one filtered down to the pairs with an unmapped mate |
-| `--exclude-regions artefacts.bed` | Leaves out positions listed in a BED file. A candidate overlapping one is reported with `EXCLUDED` instead of passing, for the artefacts a protocol or a reference produces in every sample |
+| `--local-background` | Works out how many chance chimeras to expect at a site from host coverage near that site, rather than from one genome-wide rate. Worth using wherever coverage is uneven: a tumour with copy-number changes, an amplified or low-input library. Needs the whole alignment, not one filtered down to the pairs with an unmapped mate |
+| `--exclude-regions artefacts.bed` | Leaves out positions listed in a BED file. A candidate is excluded when its span, which is usually several hundred bases, overlaps one of the regions, so this is meant for a handful of broad regions rather than a dense feature file. An excluded candidate is reported with `EXCLUDED` instead of passing |
 | `--no-split-reads` | Skips the split-read search, so junctions come from read pairs only |
 
 ### Thresholds

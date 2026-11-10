@@ -94,7 +94,7 @@ What gives way is sensitivity. Chimeras made from the donor are anchored pairs, 
 
 ## Uneven host coverage
 
-The expected number of chance chimeras at a position assumes foreign pairs fall evenly across the host genome. A chimera's host half is drawn from the host DNA in the library, so a region present at several copies contributes chimeras in proportion to its copy number, and the even assumption reads the excess as an insertion. This is the case in any tumour with copy-number gains, in an amplified or low-input library, and in RNA-seq.
+The expected number of chance chimeras at a position assumes foreign pairs fall evenly across the host genome. A chimera's host half is drawn from the host DNA in the library, so a region present at several copies contributes chimeras in proportion to its copy number, and the even assumption reads the excess as an insertion. This is the case in any tumour with copy-number gains and in an amplified or low-input library. It is also true of RNA-seq, far more strongly, and the option is not sufficient there: see [RNA-seq](#rna-seq) below.
 
 `--amplify START:LENGTH:FACTOR` puts a region of the host genome into the simulated sample at several copies, with both the extra host reads and the extra chance chimeras that follow from it. The runs below use a 500 kb region at six copies, coverage 10 and 10,000 chimeric pairs.
 
@@ -110,6 +110,37 @@ Every one of the 10 false sites was inside the amplified region, with 6 to 9 sup
 The expectation is only ever raised, never lowered. A 10 kb bin at this coverage holds a few hundred reads, so the ratio carries a few per cent of noise, and an early version that also scaled downwards let a marginal candidate through on one of the even-coverage seeds. A region above the genome mean is therefore held to a higher bar, while a quiet region is tested against the genome-wide rate, which is the stricter of the two. The option can cost sensitivity and cannot cost precision.
 
 This matters for the viral case in particular. An integrated virus often sits in a region that is itself amplified, and a tumour genome is rarely at an even copy number anywhere.
+
+## RNA-seq
+
+hgt-site is not recommended for RNA-seq. This section is here because the question gets asked, and because the measurements say more than a flat no.
+
+RNA-seq breaks the even-coverage assumption far harder than copy number does. Coverage follows expression over several orders of magnitude, there is none at all between genes, and the chimeras made during library preparation come from whatever transcripts are abundant. `--local-background` is the right idea for that and is not enough on its own.
+
+The simulation gives the host 400 genes with expression drawn log-uniformly across four orders of magnitude, samples a fixed read budget from them in proportion to expression, puts the insertions inside transcribed genes, and draws the host half of each chance chimera from the same profile. Three seeds each.
+
+| | Sites | False | Precision | Insertions found |
+| --- | ---: | ---: | ---: | ---: |
+| Genome-wide rate | 110 | 52 | 0.527 | 56 of 60 |
+| `--local-background` | 75 | 17 | 0.773 | 56 of 60 |
+
+A second version splits each gene into three to five exons, samples the reads from the spliced transcript and aligns them to the genome with bwa, which knows nothing about splicing. Every read crossing an exon junction therefore comes back soft-clipped at that boundary, and soft clips are what hgt-site reads to place a junction to the base pair.
+
+| | Sites | False | Precision | Insertions found | False sites on an exon boundary | Junctions placed on a boundary |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Genome-wide rate | 194 | 133 | 0.314 | 60 of 60 | 72 | 43 |
+| `--local-background` | 80 | 20 | 0.750 | 60 of 60 | 8 | 15 |
+| Local, exon boundaries excluded at 20 bp | 47 | 13 | 0.723 | 34 of 60 | 1 | 0 |
+
+Three things to take from this.
+
+**Precision is too low to recommend.** 0.75 at best against 1.000 on DNA. One site in four would be wrong.
+
+**Exon boundaries do produce false sites with a DNA aligner.** 72 of the 133 false sites in the first row sit on one. The local background removes most of them but not the mechanism. A splice-aware aligner should help and has not been tested here, since none was available where these runs were made.
+
+**Blacklisting exon boundaries does not rescue it.** A candidate is excluded when its span overlaps an excluded region, and a span is around 900 bp, so a blacklist made of many narrow intervals removes the real sites along with the artefacts. Recall fell to 34 of 60 for no gain in precision. `--exclude-regions` is meant for a handful of broad regions, not a dense feature file.
+
+Insertions in genes that are not transcribed cannot be found at all from RNA-seq, by any method, since they produce no reads. That is a property of the data and not of the tool.
 
 ## Libraries with long fragments
 

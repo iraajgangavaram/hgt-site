@@ -22,6 +22,10 @@ has and has not been shown to do.
   it. Phylogenetic methods do.
 - You have long reads. hgt-site works on paired short reads, and a long read
   spanning a junction is better evidence than anything it can offer.
+- You have RNA-seq. Precision on a simulated RNA-seq library reaches 0.77 at
+  best, against 1.000 on DNA, and reads crossing exon junctions produce false
+  sites of their own. The measurements are in the
+  [benchmarks](benchmarks.md#rna-seq).
 - You need a validated clinical result. See the limitations below.
 - Your alignment has been filtered down to only the pairs with an unmapped mate.
   It will still run, but it cannot measure fragment size or find split reads at
