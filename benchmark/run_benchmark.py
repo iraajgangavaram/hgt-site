@@ -60,6 +60,11 @@ def build_sample(host, donor, args, rng):
     """Return the sample sequence and the true insertion sites in host coordinates."""
     (host_name, host_seq), = host.items()
     donor_seq = max(donor.values(), key=len)
+    if len(donor_seq) < args.insert_max:
+        raise SystemExit(
+            f"The donor is {len(donor_seq)} bp but insertions are up to {args.insert_max} bp. "
+            f"Lower --insert-max, and --insert-min with it, to below the donor's length."
+        )
     positions = []
     while len(positions) < args.n_insertions:
         pos = rng.randint(10_000, len(host_seq) - 10_000)

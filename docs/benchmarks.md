@@ -111,6 +111,29 @@ The expectation is only ever raised, never lowered. A 10 kb bin at this coverage
 
 This matters for the viral case in particular. An integrated virus often sits in a region that is itself amplified, and a tumour genome is rarely at an even copy number anywhere.
 
+## Vectors and transgenes
+
+A construct is smaller than a bacterial or viral genome, a few hundred base pairs to a few tens of kilobases, and whoever put it there already has its sequence. `--donor` takes that sequence and needs no classifier or database.
+
+Constructs of 1 kb, 3 kb and 8 kb were cut from a bacterial genome and inserted into the host, with the insertions kept inside the construct's length. Five runs, 20 insertions each.
+
+| | Sites | Real | False | Insertions found | Junctions exact |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1 kb, 3 kb and 8 kb constructs | 100 | 100 | 0 | 100 of 100 | 100 |
+
+That result is easier than it looks, and the reason matters. In donor mode only reads matching the donor are classified at all, and the chance chimeras in those runs were built from the contaminating bacteria, so they were invisible and could never produce a false site.
+
+A transduced culture or an injected tissue holds a lot of free construct alongside the integrated copy, and its chimeras carry the construct. `--donor-chimera-fraction` makes that happen, and it is the condition worth testing.
+
+| Donor share of chimeras | Candidate positions | Sites | Real | False | Insertions found |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 0.5 | 3,840 | 20 | 20 | 0 | 20 of 20 |
+| 0.9 | 6,187 | 20 | 20 | 0 | 20 of 20 |
+
+At 0.9, about 9,000 of the 10,000 chance chimeras carried the construct itself, 10,518 unmapped reads matched it, and 6,187 positions looked like candidates. 302 of those had enough read support to be tested and all 302 failed the enrichment test. Nothing false was reported, and no insertion was missed.
+
+This is simulated data, like everything else here. The construct sequence is real bacterial sequence rather than a real plasmid with its repeated elements and its promoter shared with the host, and no real transduced sample has been tried.
+
 ## RNA-seq
 
 hgt-site is not recommended for RNA-seq. This section is here because the question gets asked, and because the measurements say more than a flat no.

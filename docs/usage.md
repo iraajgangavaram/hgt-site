@@ -54,6 +54,8 @@ Matching is exact 31-mer matching in both orientations, and a read needs five ma
 
 Donor reads are reported under taxid 32630, NCBI's taxon for a sequence that was built rather than sampled, which is the honest label for a vector. Use `--donor-taxid` to report them under the real taxon if your donor has one, for example 333760 for HPV16.
 
+On simulated data this holds up where it matters. With nine chance chimeras in ten carrying the construct itself, which is what a culture full of free vector produces, 6,187 positions looked like candidates and the 20 real insertions were the only ones reported. The [benchmarks](benchmarks.md#vectors-and-transgenes) have the detail.
+
 Two things to know. This is k-mer matching and not alignment, so a donor that differs from your reads throughout, by more than a few per cent, will not be found this way: align the reads and use a classifier for that case. And a donor sharing sequence with the host, a vector carrying a human promoter for instance, will match host reads too, so mask those parts of the FASTA or expect the shared region to produce sites.
 
 ## When host coverage is uneven
