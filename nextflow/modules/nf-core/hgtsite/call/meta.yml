@@ -63,6 +63,8 @@ output:
           type: file
           description: Every candidate site, with the reason each one failed in the filter column
           pattern: "*.hgt_site.tsv"
+          ontologies:
+            - edam: "http://edamontology.org/format_3475"
   bed:
     - - meta:
           type: map
@@ -72,6 +74,8 @@ output:
           type: file
           description: The sites that passed every filter, written when --bed is given in ext.args
           pattern: "*.hgt_site.bed"
+          ontologies:
+            - edam: "http://edamontology.org/format_3003"
   vcf:
     - - meta:
           type: map
@@ -82,6 +86,8 @@ output:
           description: Every candidate site as a VCF insertion record, written when --vcf is given
             in ext.args
           pattern: "*.hgt_site.vcf{,.gz}"
+          ontologies:
+            - edam: "http://edamontology.org/format_3016"
   tbi:
     - - meta:
           type: map
@@ -91,6 +97,7 @@ output:
           type: file
           description: Tabix index, written when the VCF name given in ext.args ends in .gz
           pattern: "*.hgt_site.vcf.gz.tbi"
+          ontologies: []
   multiqc:
     - - meta:
           type: map
@@ -100,6 +107,8 @@ output:
           type: file
           description: Summary table for MultiQC, written when --multiqc is given in ext.args
           pattern: "*_mqc.json"
+          ontologies:
+            - edam: "http://edamontology.org/format_3464"
   versions:
     - - ${task.process}:
           type: string

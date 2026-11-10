@@ -14,6 +14,8 @@ nextflow_process {
 
     // There is no per-read classification file in nf-core/test-datasets, so the
     // test makes one by running Kraken2 on the same reads the alignment holds.
+    // The reads are aligned to the SARS-CoV-2 genome, so SARS-CoV-2 is the host
+    // here and its taxid, 2697049, is what gets passed as the host.
     setup {
         run("UNTAR") {
             script "../../../untar/main.nf"
@@ -57,7 +59,7 @@ nextflow_process {
                     []
                 ]
                 input[1] = KRAKEN2_KRAKEN2.out.classified_reads_assignment
-                input[2] = 9606
+                input[2] = 2697049
                 """
             }
         }
@@ -86,7 +88,7 @@ nextflow_process {
                     []
                 ]
                 input[1] = KRAKEN2_KRAKEN2.out.classified_reads_assignment
-                input[2] = 9606
+                input[2] = 2697049
                 """
             }
         }
