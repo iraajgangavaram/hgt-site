@@ -140,6 +140,19 @@ Three things to take from this.
 
 **Blacklisting exon boundaries does not rescue it.** A candidate is excluded when its span overlaps an excluded region, and a span is around 900 bp, so a blacklist made of many narrow intervals removes the real sites along with the artefacts. Recall fell to 34 of 60 for no gain in precision. `--exclude-regions` is meant for a handful of broad regions, not a dense feature file.
 
+Both simulations are in the repository, as `benchmark/rnaseq_test.py` and `benchmark/rnaseq_spliced.py`:
+
+```bash
+python benchmark/rnaseq_test.py \
+    --host host.fa --donor donor.fa --contaminants c1.fa c2.fa \
+    --kraken-db k2db --nodes k2db/taxonomy/nodes.dmp \
+    --genes 400 --max-fold 10000 --pairs 300000 \
+    --insertions 20 --chimera-pairs 10000 \
+    --local-background --seed 1 --outdir rna_run
+```
+
+`benchmark/rnaseq_spliced.py` takes the same options plus `--exclude-exon-boundaries`, which writes a BED of every exon boundary and passes it to `--exclude-regions`, as a user could from a GTF.
+
 Insertions in genes that are not transcribed cannot be found at all from RNA-seq, by any method, since they produce no reads. That is a property of the data and not of the tool.
 
 ## Libraries with long fragments
