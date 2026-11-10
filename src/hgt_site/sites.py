@@ -136,16 +136,24 @@ def score_sites(sites, calls, mate_seqs, background, genome_length, window, thre
         fwd_ends = [a.end for a in site.anchors if not a.reverse]
         rev_starts = [a.start for a in site.anchors if a.reverse]
         span = (site.end - site.start) + window
+        uniform_share = span / genome_length
         # A chimera's host half comes from the host DNA in the library, so
         # where there is more host DNA there are more chimeras. depth_ratio
         # is 1 unless local coverage was measured and trusted.
-        share = site.depth_ratio * span / genome_length
+        share = site.depth_ratio * uniform_share
         expected = anchored_per_taxon[top_taxid] * share
         pvalue = poisson_sf(top_count, expected)
         pvalues.append(pvalue)
-        # Pairs from other taxa that chance chimeras alone would put in this window.
+        # Pairs from other taxa that chance chimeras alone would put in this
+        # window. Deliberately not scaled by local coverage. A site is called
+        # MIXED_TAXA when it holds more reads from other taxa than this
+        # predicts, which is how a chimera hotspot is recognised, and raising
+        # the prediction would stop the flag firing exactly where hotspots
+        # are worst. On an RNA-seq-like test, scaling it turned off the flag
+        # and precision fell from 0.54 to 0.46. Local coverage may only ever
+        # make a site harder to report, never easier.
         other_total = sum(anchored_per_taxon.values()) - anchored_per_taxon[top_taxid]
-        expected_other = other_total * share
+        expected_other = other_total * uniform_share
         other_count = n_pairs - top_count
         site.stats = {
             "n_pairs": n_pairs,
