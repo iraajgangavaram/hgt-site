@@ -94,7 +94,12 @@ def distance(first, second):
     """
     if not first or not second:
         return None
-    return sum(abs(first.get(k, 0.0) - second.get(k, 0.0)) for k in set(first) | set(second)) / 2
+    # Summed in sorted order so the result does not depend on how the sets
+    # happen to iterate, which would otherwise make the last digits differ
+    # between runs and between platforms.
+    return sum(
+        abs(first.get(k, 0.0) - second.get(k, 0.0)) for k in sorted(set(first) | set(second))
+    ) / 2
 
 
 def expected_noise(profile, n):
@@ -141,4 +146,10 @@ def summarise(seqs, host):
     measured = distance(normalise(counts), host_profile)
     noise = expected_noise(host_profile, total)
     ratio = None if not measured or not noise else measured / noise
-    return gc, difference, ratio
+    # Rounded because these are descriptive numbers read by a person, and
+    # carrying sixteen digits only invites differences between platforms.
+    return (
+        None if gc is None else round(gc, 4),
+        None if difference is None else round(difference, 4),
+        None if ratio is None else round(ratio, 3),
+    )

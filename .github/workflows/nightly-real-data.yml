@@ -48,8 +48,11 @@ jobs:
         env:
           BASE: https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/sarscov2
         run: |
-          curl -fsSL "$BASE/illumina/bam/test.paired_end.bam" -o reads.bam
+          curl -fsSL "$BASE/illumina/bam/test.paired_end.bam" -o unsorted.bam
           curl -fsSL "$BASE/metagenome/test_1.kraken2.reads.txt" -o calls.txt
+          # That file is not coordinate sorted, and an index is what lets the
+          # exact junctions be looked for.
+          samtools sort -o reads.bam unsorted.bam
           samtools index reads.bam
           test -s reads.bam && test -s calls.txt
 
