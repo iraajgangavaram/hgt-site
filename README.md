@@ -1,7 +1,7 @@
 <h1 align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/images/logo-animated-dark.svg">
-    <img alt="hgt-site, a horizontal gene transfer site caller" src="docs/images/logo-animated-light.svg" width="560">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/logo_dark.svg">
+    <img alt="hgt-site, a horizontal gene transfer site caller" src="docs/images/logo_light.svg" width="560">
   </picture>
 </h1>
 
@@ -105,6 +105,17 @@ It is packaged on Bioconda and PyPI, with a container built from the Bioconda re
 When a sample is aligned to its host genome, some reads do not map. Kraken2 often assigns many of these to bacteria or viruses. A small number may come from real integrations of foreign DNA into the host genome, but most come from contamination or from chimeric fragments formed during library preparation, where a host fragment and a contaminant fragment are joined by chance.
 
 A pair where one mate maps to the host and the other is foreign therefore does not show an integration on its own. The useful signal is several such pairs, from the same foreign taxon, pointing at the same host position.
+
+Counting those pairs is not enough either, because a chance chimera is made of real foreign sequence and several of them can land in the same place. The figure below is one benchmark run, taken from the hardest condition in the grid: 30,000 chance chimeras at ten-fold coverage.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/filter-dark.svg">
+    <img alt="A three-stage figure. 12,314 positions in a benchmark sample have foreign reads clustering at them. 3,645 of those have three or more supporting reads, and six of them carry as much support as the weakest real insertion, so read count alone cannot separate them. 19 survive the test against chance chimeras, and every one is a real insertion." src="docs/images/filter-light.svg" width="860">
+  </picture>
+</p>
+
+<p align="center"><sub>One run of the benchmark at its hardest setting. Nineteen of the twenty planted insertions were recovered and nothing false was reported. Six rejected candidates carry as much read support as the weakest real site, so no threshold on read count separates them. Drawn by <code>scripts/make_filter_svg.py</code> from the output in <code>benchmark/figure_data/</code>; the cloud of candidates with one or two reads is drawn as a random sample of 1,800 of the 8,669, and every candidate above that is drawn.</sub></p>
 
 ## How it works
 
