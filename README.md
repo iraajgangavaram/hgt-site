@@ -1,7 +1,7 @@
 <h1 align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/images/wordmark-dark.svg">
-    <img alt="hgt-site" src="docs/images/wordmark-light.svg" width="600">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/logo-animated-dark.svg">
+    <img alt="hgt-site, a horizontal gene transfer site caller" src="docs/images/logo-animated-light.svg" width="560">
   </picture>
 </h1>
 
