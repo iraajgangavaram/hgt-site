@@ -1,7 +1,7 @@
 <h1 align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/images/logo_dark.svg">
-    <img alt="hgt-site" src="docs/images/logo_light.svg" width="460">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/wordmark-dark.svg">
+    <img alt="hgt-site" src="docs/images/wordmark-light.svg" width="600">
   </picture>
 </h1>
 

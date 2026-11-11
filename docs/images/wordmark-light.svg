@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="150" viewBox="0 0 760 150" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" role="img" aria-label="hgt-site">
+<style>
+g{transform-box:fill-box;transform-origin:center}
+@keyframes d0{0%{opacity:0;transform:translate(0,0)}18%{opacity:.55}82%{opacity:.55}100%{opacity:0;transform:translate(8px,22px)}}
+.d0{animation:d0 6.86s ease-in-out infinite;animation-delay:-3.19s}
+@keyframes d1{0%{opacity:0;transform:translate(0,0)}18%{opacity:.55}82%{opacity:.55}100%{opacity:0;transform:translate(12px,-16px)}}
+.d1{animation:d1 7.02s ease-in-out infinite;animation-delay:-3.60s}
+@keyframes d2{0%{opacity:0;transform:translate(0,0)}18%{opacity:.55}82%{opacity:.55}100%{opacity:0;transform:translate(41px,-21px)}}
+.d2{animation:d2 7.39s ease-in-out infinite;animation-delay:-2.24s}
+@keyframes d3{0%{opacity:0;transform:translate(0,0)}18%{opacity:.55}82%{opacity:.55}100%{opacity:0;transform:translate(43px,10px)}}
+.d3{animation:d3 5.77s ease-in-out infinite;animation-delay:-0.24s}
+@keyframes d4{0%{opacity:0;transform:translate(0,0)}18%{opacity:.55}82%{opacity:.55}100%{opacity:0;transform:translate(65px,8px)}}
+.d4{animation:d4 8.45s ease-in-out infinite;animation-delay:-5.20s}
+@keyframes d5{0%{opacity:0;transform:translate(0,0)}18%{opacity:.55}82%{opacity:.55}100%{opacity:0;transform:translate(-68px,1px)}}
+.d5{animation:d5 5.97s ease-in-out infinite;animation-delay:-0.36s}
+@keyframes d6{0%{opacity:0;transform:translate(0,0)}18%{opacity:.55}82%{opacity:.55}100%{opacity:0;transform:translate(-36px,-24px)}}
+.d6{animation:d6 6.07s ease-in-out infinite;animation-delay:-2.82s}
+@keyframes d7{0%{opacity:0;transform:translate(0,0)}18%{opacity:.55}82%{opacity:.55}100%{opacity:0;transform:translate(48px,1px)}}
+.d7{animation:d7 6.82s ease-in-out infinite;animation-delay:-4.37s}
+@keyframes d8{0%{opacity:0;transform:translate(0,0)}18%{opacity:.55}82%{opacity:.55}100%{opacity:0;transform:translate(23px,-2px)}}
+.d8{animation:d8 7.00s ease-in-out infinite;animation-delay:-1.95s}
+@keyframes d9{0%{opacity:0;transform:translate(0,0)}18%{opacity:.55}82%{opacity:.55}100%{opacity:0;transform:translate(69px,18px)}}
+.d9{animation:d9 8.49s ease-in-out infinite;animation-delay:-6.01s}
+@keyframes d10{0%{opacity:0;transform:translate(0,0)}18%{opacity:.55}82%{opacity:.55}100%{opacity:0;transform:translate(-38px,-11px)}}
+.d10{animation:d10 6.45s ease-in-out infinite;animation-delay:-0.45s}
+@keyframes d11{0%{opacity:0;transform:translate(0,0)}18%{opacity:.55}82%{opacity:.55}100%{opacity:0;transform:translate(-14px,18px)}}
+.d11{animation:d11 7.80s ease-in-out infinite;animation-delay:-3.01s}
+@keyframes d12{0%{opacity:0;transform:translate(0,0)}18%{opacity:.55}82%{opacity:.55}100%{opacity:0;transform:translate(49px,-26px)}}
+.d12{animation:d12 8.37s ease-in-out infinite;animation-delay:-1.76s}
+@keyframes d13{0%{opacity:0;transform:translate(0,0)}18%{opacity:.55}82%{opacity:.55}100%{opacity:0;transform:translate(-4px,25px)}}
+.d13{animation:d13 8.23s ease-in-out infinite;animation-delay:-3.27s}
+@keyframes d14{0%{opacity:0;transform:translate(0,0)}18%{opacity:.55}82%{opacity:.55}100%{opacity:0;transform:translate(18px,14px)}}
+.d14{animation:d14 5.72s ease-in-out infinite;animation-delay:-1.54s}
+@keyframes d15{0%{opacity:0;transform:translate(0,0)}18%{opacity:.55}82%{opacity:.55}100%{opacity:0;transform:translate(-23px,24px)}}
+.d15{animation:d15 5.76s ease-in-out infinite;animation-delay:-4.37s}
+@keyframes f0{0%,0.00%{opacity:0;transform:translate(-176px,-61px) rotate(-120deg) scale(.55)}12.78%,92%{opacity:1;transform:translate(0,0) rotate(0) scale(1)}100%{opacity:0;transform:translate(0,-10px) scale(.97)}}
+.f0{animation:f0 9.0s cubic-bezier(.17,.84,.36,1) infinite}
+@keyframes f1{0%,1.44%{opacity:0;transform:translate(-202px,71px) rotate(-97deg) scale(.55)}14.22%,92%{opacity:1;transform:translate(0,0) rotate(0) scale(1)}100%{opacity:0;transform:translate(0,-10px) scale(.97)}}
+.f1{animation:f1 9.0s cubic-bezier(.17,.84,.36,1) infinite}
+@keyframes f2{0%,2.89%{opacity:0;transform:translate(27px,-13px) rotate(-93deg) scale(.55)}15.67%,92%{opacity:1;transform:translate(0,0) rotate(0) scale(1)}100%{opacity:0;transform:translate(0,-10px) scale(.97)}}
+.f2{animation:f2 9.0s cubic-bezier(.17,.84,.36,1) infinite}
+@keyframes f3{0%,4.33%{opacity:0;transform:translate(107px,-89px) rotate(43deg) scale(.55)}17.11%,92%{opacity:1;transform:translate(0,0) rotate(0) scale(1)}100%{opacity:0;transform:translate(0,-10px) scale(.97)}}
+.f3{animation:f3 9.0s cubic-bezier(.17,.84,.36,1) infinite}
+@keyframes f4{0%,5.78%{opacity:0;transform:translate(-176px,-19px) rotate(-86deg) scale(.55)}18.56%,92%{opacity:1;transform:translate(0,0) rotate(0) scale(1)}100%{opacity:0;transform:translate(0,-10px) scale(.97)}}
+.f4{animation:f4 9.0s cubic-bezier(.17,.84,.36,1) infinite}
+@keyframes f5{0%,7.22%{opacity:0;transform:translate(-106px,113px) rotate(91deg) scale(.55)}20.00%,92%{opacity:1;transform:translate(0,0) rotate(0) scale(1)}100%{opacity:0;transform:translate(0,-10px) scale(.97)}}
+.f5{animation:f5 9.0s cubic-bezier(.17,.84,.36,1) infinite}
+@keyframes f6{0%,8.67%{opacity:0;transform:translate(-90px,92px) rotate(-87deg) scale(.55)}21.44%,92%{opacity:1;transform:translate(0,0) rotate(0) scale(1)}100%{opacity:0;transform:translate(0,-10px) scale(.97)}}
+.f6{animation:f6 9.0s cubic-bezier(.17,.84,.36,1) infinite}
+@keyframes f7{0%,10.11%{opacity:0;transform:translate(-49px,85px) rotate(43deg) scale(.55)}22.89%,92%{opacity:1;transform:translate(0,0) rotate(0) scale(1)}100%{opacity:0;transform:translate(0,-10px) scale(.97)}}
+.f7{animation:f7 9.0s cubic-bezier(.17,.84,.36,1) infinite}
+@keyframes rule{0%,16%{width:0;opacity:0}34%{opacity:1}40%,92%{width:317px;opacity:1}100%{opacity:0}}
+.rule{animation:rule 9.0s ease-out infinite}
+</style>
+<text class="d0" x="108" y="129" font-size="12" fill="#c9c5bd">G</text>
+<text class="d1" x="47" y="89" font-size="16" fill="#c9c5bd">T</text>
+<text class="d2" x="90" y="35" font-size="14" fill="#c9c5bd">C</text>
+<text class="d3" x="51" y="64" font-size="15" fill="#c9c5bd">C</text>
+<text class="d4" x="692" y="76" font-size="14" fill="#c9c5bd">T</text>
+<text class="d5" x="164" y="42" font-size="16" fill="#c9c5bd">C</text>
+<text class="d6" x="533" y="42" font-size="15" fill="#c9c5bd">C</text>
+<text class="d7" x="507" y="66" font-size="14" fill="#c9c5bd">A</text>
+<text class="d8" x="327" y="37" font-size="11" fill="#c9c5bd">G</text>
+<text class="d9" x="202" y="99" font-size="13" fill="#c9c5bd">T</text>
+<text class="d10" x="240" y="44" font-size="15" fill="#c9c5bd">A</text>
+<text class="d11" x="126" y="76" font-size="15" fill="#c9c5bd">A</text>
+<text class="d12" x="231" y="121" font-size="12" fill="#c9c5bd">A</text>
+<text class="d13" x="87" y="69" font-size="12" fill="#c9c5bd">A</text>
+<text class="d14" x="160" y="64" font-size="14" fill="#c9c5bd">C</text>
+<text class="d15" x="103" y="40" font-size="14" fill="#c9c5bd">G</text>
+<g class="f0"><text x="221.6" y="96" font-size="66" font-weight="600" fill="#23221f">h</text></g>
+<g class="f1"><text x="261.2" y="96" font-size="66" font-weight="600" fill="#23221f">g</text></g>
+<g class="f2"><text x="300.8" y="96" font-size="66" font-weight="600" fill="#23221f">t</text></g>
+<g class="f3"><text x="340.4" y="96" font-size="66" font-weight="600" fill="#1b7f5a">-</text></g>
+<g class="f4"><text x="380.0" y="96" font-size="66" font-weight="600" fill="#23221f">s</text></g>
+<g class="f5"><text x="419.6" y="96" font-size="66" font-weight="600" fill="#23221f">i</text></g>
+<g class="f6"><text x="459.2" y="96" font-size="66" font-weight="600" fill="#23221f">t</text></g>
+<g class="f7"><text x="498.8" y="96" font-size="66" font-weight="600" fill="#23221f">e</text></g>
+<rect class="rule" x="222" y="113" height="3" rx="1.5" width="0" fill="#1b7f5a"/>
+</svg>
