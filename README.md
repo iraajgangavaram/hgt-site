@@ -5,10 +5,12 @@
   </picture>
 </h1>
 
-<p align="center"><b>Find where foreign DNA has inserted into a host genome, from a BAM and your classifier's output.</b></p>
+<p align="center"><b>Your host sequencing data has bacterial or viral reads in it.<br>
+Most of the positions they point to are library artefacts. This tells you which ones are not.</b></p>
 
 <p align="center">
   <a href="https://github.com/iraajgangavaram/hgt-site/actions/workflows/tests.yml"><img alt="tests" src="https://github.com/iraajgangavaram/hgt-site/actions/workflows/tests.yml/badge.svg"></a>
+  <a href="https://github.com/iraajgangavaram/hgt-site/actions/workflows/nightly-real-data.yml"><img alt="nightly run on real data" src="https://github.com/iraajgangavaram/hgt-site/actions/workflows/nightly-real-data.yml/badge.svg"></a>
   <a href="https://github.com/iraajgangavaram/hgt-site/releases"><img alt="release" src="https://img.shields.io/github/v/release/iraajgangavaram/hgt-site?color=2a78d6"></a>
   <a href="https://pypi.org/project/hgt-site/"><img alt="PyPI" src="https://img.shields.io/pypi/v/hgt-site?color=2a78d6"></a>
   <a href="https://bioconda.github.io/recipes/hgt-site/README.html"><img alt="Bioconda" src="https://img.shields.io/conda/vn/bioconda/hgt-site?color=1baf7a&label=bioconda"></a>
@@ -21,6 +23,7 @@
 
 <p align="center">
   <a href="https://iraajgangavaram.github.io/hgt-site/">Documentation</a> ·
+  <a href="https://colab.research.google.com/github/iraajgangavaram/hgt-site/blob/main/examples/quickstart.ipynb">Try it in your browser</a> ·
   <a href="#installation">Installation</a> ·
   <a href="#usage">Usage</a> ·
   <a href="#output">Output</a> ·
@@ -30,6 +33,17 @@
   <a href="https://iraajgangavaram.github.io/hgt-site/for-labs/">Is it worth trying?</a> ·
   <a href="https://iraajgangavaram.github.io/hgt-site/comparison/">Other tools</a> ·
   <a href="#citation">Citation</a>
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/demo-dark.svg">
+    <img alt="A terminal session: installing hgt-site, simulating a dataset with five known insertions, and calling it. 112 candidate sites are found and 5 pass, each reported with its position, supporting pairs and taxid." src="docs/images/demo-light.svg" width="860">
+  </picture>
+</p>
+
+<p align="center">
+  <i>112 candidate positions in that sample. Five were real. The other 107 were made in the lab.</i>
 </p>
 
 ```bash
@@ -85,13 +99,6 @@ It is packaged on Bioconda and PyPI, with a container built from the Bioconda re
 </p>
 
 <p align="center"><sub>Benchmark on real genomes with added contamination and chimeras. Read support alone gives the same numbers as LGTSeek. Details in <a href="#benchmark-on-real-genomes">Benchmark on real genomes</a>.</sub></p>
-
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/images/demo_dark.svg">
-    <img alt="A terminal showing hgt-site being installed and run on a sample, printing 1701 candidate sites of which 21 passed the filters, then the first rows of the output table." src="docs/images/demo_light.svg" width="760">
-  </picture>
-</p>
 
 ## The problem
 

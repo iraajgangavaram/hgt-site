@@ -1,0 +1,115 @@
+name: nightly real data
+
+# Everything in the benchmarks is simulated. This runs the published Bioconda
+# package against real sequencing reads every night, so the badge says the
+# thing people actually install still works on real data today, not only that
+# the source passed its unit tests when it was written.
+#
+# The reads are a public SARS-CoV-2 Illumina sample from nf-core/test-datasets,
+# with per-read Kraken2 calls from the same repository.
+
+on:
+  schedule:
+    - cron: "37 4 * * *"
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/nightly-real-data.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  real-data:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install hgt-site from Bioconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          channels: conda-forge,bioconda
+          channel-priority: strict
+          activate-environment: hgtsite
+          auto-activate-base: false
+
+      - name: Install
+        run: conda install -y hgt-site samtools
+
+      - name: Report what was installed
+        run: |
+          hgt-site --version
+          conda list hgt-site
+
+      - name: Fetch the public test sample
+        env:
+          BASE: https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/sarscov2
+        run: |
+          curl -fsSL "$BASE/illumina/bam/test.paired_end.bam" -o reads.bam
+          curl -fsSL "$BASE/metagenome/test_1.kraken2.reads.txt" -o calls.txt
+          samtools index reads.bam
+          test -s reads.bam && test -s calls.txt
+
+      - name: Call sites
+        run: |
+          hgt-site call \
+            --bam reads.bam \
+            --classifications calls.txt \
+            --host-taxid 9606 \
+            --vcf sites.vcf.gz \
+            -o sites.tsv
+
+      - name: Check the output is what this sample should give
+        run: |
+          python - <<'PY'
+          import csv, sys
+
+          with open("sites.tsv") as handle:
+              rows = list(csv.DictReader(handle, delimiter="\t"))
+
+          problems = []
+          if not rows:
+              problems.append("no candidate rows at all")
+          # Every read in this sample is classified as SARS-CoV-2 and aligned to
+          # it, so with a different host taxid the three pairs with an unmapped
+          # mate become foreign and give a small, stable set of candidates.
+          if not 1 <= len(rows) <= 10:
+              problems.append(f"expected a handful of candidates, got {len(rows)}")
+          if any(r["chrom"] != "MT192765.1" for r in rows):
+              problems.append("a candidate is not on the sample's only contig")
+          # Nothing in this sample has the support to pass, and a build that
+          # suddenly starts passing sites here has changed its thresholds.
+          passed = [r for r in rows if r["filter"] == "PASS"]
+          if passed:
+              problems.append(f"{len(passed)} sites passed where none should")
+          for row in rows:
+              if not row["top_taxid"]:
+                  problems.append("a candidate has no taxid")
+              if not row["filter"]:
+                  problems.append("a candidate has no filter value")
+
+          if problems:
+              print("FAILED:")
+              for problem in problems:
+                  print(" -", problem)
+              sys.exit(1)
+          print(f"{len(rows)} candidate rows, none passing, all on MT192765.1, as expected")
+          PY
+
+      - name: Check the VCF is readable
+        run: |
+          test -s sites.vcf.gz
+          python -c "import pysam; print(sum(1 for _ in pysam.VariantFile('sites.vcf.gz')), 'VCF records')"
+
+      - name: Keep the output for inspection
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-real-data-output
+          path: |
+            sites.tsv
+            sites.vcf.gz
+          retention-days: 14

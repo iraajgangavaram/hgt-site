@@ -15,8 +15,8 @@ If the foreign DNA is something you put there, `--donor` takes its sequence dire
 </figure>
 
 <figure markdown>
-  ![A terminal showing hgt-site being installed and run](images/demo_light.svg#only-light){ width="760" }
-  ![A terminal showing hgt-site being installed and run](images/demo_dark.svg#only-dark){ width="760" }
+  ![A terminal session: installing hgt-site, simulating a dataset with five known insertions, and calling it. 112 candidate sites are found and 5 pass.](images/demo-light.svg#only-light){ width="860" }
+  ![A terminal session: installing hgt-site, simulating a dataset with five known insertions, and calling it. 112 candidate sites are found and 5 pass.](images/demo-dark.svg#only-dark){ width="860" }
 </figure>
 
 ## In short
