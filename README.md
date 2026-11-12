@@ -173,7 +173,7 @@ pip install hgt-site
 The Bioconda package also gives you a container, built automatically, which needs nothing installed at all:
 
 ```bash
-docker run --rm quay.io/biocontainers/hgt-site:0.3.0--pyhdfd78af_0 hgt-site --help
+docker run --rm quay.io/biocontainers/hgt-site:0.4.0--pyhdfd78af_0 hgt-site --help
 ```
 
 The exact tag is on the [Bioconda page](https://bioconda.github.io/recipes/hgt-site/README.html), and a Singularity image of the same build is on the [Galaxy depot](https://depot.galaxyproject.org/singularity/).
@@ -481,7 +481,7 @@ pip install ".[test]"
 pytest
 ```
 
-35 tests cover the units, the simulated data, BAM and CRAM input, the output formats, the exact junctions and that results do not depend on the order of records in the file. They run on GitHub for Python 3.10 to 3.13. Code style is checked with `ruff check src tests benchmark`.
+69 tests cover the units, the simulated data, BAM and CRAM input, the output formats, the exact junctions and that results do not depend on the order of records in the file. They run on GitHub for Python 3.10 to 3.13. Code style is checked with `ruff check src tests benchmark`.
 
 ## Using it from Python
 

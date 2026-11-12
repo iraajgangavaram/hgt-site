@@ -140,7 +140,7 @@ def main():
         for start, length in gene["exons"][:-1]:
             exon_boundaries.append(start + length)
 
-    weights = [g["expression"] * sum(l for _, l in g["exons"]) for g in genes]
+    weights = [g["expression"] * sum(length for _, length in g["exons"]) for g in genes]
     total = sum(weights)
 
     with open(out / "reads_1.fq", "w") as f1, open(out / "reads_2.fq", "w") as f2:

@@ -834,7 +834,9 @@ def test_local_background_leaves_even_coverage_alone(sim, tmp_path):
     assert any(r != 1.0 for r in ratios), "coverage should have been measured"
     assert all(0.5 < r < 2.0 for r in ratios), "even coverage should give ratios near 1"
 
-    passed = lambda rs: {(r["chrom"], r["start"]) for r in rs if r["filter"] == "PASS"}
+    def passed(rs):
+        return {(r["chrom"], r["start"]) for r in rs if r["filter"] == "PASS"}
+
     assert passed(after) == passed(before)
 
 
@@ -956,7 +958,6 @@ def test_host_reads_called_foreign_look_like_the_host(sim, tmp_path):
     calling host reads foreign, which leaves a site whose reads look exactly
     like the host.
     """
-    import gzip
     import random
 
     # Build a classification file that calls the unmapped mates host-derived

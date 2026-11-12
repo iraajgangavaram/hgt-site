@@ -92,6 +92,39 @@ Precision holds. In the last row about 17,900 of the 30,000 chimeras carried the
 
 What gives way is sensitivity. Chimeras made from the donor are anchored pairs, so they raise the rate at which that taxon is expected anywhere in the genome, and a cluster of donor reads becomes less surprising. The insertions that were missed all had few supporting pairs and were rejected as NOT_ENRICHED. That is the test being cautious rather than wrong, but it has a practical consequence: in a sample heavy with free donor, a weakly supported site will be dropped. More coverage, or reads that cross the junction, is the way to recover it. Loosening the threshold is not.
 
+## Strains that are not in the database
+
+Everything else on this page simulates reads from the same genomes that are in the Kraken2 database, at a 0.05% mutation rate, so the reads sit about 99.75% identical to the reference. Real strains are not that close. Divergence within a species runs to a few per cent, and real genomic islands and plasmids are absent from references altogether.
+
+The runs below mutate the donor and all four contaminating genomes to a given nucleotide divergence and leave the Kraken2 database built from the originals, so the classifier is looking for a strain it has never seen. Coverage 10, 10,000 chimeric pairs, 20 insertions, one seed per level.
+
+| Divergence | Reads classified | Candidates | Sites | Real | False | Precision | Insertions found |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0% | 100.0% | 6,769 | 20 | 20 | 0 | 1.000 | 20 of 20 |
+| 1% | 100.0% | 6,768 | 20 | 20 | 0 | 1.000 | 20 of 20 |
+| 2% | 99.9% | 6,766 | 20 | 20 | 0 | 1.000 | 20 of 20 |
+| 5% | 94.7% | 6,512 | 20 | 20 | 0 | 1.000 | 20 of 20 |
+| 10% | 51.6% | 3,990 | 18 | 18 | 0 | 1.000 | 18 of 20 |
+| 15% | 14.8% | 1,201 | 9 | 9 | 0 | 1.000 | 9 of 20 |
+
+Precision does not move. Sensitivity does, and it tracks the share of reads Kraken2 can still place: half the insertions are still found when half the reads are classified, and the loss is roughly proportional all the way down.
+
+The reason is structural rather than lucky. Divergence degrades the real insertions and the chance chimeras by the same amount, because both are built from the same diverged genomes, and the test compares the two. Nothing in it looks at how well a read matches a reference, so an unclassified read removes support from a candidate instead of adding false support to one. A tool that failed here would do so by reporting sites that are not there, and losing reads cannot cause that.
+
+`--donor` is the exception worth stating, because it really is exact matching: unmapped reads are compared to the supplied FASTA by 31-mer, so divergence hits it directly.
+
+| Divergence | Candidates | Sites | Insertions found |
+| --- | ---: | ---: | ---: |
+| 0% | 154 | 20 | 20 of 20 |
+| 2% | 114 | 20 | 20 of 20 |
+| 5% | 78 | 20 | 20 of 20 |
+| 10% | 30 | 14 | 14 of 20 |
+| 15% | 8 | 4 | 4 of 20 |
+
+It survives to 5% because a 150 bp read holds 120 31-mers and about a fifth of them are untouched at that divergence, which clears the five-hit threshold comfortably. It falls away faster than the classifier does after that. Use it for a vector or transgene, where you have the actual sequence, rather than for a viral genome that may be several per cent from the reference you have.
+
+These runs use uniform random substitutions, which is not what real divergence looks like. Real divergence is clustered, carries indels, and includes whole genes that are in no reference at all. Reads from sequence like that come back unclassified, which costs sensitivity in the same way the 15% row does. The mutation script is `benchmark/mutate_genome.py`.
+
 ## Uneven host coverage
 
 The expected number of chance chimeras at a position assumes foreign pairs fall evenly across the host genome. A chimera's host half is drawn from the host DNA in the library, so a region present at several copies contributes chimeras in proportion to its copy number, and the even assumption reads the excess as an insertion. This is the case in any tumour with copy-number gains and in an amplified or low-input library. It is also true of RNA-seq, far more strongly, and the option is not sufficient there: see [RNA-seq](#rna-seq) below.
@@ -239,6 +272,8 @@ The simulated datasets, the known insertion sites and the full results for all 1
 ## Limitations
 
 - The benchmarks use real sequence but simulated reads, a Kraken2 database far smaller than a standard one, and chimeras placed at random positions. Real data may include chimera hotspots and more reads classified above species level.
+- The divergence runs substitute bases uniformly at random, which is not how strains differ from a reference. Real divergence is clustered, carries indels, and includes whole genes and plasmids that are in no reference at all. Those give unclassified reads, which cost sensitivity rather than precision, but the shape of the loss has not been measured.
+- Each divergence level is a single seed, so the recall figures on that table are approximate.
 - The LGTSeek comparison covers its read classification step only, not its later BLAST-based filtering.
 - Sites are tested one taxon at a time, so an insertion whose reads Kraken2 splits between related species can lose support. Grouping Kraken2 calls at genus or family level before testing was tried and did not help: genus grouping changed nothing in the benchmark, and family grouping merged real insertions with contamination from related bacteria, which lowered recall.
 - Fragment sizes are measured from properly paired reads, so if the input contains only pairs with an unmapped mate, the default clustering limits are used.

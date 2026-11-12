@@ -15,7 +15,7 @@ pip install hgt-site
 The Bioconda package comes with a container built automatically, so hgt-site can be run with nothing installed:
 
 ```bash
-docker run --rm quay.io/biocontainers/hgt-site:0.3.0--pyhdfd78af_0 hgt-site --help
+docker run --rm quay.io/biocontainers/hgt-site:0.4.0--pyhdfd78af_0 hgt-site --help
 ```
 
 The exact tag for a release is listed on its [Bioconda page](https://bioconda.github.io/recipes/hgt-site/README.html), and the matching Singularity image is on the [Galaxy depot](https://depot.galaxyproject.org/singularity/).
