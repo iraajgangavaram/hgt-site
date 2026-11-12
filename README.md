@@ -9,12 +9,18 @@
 Most of the positions they point to are library artefacts. This tells you which ones are not.</b></p>
 
 <p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/stats-dark.svg">
+    <img alt="Conda installs to date, beside the 123,926 candidate sites sifted across 18 benchmark runs with zero false positives in every one of them." src="docs/images/stats-light.svg" width="900">
+  </picture>
+</p>
+
+<p align="center">
   <a href="https://github.com/iraajgangavaram/hgt-site/actions/workflows/tests.yml"><img alt="tests" src="https://github.com/iraajgangavaram/hgt-site/actions/workflows/tests.yml/badge.svg"></a>
   <a href="https://github.com/iraajgangavaram/hgt-site/actions/workflows/nightly-real-data.yml"><img alt="nightly run on real data" src="https://github.com/iraajgangavaram/hgt-site/actions/workflows/nightly-real-data.yml/badge.svg"></a>
   <a href="https://github.com/iraajgangavaram/hgt-site/releases"><img alt="release" src="https://img.shields.io/github/v/release/iraajgangavaram/hgt-site?color=2a78d6"></a>
   <a href="https://pypi.org/project/hgt-site/"><img alt="PyPI" src="https://img.shields.io/pypi/v/hgt-site?color=2a78d6"></a>
   <a href="https://bioconda.github.io/recipes/hgt-site/README.html"><img alt="Bioconda" src="https://img.shields.io/conda/vn/bioconda/hgt-site?color=1baf7a&label=bioconda"></a>
-  <a href="https://anaconda.org/bioconda/hgt-site"><img alt="Bioconda downloads" src="https://img.shields.io/conda/dn/bioconda/hgt-site?color=1baf7a&label=conda%20downloads"></a>
   <img alt="Python 3.10 to 3.13" src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-2a78d6">
   <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-52514e"></a>
   <a href="https://doi.org/10.5281/zenodo.23842712"><img alt="DOI" src="https://zenodo.org/badge/1441009191.svg"></a>
