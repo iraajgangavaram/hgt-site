@@ -28,10 +28,7 @@ jobs:
       - name: Read the install count from Anaconda
         id: count
         run: |
-          # total_ndownloads is the figure the Bioconda badge uses.
-          n=$(curl -fsSL --retry 3 --retry-delay 5 \
-                https://api.anaconda.org/package/bioconda/hgt-site \
-              | python -c 'import json,sys; print(json.load(sys.stdin)["total_ndownloads"])')
+          n=$(python scripts/fetch_conda_downloads.py)
           # Guard against a malformed response quietly writing a nonsense
           # number into the README, and against the count going backwards.
           old=$(python -c 'import json; print(json.load(open("docs/stats.json"))["conda_downloads"])')
