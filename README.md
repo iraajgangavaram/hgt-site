@@ -172,6 +172,14 @@ docker run --rm quay.io/biocontainers/hgt-site:0.3.0--pyhdfd78af_0 hgt-site --he
 
 The exact tag is on the [Bioconda page](https://bioconda.github.io/recipes/hgt-site/README.html), and a Singularity image of the same build is on the [Galaxy depot](https://depot.galaxyproject.org/singularity/).
 
+### In a Nextflow pipeline
+
+The module is in nf-core/modules, so it drops into a pipeline with:
+
+```bash
+nf-core modules install hgtsite/call
+```
+
 To install the latest code from GitHub instead:
 
 ```bash
@@ -458,7 +466,7 @@ The simulated datasets, the known insertion sites and the full results for all 1
 
 - Test on public sequencing data, including the datasets used to evaluate existing HGT pipelines
 - Combine reads that Kraken2 splits between related taxa without merging them with contamination
-- Submit the Galaxy wrapper in [`galaxy/`](galaxy/) to the Tool Shed and the Nextflow module in [`nextflow/`](nextflow/) to nf-core/modules, both now possible since the Bioconda package provides the container they need
+- Submit the Galaxy wrapper in [`galaxy/`](galaxy/) to the Tool Shed, now possible since the Bioconda package provides the container it needs
 
 ## Testing
 

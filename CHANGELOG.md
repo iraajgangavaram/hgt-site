@@ -19,7 +19,7 @@
 - The benchmark can now draw a share of its chance chimeras from the donor rather than only from the contaminating genomes, which is what a sample containing free donor alongside the integrated copy does. With six chimeras in ten coming from the donor, precision stayed at 1.000 and recall fell from 1.000 to 0.933 as the chimera load rose. `--donor-chimera-fraction` defaults to 0, so every earlier result is unchanged.
 
 - A Snakemake wrapper is in `snakemake/`, ready to submit to snakemake-wrappers, so the tool can be used from a Snakemake workflow.
-- An nf-core module for `hgt-site call` is in `nextflow/`, ready to submit to nf-core/modules, so the tool can be dropped into a Nextflow pipeline. Not yet run, because neither Nextflow nor nf-test was available where it was written.
+- An nf-core module for `hgt-site call` is now in nf-core/modules, so it installs into a Nextflow pipeline with `nf-core modules install hgtsite/call`. The copy kept in `nextflow/` has been removed, since a second copy would only drift from the one people install.
 
 ## 0.4.0 (2026-11-06)
 
