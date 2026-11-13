@@ -268,7 +268,11 @@ def main(argv=None):
                 file=sys.stderr,
             )
             return 1
-        _call(args, args.kraken)
+        try:
+            _call(args, args.kraken)
+        except ValueError as problem:
+            print(f"ERROR: {problem}", file=sys.stderr)
+            return 1
     elif args.command == "run":
         import tempfile
 

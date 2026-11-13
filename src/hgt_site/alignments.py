@@ -133,6 +133,19 @@ class _Sample:
         self.limit = limit
         self.insert_sizes = []
         self.read_lengths = []
+        self.records = 0
+        self.paired = 0
+
+    def count(self, flag):
+        """Count one record, whether or not the fragment sample is still open.
+
+        Kept apart from add() because sampling stops once there are enough
+        fragment sizes, and because the readers drop most records before
+        collect_pairs sees them, so this is the only place that sees them all.
+        """
+        self.records += 1
+        if flag & PAIRED:
+            self.paired += 1
 
     def add(self, flag, tlen, read_length):
         """Add one record; return False once the sample is full."""
@@ -177,6 +190,7 @@ def _iter_sam_text(path, sample, coverage=None):
                 continue
             cols = line.split("\t", 10)
             flag = int(cols[1])
+            sample.count(flag)
             if sampling:
                 sampling = sample.add(flag, int(cols[8]), len(cols[9]))
             if coverage is not None:
@@ -203,6 +217,7 @@ def _iter_pysam(path, sample, reference=None, threads=1, coverage=None, index=No
         sampling = True
         for read in bam.fetch(until_eof=True):
             flag = read.flag
+            sample.count(flag)
             if sampling:
                 sampling = sample.add(flag, read.template_length, read.query_length)
             if coverage is not None:
@@ -265,6 +280,18 @@ def collect_pairs(
                 host_composition.add(rec.seq)
         elif read_unmapped and not mate_unmapped:
             mate_seqs[name] = rec.seq
+    # An empty table from single-end reads looks exactly like an empty table
+    # from a sample with no insertions, and the second is the reading someone
+    # takes. hgt-site works from a pair whose mates land in different places,
+    # so there is nothing to fall back to and saying so is the only useful
+    # answer.
+    if sample.records and not sample.paired:
+        raise ValueError(
+            f"No read in {path} is marked as paired, so this looks like a single-end "
+            "alignment. hgt-site finds a junction from a pair with one mate on the host "
+            "and the other unmapped, which single-end reads cannot show, and it would "
+            "otherwise report no candidate sites whatever the sample contains."
+        )
     return ReadPairs(
         anchors, mate_seqs, both_unmapped, lengths, sample.insert_sizes, sample.read_lengths,
         both_unmapped_seqs, coverage, host_composition,

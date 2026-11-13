@@ -220,6 +220,36 @@ def test_index_elsewhere_is_used_when_given(sim_split, tmp_path, caplog):
     ), "the relocated index was given but no split reads were read"
 
 
+def test_single_end_alignment_says_so_instead_of_reporting_nothing(sim_split, tmp_path):
+    """Single-end input is refused rather than quietly giving an empty table.
+
+    An empty table from single-end reads is indistinguishable from an empty
+    table for a sample with no insertions, and the second is the reading
+    someone takes.
+    """
+    pysam = pytest.importorskip("pysam")
+    source = tmp_path / "paired.bam"
+    pysam.sort("-o", str(source), f"{sim_split}.sam")
+    single = tmp_path / "single.bam"
+    with pysam.AlignmentFile(str(source), "rb") as src:
+        with pysam.AlignmentFile(str(single), "wb", template=src) as out:
+            for read in src:
+                if not read.is_read1:
+                    continue
+                read.flag = read.flag & ~(0x1 | 0x2 | 0x8 | 0x20 | 0x40 | 0x80)
+                read.next_reference_id = -1
+                read.next_reference_start = -1
+                read.template_length = 0
+                out.write(read)
+
+    with pytest.raises(ValueError, match="single-end"):
+        call_sites(str(single), f"{sim_split}.kraken2.txt", HOST_TAXID)
+
+    # The paired file it was made from still works, so the check is not just
+    # refusing everything.
+    assert call_sites(str(source), f"{sim_split}.kraken2.txt", HOST_TAXID)
+
+
 def test_split_reads_can_be_turned_off(sim_split):
     sites = call_sites(f"{sim_split}.sam", f"{sim_split}.kraken2.txt", HOST_TAXID, split_reads=False)
     assert all(s.stats["left_breakpoint"] == "" for s in sites)
