@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="116" viewBox="0 0 900 116" font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" role="img" aria-label="71 conda installs. 123,926 candidate sites sifted across 18 benchmark runs, with zero false positives in every one of them.">
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="116" viewBox="0 0 900 116" font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" role="img" aria-label="72 conda installs. 123,926 candidate sites sifted across 18 benchmark runs, with zero false positives in every one of them.">
 <style>
 @keyframes c00{0%,0.00%{opacity:0}0.01%,2.27%{opacity:1}2.28%,100%{opacity:0}}
 .c00{animation:c00 9.0s linear infinite}
@@ -73,17 +73,17 @@
 <text class="c01" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">21</text>
 <text class="c02" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">30</text>
 <text class="c03" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">38</text>
-<text class="c04" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">44</text>
-<text class="c05" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">50</text>
-<text class="c06" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">55</text>
-<text class="c07" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">59</text>
-<text class="c08" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">62</text>
-<text class="c09" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">65</text>
-<text class="c010" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">67</text>
-<text class="c011" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">68</text>
-<text class="c012" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">69</text>
-<text class="c013" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">70</text>
-<text class="c014" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">71</text>
+<text class="c04" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">45</text>
+<text class="c05" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">51</text>
+<text class="c06" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">56</text>
+<text class="c07" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">60</text>
+<text class="c08" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">63</text>
+<text class="c09" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">66</text>
+<text class="c010" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">68</text>
+<text class="c011" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">69</text>
+<text class="c012" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">70</text>
+<text class="c013" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">71</text>
+<text class="c014" x="150.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">72</text>
 <text x="150" y="84" font-size="14" font-weight="600" fill="#9b968e" text-anchor="middle">conda installs</text>
 <text x="150" y="104" font-size="12" fill="#7e8a97" text-anchor="middle">and counting</text>
 <text class="c10" x="450.0" y="58" font-size="38" font-weight="700" fill="#f0efec" text-anchor="middle" font-variant-numeric="tabular-nums">19,528</text>
