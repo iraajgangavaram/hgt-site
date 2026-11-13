@@ -272,7 +272,8 @@ Other options:
 | `--no-split-reads` | Skips the split-read search, so junctions come from read pairs only |
 | `--nodes nodes.dmp` | Excludes the whole host lineage, not just the host taxid |
 | `--reference genome.fa` | Reference FASTA, needed for CRAM input |
-| `--exclude-taxid 1234` | Ignores a taxon, for example a known contaminant (can be repeated) |
+| `--index sample.bam.bai` | The alignment's index, if it is not beside the alignment under its usual name. Without one the junctions come from read pairs |
+| `--exclude-taxid 1234` | Ignores a taxon, for example a known contaminant (can be repeated). With `--nodes` it covers the whole clade, so excluding a family ignores every species in it |
 
 While it runs, hgt-site reports how many anchored pairs it found, how many have a Kraken2 call, the fragment size it measured, and how many sites got an exact junction. If none of the anchored reads has a Kraken2 call, it warns that the Kraken2 file may not match the alignment.
 
@@ -467,6 +468,8 @@ The simulated datasets, the known insertion sites and the full results for all 1
 - The speed comparison used five bacterial genomes as LGTSeek's reference, and the time for its second alignment depends on the size of that reference. All timings were measured on one 2-core machine and will differ on other hardware.
 - Across every benchmark run, including earlier versions of the code, one false site appeared in 4 of 59 simulated datasets, all of them in the samples with the fewest chance chimeras. The raw results are in the repository.
 - A single insertion is occasionally reported as two neighbouring sites. This happened to one insertion in 4 of 18 runs on fresh seeds.
+- hgt-site should not be used with a bacterial host. Precision is 0.144 against 1.000 for a human host, because reads from a relative of the host map to conserved host genes well enough to become anchors while their mates are classified as that relative. Every insertion is still found, so it is precision rather than sensitivity that fails. Excluding the host's family with `--exclude-taxid` raises precision to 0.426, which is better and still not enough. The method assumes nothing in the sample is homologous to the host, which a human host with bacterial contaminants satisfies and a bacterial host does not.
+- Single-end alignments are refused. A pair with one mate on the host and the other unmapped is the only thing the method can work from, so single-end reads can never produce a candidate.
 
 ## Future work
 
