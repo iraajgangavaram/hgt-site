@@ -69,6 +69,12 @@ def _add_common(parser, kraken_required):
     )
     parser.add_argument("--reference", help="Reference FASTA, needed for CRAM input")
     parser.add_argument(
+        "--index",
+        help="Index of the alignment, if it is not in the usual place beside it. "
+             "Without an index the junctions are estimated from read pairs instead of "
+             "being read off split reads",
+    )
+    parser.add_argument(
         "--annotation",
         help="GTF or GFF3 file of gene annotations, gzipped or not. Each site is reported with the gene "
              "it falls in, or the nearest gene within --max-gene-distance",
@@ -199,7 +205,8 @@ def _call(args, kraken):
         max_gene_distance=args.max_gene_distance, classifier=args.classifier,
         exclude_regions=args.exclude_regions, donor=donor,
         donor_taxid=getattr(args, "donor_taxid", DONOR_TAXID),
-        local_background=args.local_background, summary=summary, **opts
+        local_background=args.local_background, index=getattr(args, "index", None),
+        summary=summary, **opts
     )
     _write_outputs(args, sites, summary)
 

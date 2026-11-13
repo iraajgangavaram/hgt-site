@@ -134,7 +134,9 @@ def _empty(site):
     site.stats.update(left_breakpoint="", left_split_reads=0, right_breakpoint="", right_split_reads=0)
 
 
-def find_breakpoints(sites, path, window, min_mapq=20, reference=None, threads=1, targets=None):
+def find_breakpoints(
+    sites, path, window, min_mapq=20, reference=None, threads=1, targets=None, index=None
+):
     """Add left/right breakpoints and split-read counts to each site's stats.
 
     Every site gets the columns, but only the sites in targets are searched.
@@ -189,7 +191,9 @@ def find_breakpoints(sites, path, window, min_mapq=20, reference=None, threads=1
     import pysam
 
     mode = "rc" if path.endswith(".cram") else "rb"
-    with pysam.AlignmentFile(path, mode, reference_filename=reference, threads=threads) as bam:
+    with pysam.AlignmentFile(
+        path, mode, reference_filename=reference, threads=threads, index_filename=index
+    ) as bam:
         if not bam.has_index():
             log.info(
                 "The alignment file has no index, so junctions are placed from read pairs only. "

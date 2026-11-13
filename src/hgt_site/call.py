@@ -109,7 +109,7 @@ def fit_limits(pairs, settings, user_set):
 def call_sites(
     alignments, kraken, host_taxid, nodes_dmp=None, exclude=(), reference=None, threads=1, split_reads=True,
     annotation=None, max_gene_distance=100_000, classifier="auto", exclude_regions=None,
-    donor=None, donor_taxid=None, local_background=False, summary=None, **opts
+    donor=None, donor_taxid=None, local_background=False, index=None, summary=None, **opts
 ):
     """Call candidate sites. If summary is a dict, read counts are added to it."""
     user_set = {k for k, v in opts.items() if v is not None}
@@ -117,7 +117,7 @@ def call_sites(
     taxon_filter = TaxonFilter(host_taxid, nodes_dmp, exclude)
     pairs = collect_pairs(
         alignments, settings["min_mapq"], reference, threads, keep_both_unmapped_seqs=bool(donor),
-        count_coverage=local_background,
+        count_coverage=local_background, index=index,
     )
     if donor:
         from .donor import SYNTHETIC_CONSTRUCT, classify_against_donor
@@ -205,7 +205,8 @@ def call_sites(
         # Only the sites that passed their other filters are worth searching.
         passing = [s for s in sites if site_filter(s) == "PASS"]
         find_breakpoints(
-            sites, alignments, settings["window"], settings["min_mapq"], reference, threads, targets=passing
+            sites, alignments, settings["window"], settings["min_mapq"], reference, threads,
+            targets=passing, index=index,
         )
         found = sum(1 for s in passing if s.stats["left_split_reads"] or s.stats["right_split_reads"])
         log.info("Exact junctions from split reads found for %d of %d sites that passed.", found, len(passing))

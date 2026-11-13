@@ -1,4 +1,5 @@
 import csv
+from pathlib import Path
 
 import pytest
 
@@ -188,6 +189,35 @@ def test_unindexed_bam_falls_back_to_pairs(sim_split, tmp_path, caplog):
     assert "no index" in caplog.text
     assert all(s.stats["left_split_reads"] == 0 and s.stats["right_split_reads"] == 0 for s in sites)
     assert sum(1 for s in sites if not [f for f in s.flags if f != "ONE_SIDED"]) == 5
+
+
+def test_index_elsewhere_is_used_when_given(sim_split, tmp_path, caplog):
+    """An index away from the alignment is found with --index and not without it.
+
+    pysam looks for the index by name beside the alignment, so a pipeline that
+    keeps indexes in their own directory silently lost the exact junctions and
+    fell back to estimating them from read pairs.
+    """
+    pysam = pytest.importorskip("pysam")
+    bam = tmp_path / "sample.bam"
+    pysam.sort("-o", str(bam), f"{sim_split}.sam")
+    pysam.index(str(bam))
+    moved = tmp_path / "indexes" / "sample.bai"
+    moved.parent.mkdir()
+    Path(f"{bam}.bai").rename(moved)
+
+    with caplog.at_level("INFO", logger="hgt_site"):
+        without = call_sites(str(bam), f"{sim_split}.kraken2.txt", HOST_TAXID)
+    assert "no index" in caplog.text
+    assert all(s.stats["left_split_reads"] == 0 for s in without)
+
+    with_index = call_sites(
+        str(bam), f"{sim_split}.kraken2.txt", HOST_TAXID, index=str(moved)
+    )
+    _breakpoints_match_truth(with_index, f"{sim_split}.truth.bed")
+    assert any(
+        s.stats["left_split_reads"] or s.stats["right_split_reads"] for s in with_index
+    ), "the relocated index was given but no split reads were read"
 
 
 def test_split_reads_can_be_turned_off(sim_split):

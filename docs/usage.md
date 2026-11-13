@@ -138,7 +138,7 @@ Every threshold can be changed. `hgt-site call --help` lists them with their def
 
 ## Messages while it runs
 
-hgt-site reports how many anchored pairs it found, how many have a Kraken2 call, the fragment size it measured, and how many sites got an exact junction. If none of the anchored reads has a Kraken2 call, it warns that the Kraken2 file may not match the alignment. If the alignment has no index, it says that junctions come from read pairs only.
+hgt-site reports how many anchored pairs it found, how many have a Kraken2 call, the fragment size it measured, and how many sites got an exact junction. If none of the anchored reads has a Kraken2 call, it warns that the Kraken2 file may not match the alignment. If the alignment has no index, it says that junctions come from read pairs only. An index kept somewhere other than beside the alignment is not found by name, so point `--index` at it; without that the junctions are estimated from read pairs and the log is the only thing that says so.
 
 ## Trying it without real data
 

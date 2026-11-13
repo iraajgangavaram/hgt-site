@@ -190,11 +190,13 @@ def _iter_sam_text(path, sample, coverage=None):
     return lengths, records
 
 
-def _iter_pysam(path, sample, reference=None, threads=1, coverage=None):
+def _iter_pysam(path, sample, reference=None, threads=1, coverage=None, index=None):
     import pysam
 
     mode = "rc" if str(path).endswith(".cram") else "rb"
-    bam = pysam.AlignmentFile(str(path), mode, reference_filename=reference, threads=threads)
+    bam = pysam.AlignmentFile(
+        str(path), mode, reference_filename=reference, threads=threads, index_filename=index
+    )
     lengths = dict(zip(bam.references, bam.lengths))
 
     def generate():
@@ -223,22 +225,22 @@ def _iter_pysam(path, sample, reference=None, threads=1, coverage=None):
     return lengths, generate()
 
 
-def open_alignments(path, sample, reference=None, threads=1, coverage=None):
+def open_alignments(path, sample, reference=None, threads=1, coverage=None, index=None):
     path = str(path)
     if path.endswith(".sam"):
         return _iter_sam_text(path, sample, coverage)
-    return _iter_pysam(path, sample, reference, threads, coverage)
+    return _iter_pysam(path, sample, reference, threads, coverage, index)
 
 
 def collect_pairs(
     path, min_mapq=20, reference=None, threads=1, keep_both_unmapped_seqs=False,
-    count_coverage=False, bin_size=COVERAGE_BIN,
+    count_coverage=False, bin_size=COVERAGE_BIN, index=None,
 ):
     """Scan the alignments once and sort read pairs into the groups we need."""
     sample = _Sample()
     coverage = Coverage(bin_size) if count_coverage else None
     host_composition = Background()
-    lengths, records = open_alignments(path, sample, reference, threads, coverage)
+    lengths, records = open_alignments(path, sample, reference, threads, coverage, index)
     anchors = []
     mate_seqs = {}
     both_unmapped = set()
