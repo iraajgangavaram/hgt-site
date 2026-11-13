@@ -92,6 +92,30 @@ Precision holds. In the last row about 17,900 of the 30,000 chimeras carried the
 
 What gives way is sensitivity. Chimeras made from the donor are anchored pairs, so they raise the rate at which that taxon is expected anywhere in the genome, and a cluster of donor reads becomes less surprising. The insertions that were missed all had few supporting pairs and were rejected as NOT_ENRICHED. That is the test being cautious rather than wrong, but it has a practical consequence: in a sample heavy with free donor, a weakly supported site will be dropped. More coverage, or reads that cross the junction, is the way to recover it. Loosening the threshold is not.
 
+## A bacterial host
+
+Every other benchmark on this page uses a human host with bacterial reads in the sample. Someone asked whether hgt-site can be used on prophage, ICE and IME integrations, which means a bacterial host, and the method does not care what the host is, so the expectation was that it would work.
+
+It does not, and the reason is worth stating plainly: **hgt-site should not be used with a bacterial host as it stands.**
+
+The runs below use an E. coli host carrying twenty insertions cut from a Pseudomonas genome, which stands in for a prophage by having its own taxid and a different base composition. Coverage 30, 10,000 chance chimeras, one seed. `benchmark/prophage_test.py` builds them.
+
+| Run | Candidates | Sites | Real | Precision | Insertions found |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Klebsiella, Salmonella and Acinetobacter in the sample | 3,707 | 139 | 20 | 0.144 | 20 of 20 |
+| the same, with Enterobacteriaceae excluded | 70 | 47 | 20 | 0.426 | 20 of 20 |
+| Acinetobacter alone | 135 | 61 | 19 | 0.311 | 19 of 20 |
+
+Sensitivity is fine. Every insertion was found, and 135 of the 139 reported sites had their junction placed exactly from split reads. What fails is precision, from 1.000 on a human host to 0.144 here.
+
+The cause is homology between the host and the foreign taxa. A read from a relative of the host maps to a conserved host gene with good mapping quality, so it becomes an anchor, while its mate fails to map and is classified as that relative. The result is a real cluster of anchored pairs that is not an integration. The false sites follow relatedness: in the first run Salmonella gave 60, Klebsiella 38, Acinetobacter 16 and the inserted Pseudomonas 5. Removing the two Enterobacteriaceae removes 96% of the candidates. Read support cannot separate them, since the false sites carry 3 to 37 supporting pairs against 8 to 32 for the real ones.
+
+This is the one assumption the method makes about the host that is never written down: that nothing in the sample is homologous to it. A human host with bacterial contaminants satisfies it completely. A bacterial host with bacteria in the sample, which is the normal case in microbiology, does not.
+
+`--exclude-taxid` with a taxonomy is the only mitigation that helps, and it is partial. Excluding the host's family raises precision to 0.426, and even a single distant contaminant leaves it at 0.311, because every bacterium shares conserved genes with every other.
+
+One prediction this disproved. ICEs and prophages integrate into tRNA genes, and a tRNA family is a set of near-identical copies, so the anchors at such a site should lose mapping quality and the site should be flagged `LOW_MAPQ`. The runs include 80 copies of a 300 bp repeat with the insertions placed immediately after a copy, and a control with the insertions in unique sequence in the same host. The two are indistinguishable: 0.144 against 0.138 precision, and not one of the surviving false sites falls within 1 kb of a repeat copy. The repeated gene is not the problem. Host homology is.
+
 ## Strains that are not in the database
 
 Everything else on this page simulates reads from the same genomes that are in the Kraken2 database, at a 0.05% mutation rate, so the reads sit about 99.75% identical to the reference. Real strains are not that close. Divergence within a species runs to a few per cent, and real genomic islands and plasmids are absent from references altogether.
@@ -274,6 +298,7 @@ The simulated datasets, the known insertion sites and the full results for all 1
 - The benchmarks use real sequence but simulated reads, a Kraken2 database far smaller than a standard one, and chimeras placed at random positions. Real data may include chimera hotspots and more reads classified above species level.
 - The divergence runs substitute bases uniformly at random, which is not how strains differ from a reference. Real divergence is clustered, carries indels, and includes whole genes and plasmids that are in no reference at all. Those give unclassified reads, which cost sensitivity rather than precision, but the shape of the loss has not been measured.
 - Each divergence level is a single seed, so the recall figures on that table are approximate.
+- The bacterial host runs are a single seed each, and the element is a slice of another bacterial genome rather than a real prophage, so it carries no integrase, no att sites and no phage gene content. What they measure is the effect of host homology on precision, not anything about phage biology.
 - The LGTSeek comparison covers its read classification step only, not its later BLAST-based filtering.
 - Sites are tested one taxon at a time, so an insertion whose reads Kraken2 splits between related species can lose support. Grouping Kraken2 calls at genus or family level before testing was tried and did not help: genus grouping changed nothing in the benchmark, and family grouping merged real insertions with contamination from related bacteria, which lowered recall.
 - Fragment sizes are measured from properly paired reads, so if the input contains only pairs with an unmapped mate, the default clustering limits are used.

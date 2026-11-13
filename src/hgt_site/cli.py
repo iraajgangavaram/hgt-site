@@ -49,7 +49,11 @@ def _add_common(parser, kraken_required):
     parser.add_argument("--host-taxid", required=True, type=int, help="NCBI taxid of the host, e.g. 9606")
     parser.add_argument("--nodes", help="NCBI nodes.dmp, so the whole host lineage is excluded")
     parser.add_argument(
-        "--exclude-taxid", type=int, action="append", default=[], help="Extra taxid to ignore (repeatable)"
+        "--exclude-taxid", type=int, action="append", default=[],
+        help="Extra taxid to ignore, repeatable. With --nodes it covers the whole clade, so "
+             "excluding a family ignores every species in it. Use it when the host has "
+             "relatives in the sample, whose reads map to conserved host genes and look like "
+             "junctions"
     )
     parser.add_argument(
         "--classifier", default="auto", choices=FORMATS,

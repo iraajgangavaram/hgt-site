@@ -29,6 +29,42 @@ def test_taxon_filter_with_lineage(tmp_path):
     assert not f.is_foreign(1)
 
 
+def test_excluded_taxid_covers_its_clade(tmp_path):
+    """Excluding a family excludes the species in it, once a taxonomy is given.
+
+    Matching only the exact taxid made the option useless for the case it is
+    needed in: a bacterial host with relatives in the sample, where the reads
+    are called at species level and the thing you want to exclude is the
+    family.
+    """
+    nodes = tmp_path / "nodes.dmp"
+    # 2 Bacteria > 1224 Proteobacteria > 91347 Enterobacterales >
+    #   543 Enterobacteriaceae > {562 E. coli, 28901 Salmonella, 573 Klebsiella}
+    # and 1224 > 72274 Pseudomonadales > 286 Pseudomonas
+    rows = [
+        (1, 1), (2, 1), (1224, 2), (91347, 1224), (543, 91347),
+        (562, 543), (28901, 543), (573, 543),
+        (72274, 1224), (286, 72274),
+    ]
+    nodes.write_text("".join(f"{a}\t|\t{b}\t|\tno rank\t|\n" for a, b in rows))
+
+    plain = TaxonFilter(562, nodes)
+    assert plain.is_foreign(28901) and plain.is_foreign(573)
+
+    excluded = TaxonFilter(562, nodes, exclude=[543])
+    assert not excluded.is_foreign(28901), "Salmonella is inside the excluded family"
+    assert not excluded.is_foreign(573), "Klebsiella is inside the excluded family"
+    assert not excluded.is_foreign(543)
+    assert excluded.is_foreign(286), "Pseudomonas is outside it and must survive"
+
+
+def test_excluded_taxid_is_exact_without_a_taxonomy():
+    """With no nodes.dmp there is no clade to expand, so it matches exactly."""
+    f = TaxonFilter(562, exclude=[543])
+    assert not f.is_foreign(543)
+    assert f.is_foreign(28901)
+
+
 def test_complexity():
     assert sequence_complexity("A" * 100) < 0.05
     assert sequence_complexity("ACGTTGCAAGCTTCGAGATCCGATAGCTAGCATGCATCGA") > 0.8

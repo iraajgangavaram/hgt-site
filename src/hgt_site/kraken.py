@@ -38,8 +38,12 @@ class TaxonFilter:
     """Decides whether a taxid is informative and outside the host lineage.
 
     Without a taxonomy, only the host taxid itself and the uninformative
-    taxids are excluded. With nodes.dmp, anything inside the host clade and
-    every ancestor of the host (for example Eukaryota) is excluded too.
+    taxids are excluded, and an excluded taxid has to match exactly. With
+    nodes.dmp, anything inside the host clade and every ancestor of the host
+    (for example Eukaryota) is excluded too, and an excluded taxid covers its
+    whole clade: excluding Enterobacteriaceae excludes reads called Salmonella
+    or Klebsiella, which is the only reading of the option that is any use
+    when the host is a bacterium with relatives in the sample.
     """
 
     def __init__(self, host_taxid, nodes_dmp=None, exclude=()):
@@ -71,6 +75,7 @@ class TaxonFilter:
             lineage = self._lineage(taxid)
             in_host_clade = self.host in lineage
             is_host_ancestor = taxid in self.host_ancestors
-            result = not (in_host_clade or is_host_ancestor)
+            in_excluded_clade = bool(self.extra & lineage)
+            result = not (in_host_clade or is_host_ancestor or in_excluded_clade)
         self._cache[taxid] = result
         return result
