@@ -1,5 +1,7 @@
 import math
 
+import pytest
+
 from hgt_site.alignments import Anchor
 from hgt_site.kraken import TaxonFilter, normalise_read_name, parse_taxid
 from hgt_site.sites import benjamini_hochberg, cluster_anchors, poisson_sf, sequence_complexity
@@ -97,6 +99,49 @@ def test_long_read_clips_are_taken_from_the_right_end():
     assert dict(_clips_of(FakeRead(), min_clip=5, min_mapped=5000)) == {}
     # Too short a clip is not worth matching against the donor.
     assert dict(_clips_of(FakeRead(), min_clip=50, min_mapped=100)) == {}
+
+
+def test_control_marks_shared_positions_only(tmp_path):
+    """A site the control also has is flagged; one it does not have is left alone."""
+    from hgt_site.control import flag_in_control, in_control, load_control
+    from hgt_site.sites import Site
+
+    table = tmp_path / "normal.tsv"
+    table.write_text(
+        "chrom\tstart\tend\tn_pairs\tfilter\n"
+        # Enough reads to be reproducible, and it failed its own filters,
+        # which is still evidence about the tumour.
+        "chr1\t1000\t1200\t7\tLOW_SUPPORT\n"
+        "chr1\t5000\t5200\t9\tPASS\n"
+        # A couple of reads is what chance chimeras give everywhere, so these
+        # must not count or the control rejects the whole genome.
+        "chr1\t8000\t8200\t2\tLOW_SUPPORT\n"
+        "chr2\t9000\t9200\t0\tLOW_SUPPORT\n"
+    )
+    positions = load_control(table)
+    assert positions == {"chr1": [1100, 5100]}, "weak candidates are noise, not evidence"
+
+    assert in_control(positions, "chr1", 1050, 1150)
+    assert in_control(positions, "chr1", 5100, 5300)
+    # Just inside and just outside the 300 bp window.
+    assert in_control(positions, "chr1", 1350, 1380)
+    assert not in_control(positions, "chr1", 1450, 1500)
+    assert not in_control(positions, "chr1", 8000, 8200), "two reads must not count"
+    assert not in_control(positions, "chr3", 1100, 1200)
+
+    sites = [Site("chr1", 1050, 1150), Site("chr1", 40000, 40100)]
+    assert flag_in_control(sites, positions) == 1
+    assert sites[0].flags == ["IN_CONTROL"]
+    assert sites[1].flags == []
+
+
+def test_control_rejects_a_file_that_is_not_a_table(tmp_path):
+    from hgt_site.control import load_control
+
+    bad = tmp_path / "notes.txt"
+    bad.write_text("this is not a sites table\n")
+    with pytest.raises(ValueError, match="hgt-site table"):
+        load_control(bad)
 
 
 def test_complexity():

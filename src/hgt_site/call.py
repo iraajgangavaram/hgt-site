@@ -143,7 +143,7 @@ def call_sites(
     alignments, kraken, host_taxid, nodes_dmp=None, exclude=(), reference=None, threads=1, split_reads=True,
     annotation=None, max_gene_distance=100_000, classifier="auto", exclude_regions=None,
     donor=None, donor_taxid=None, local_background=False, index=None, long_reads=False,
-    summary=None, **opts
+    control=None, control_min_pairs=None, control_window=None, summary=None, **opts
 ):
     """Call candidate sites. If summary is a dict, read counts are added to it."""
     user_set = {k for k, v in opts.items() if v is not None}
@@ -249,6 +249,24 @@ def call_sites(
 
         excluded = flag_excluded(sites, load_regions(exclude_regions))
         log.info("%d of %d candidate sites fall in an excluded region.", excluded, len(sites))
+    if control:
+        from .control import MIN_PAIRS, WINDOW, flag_in_control, load_control
+
+        min_pairs = MIN_PAIRS if control_min_pairs is None else control_min_pairs
+        window = WINDOW if control_window is None else control_window
+        positions = load_control(control, min_pairs)
+        shared = flag_in_control(sites, positions, window)
+        log.info(
+            "%d of %d candidate sites also appear in the control, which has candidates at "
+            "%d positions with at least %d supporting read(s).",
+            shared, len(sites), sum(len(v) for v in positions.values()), min_pairs,
+        )
+        if sites and shared == len(sites):
+            log.warning(
+                "Every candidate also appears in the control. If the control is the same sample "
+                "as the one being called, or the two were called from the same alignment, that "
+                "is what this looks like."
+            )
     if split_reads:
         # Only the sites that passed their other filters are worth searching.
         passing = [s for s in sites if site_filter(s) == "PASS"]
@@ -319,6 +337,7 @@ VCF_FILTERS = {
     "LOW_COMPLEXITY": "Low-complexity sequence in the unmapped mates",
     "NOT_ENRICHED": "Not enriched over chance chimeras (q-value above the threshold)",
     "EXCLUDED": "Overlaps a region given to --exclude-regions",
+    "IN_CONTROL": "The matched control given to --control has a candidate at this position",
 }
 
 

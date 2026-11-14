@@ -95,6 +95,7 @@ It is packaged on Bioconda and PyPI, with a container built from the Bioconda re
 - **Anyone with foreign reads in a host sample and no way to triage them.** You have Kraken2 output from unmapped reads and a list of positions that might mean something. hgt-site tells you which positions have more support than chance would give, and flags the rest with the reason.
 - **Horizontal gene transfer into host genomes.** The problem it was built for, benchmarked against LGTSeek.
 - **Vectors and transgenes.** Point `--donor` at the construct and no classifier or database is needed. On simulated data, constructs of 1 kb, 3 kb and 8 kb gave 100 of 100 insertions found, nothing false and every junction exact. With a sample full of free construct, which is what a transduced culture holds, nine chance chimeras in ten carried the construct and 6,187 positions looked like candidates; the 20 real insertions were the only ones reported.
+- **Tumour and normal pairs.** Give the normal's table to `--control` and a position found in both is flagged rather than reported. On a pair sharing an amplified region, that removed all eight false sites for the cost of one real one, taking precision from 0.692 to 1.000.
 - **Long-read data.** Nanopore and PacBio reads carry the junction inside a single read. With `--long-reads` and `--donor`, 20 of 20 simulated insertions were found at 15x coverage over three seeds with nothing false, and the junction placed a median of 4 bp from the truth.
 - **Viral integration.** The method works on viral taxa as well as bacterial ones, at 0.989 precision against 1.000 for a bacterial donor over eighteen runs each. It has not been compared against the dedicated viral tools, so see [other tools](https://iraajgangavaram.github.io/hgt-site/comparison/) before choosing it for that.
 
@@ -153,6 +154,7 @@ flowchart LR
 | `LOW_COMPLEXITY` | Unmapped mates have low 3-mer entropy (repeats or low-complexity sequence) |
 | `NOT_ENRICHED` | Q-value above 0.05 |
 | `EXCLUDED` | Overlaps a region given to `--exclude-regions` |
+| `IN_CONTROL` | The matched control given to `--control` has a candidate at this position |
 | `ONE_SIDED` | Anchors from only one side of the junction (information only, does not fail a site) |
 
 All thresholds can be changed on the command line.
@@ -276,6 +278,8 @@ Other options:
 | `--nodes nodes.dmp` | Excludes the whole host lineage, not just the host taxid |
 | `--reference genome.fa` | Reference FASTA, needed for CRAM input |
 | `--index sample.bam.bai` | The alignment's index, if it is not beside the alignment under its usual name. Without one the junctions come from read pairs |
+| `--control normal.tsv` | An hgt-site table from a matched control, such as the normal tissue beside a tumour. A candidate the control also has is flagged `IN_CONTROL` rather than passing |
+| `--control-min-pairs 5` | Supporting reads a control candidate needs before it counts (default 5) |
 | `--long-reads` | The alignment is Nanopore or PacBio reads. The junction is read off the clipped tail of one read, so this needs `--donor` rather than a classifier |
 | `--exclude-taxid 1234` | Ignores a taxon, for example a known contaminant (can be repeated). With `--nodes` it covers the whole clade, so excluding a family ignores every species in it |
 

@@ -141,6 +141,33 @@ One thing had to change for this to work at all. A site built from paired anchor
 
 `--donor` is required, and a classifier is refused with an explanation. A classifier labels whole reads, and the foreign sequence here is a tail of a read that aligned to the host, so a per-read call would describe the host rather than the insertion.
 
+## A matched control
+
+A tumour and the normal tissue from the same person share everything except what the tumour did, so a position producing foreign reads in both is not a somatic integration. It is the protocol, the reference, or something that was in that person's germline. `--control` takes the table hgt-site writes for the normal and flags any candidate the control also has.
+
+The artefact this is for has to recur, which is the whole point of it and also the hard part of testing it. Chance chimeras land somewhere different in every sample, so no control can catch them, and the simulations elsewhere on this page produce false sites almost entirely that way. The one recurring artefact they do model is an amplified host region, which contributes excess chimeras in the same place in every sample from that person. The runs below are a tumour and a normal that share a 500 kb region at six copies, called separately and then compared.
+
+| | Sites | Real | False | Precision | Insertions found |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| tumour alone | 26 | 18 | 8 | 0.692 | 18 of 20 |
+| with the matched control | 17 | 17 | 0 | 1.000 | 17 of 20 |
+
+All eight false sites were inside the amplified region, and all eight were removed. One real site went with them.
+
+What counts as present in the control took measuring rather than reasoning, and the obvious rule turned out to be wrong. It seems clear that any candidate in the control should count however weak, since an artefact seen ten times in the tumour and twice in the normal is still an artefact and two reads never pass a filter. That rule rejects almost everything. A control sample produces thousands of weak candidates from chance chimeras, roughly one per kilobase of genome, so nearly every position is within reach of one: at one supporting read it flagged 3,638 of 3,707 candidates in one test, real sites included.
+
+The defaults are therefore five supporting reads and a 300 base window, which ask the control to show the artefact convincingly enough to be reproducible rather than noise. `--control-min-pairs` and `--control-window` change them.
+
+| Supporting reads | Window | Precision | Insertions found |
+| ---: | ---: | ---: | ---: |
+| 5 | 300 | 1.000 | 17 of 20 |
+| 5 | 1000 | 1.000 | 16 of 20 |
+| 8 | 300 | 0.895 | 17 of 20 |
+| 12 | 300 | 0.720 | 18 of 20 |
+| 20 | 300 | 0.692 | 18 of 20 |
+
+A control does not rescue a host whose artefacts are everywhere. On the bacterial host described above, where false sites come from homology with relatives in the sample rather than from a few amplified regions, the control carries candidates across the whole genome and no setting separates them from the real sites: the best trade-off found was precision 0.225 at 16 of 20 insertions, against 0.144 and 20 of 20 with no control at all.
+
 ## Strains that are not in the database
 
 Everything else on this page simulates reads from the same genomes that are in the Kraken2 database, at a 0.05% mutation rate, so the reads sit about 99.75% identical to the reference. Real strains are not that close. Divergence within a species runs to a few per cent, and real genomic islands and plasmids are absent from references altogether.
@@ -323,6 +350,7 @@ The simulated datasets, the known insertion sites and the full results for all 1
 - The benchmarks use real sequence but simulated reads, a Kraken2 database far smaller than a standard one, and chimeras placed at random positions. Real data may include chimera hotspots and more reads classified above species level.
 - The divergence runs substitute bases uniformly at random, which is not how strains differ from a reference. Real divergence is clustered, carries indels, and includes whole genes and plasmids that are in no reference at all. Those give unclassified reads, which cost sensitivity rather than precision, but the shape of the loss has not been measured.
 - Each divergence level is a single seed, so the recall figures on that table are approximate.
+- The matched control is tested against one tumour and normal pair sharing one amplified region. Real artefacts also recur through reference errors, repeats and germline insertions, none of which the simulator models, so the benefit on real data could be larger or smaller than this.
 - The long-read runs simulate a flat per-base error rate and gamma-distributed lengths rather than the context-dependent errors and length profile of a particular chemistry, and one aligner was used. They say the junctions are found and the chimeras rejected; they do not say how hgt-site behaves on a given platform or basecaller, and it has not been compared against another long-read tool.
 - The bacterial host runs are a single seed each, and the element is a slice of another bacterial genome rather than a real prophage, so it carries no integrase, no att sites and no phage gene content. What they measure is the effect of host homology on precision, not anything about phage biology.
 - The LGTSeek comparison covers its read classification step only, not its later BLAST-based filtering.

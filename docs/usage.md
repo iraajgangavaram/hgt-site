@@ -69,6 +69,20 @@ hgt-site call --bam reads.bam --long-reads \
 
 A read counts towards a site when at least 500 bases of it align to the host and at least 200 clipped bases match the donor. A classifier cannot be used here, because it labels whole reads and the foreign sequence is a clipped tail of a read that aligned to the host.
 
+### A matched control
+
+Call the normal first, then give its table to the tumour:
+
+```bash
+hgt-site call --bam normal.bam --classifications normal.kraken2.txt \
+  --host-taxid 9606 -o normal.tsv
+
+hgt-site call --bam tumour.bam --classifications tumour.kraken2.txt \
+  --host-taxid 9606 --control normal.tsv -o tumour.tsv
+```
+
+A candidate the control also has is reported with `IN_CONTROL` instead of passing. The control needs five supporting reads within 300 bases of the site before it counts, which `--control-min-pairs` and `--control-window` change. Lowering the read threshold much below five is a mistake: a control sample carries thousands of weak candidates from chance chimeras and they will reject real sites along with the artefacts.
+
 ## When host coverage is uneven
 
 The test asks how many foreign pairs chance would put at a position, and by default it assumes they fall evenly across the genome. A chimera is a host fragment joined to a foreign fragment, so the chance its host half comes from a given region depends on how much host DNA from that region is in the library. Three copies of a region contribute three times the chimeras, and the even assumption will read the excess as an insertion.

@@ -76,4 +76,5 @@ With `--multiqc sample_mqc.json`, hgt-site writes a custom-content table that Mu
 | `LOW_COMPLEXITY` | Unmapped mates have low 3-mer entropy (repeats or low-complexity sequence) |
 | `NOT_ENRICHED` | Q-value above 0.05 |
 | `EXCLUDED` | Overlaps a region given to `--exclude-regions` |
+| `IN_CONTROL` | The matched control given to `--control` has a candidate at this position |
 | `ONE_SIDED` | Anchors from only one side of the junction. Information only, and does not fail a site, since a long insertion can leave only one junction within insert range. |

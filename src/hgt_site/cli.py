@@ -73,6 +73,23 @@ def _add_common(parser, kraken_required):
     )
     parser.add_argument("--reference", help="Reference FASTA, needed for CRAM input")
     parser.add_argument(
+        "--control",
+        help="An hgt-site table from a matched control, such as the normal tissue beside a "
+             "tumour. A candidate the control also has is flagged IN_CONTROL rather than "
+             "passing, since the same person's own tissue says what the background looks like",
+    )
+    parser.add_argument(
+        "--control-min-pairs", type=int, metavar="N",
+        help="Supporting reads a control candidate needs before it counts as present "
+             "(default 5). A control makes thousands of weak candidates from chance "
+             "chimeras, so counting every one of them rejects almost everything",
+    )
+    parser.add_argument(
+        "--control-window", type=int, metavar="BP",
+        help="How far a control candidate may sit from a site and still count as the same "
+             "position (default 300)",
+    )
+    parser.add_argument(
         "--long-reads",
         action="store_true",
         help="The alignment is long reads (Nanopore or PacBio). The junction is read off the "
@@ -217,7 +234,11 @@ def _call(args, kraken):
         exclude_regions=args.exclude_regions, donor=donor,
         donor_taxid=getattr(args, "donor_taxid", DONOR_TAXID),
         local_background=args.local_background, index=getattr(args, "index", None),
-        long_reads=getattr(args, "long_reads", False), summary=summary, **opts
+        long_reads=getattr(args, "long_reads", False),
+        control=getattr(args, "control", None),
+        control_min_pairs=getattr(args, "control_min_pairs", None),
+        control_window=getattr(args, "control_window", None),
+        summary=summary, **opts
     )
     _write_outputs(args, sites, summary)
 
