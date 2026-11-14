@@ -206,6 +206,8 @@ hgt-site selftest
 
 That builds a small dataset with known insertion sites, calls it, and checks the sites that come back are the ones that were put in. It needs no data and no database, takes a few seconds, and leaves nothing behind.
 
+If it saves you time, a star makes it easier for the next person to find.
+
 
 To see it work before installing anything, open the quickstart notebook in Colab.
 It writes its own small dataset with known insertion sites, calls them, and checks
