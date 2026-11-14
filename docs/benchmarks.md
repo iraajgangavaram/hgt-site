@@ -116,6 +116,31 @@ This is the one assumption the method makes about the host that is never written
 
 One prediction this disproved. ICEs and prophages integrate into tRNA genes, and a tRNA family is a set of near-identical copies, so the anchors at such a site should lose mapping quality and the site should be flagged `LOW_MAPQ`. The runs include 80 copies of a 300 bp repeat with the insertions placed immediately after a copy, and a control with the insertions in unique sequence in the same host. The two are indistinguishable: 0.144 against 0.138 precision, and not one of the surviving false sites falls within 1 kb of a repeat copy. The repeated gene is not the problem. Host homology is.
 
+## Long reads
+
+A short read says where a junction is by pointing at it: one mate lands on the host, the other is foreign, and the junction is somewhere in the gap between them. A long read contains the junction instead. The aligner places the host part of the read and clips the rest, so the clip boundary is the junction and the clipped tail is the inserted sequence itself.
+
+That makes this the easier case. There is no mate to infer anything from, the junction is read off directly rather than estimated, and a chance chimera has to join two long molecules rather than two short ones.
+
+The runs below simulate nanopore reads from a 10 Mb host carrying twenty insertions, with gamma-distributed lengths averaging 12 kb and a 7% error rate made of substitutions and short indels, plus reads from two contaminating genomes and 500 long chance chimeras. They are aligned with minimap2 2.31 using `map-ont` and called with `--long-reads`. `benchmark/longread_test.py` builds them.
+
+| Coverage | Seed | Candidates | Sites | Real | Precision | Insertions found | Median junction offset |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 5x | 1 | 80 | 17 | 17 | 1.000 | 17 of 20 | 1 bp |
+| 5x | 2 | 68 | 18 | 18 | 1.000 | 18 of 20 | 1 bp |
+| 5x | 3 | 74 | 17 | 17 | 1.000 | 17 of 20 | 2 bp |
+| 15x | 1 | 63 | 20 | 20 | 1.000 | 20 of 20 | 4 bp |
+| 15x | 2 | 66 | 20 | 20 | 1.000 | 20 of 20 | 4 bp |
+| 15x | 3 | 82 | 20 | 20 | 1.000 | 20 of 20 | 4 bp |
+
+Nothing false was reported in any run. What coverage buys is sensitivity: at 5x some junctions are crossed by fewer than three reads and are held back by the support threshold, and at 15x every insertion is found.
+
+The junction is placed well but not to the base. The reported position sits a median of 1 to 4 bp from the real one, and between 16 and 19 of each run's sites are within 10 bp. A basecaller's errors move the end of an alignment by a few bases and the clip boundary moves with it. Short reads crossing a junction give an exact position because the bases either side are accurate; long reads give a nearly exact one from a single read.
+
+One thing had to change for this to work at all. A site built from paired anchors inherits the span of the reads that built it, which is a few hundred bases, and the enrichment test scales the expected number of chance chimeras by that span. Long reads are tens of kilobases, so a site inherited a span of 6 kb on average and up to 36 kb, and every real site was tested against an expectation far larger than it should have been. A long-read anchor therefore carries the clip boundary rather than the whole alignment. With the whole alignment, 3 of 20 insertions were reported; with the clip boundary, 17 of 20 at the same coverage.
+
+`--donor` is required, and a classifier is refused with an explanation. A classifier labels whole reads, and the foreign sequence here is a tail of a read that aligned to the host, so a per-read call would describe the host rather than the insertion.
+
 ## Strains that are not in the database
 
 Everything else on this page simulates reads from the same genomes that are in the Kraken2 database, at a 0.05% mutation rate, so the reads sit about 99.75% identical to the reference. Real strains are not that close. Divergence within a species runs to a few per cent, and real genomic islands and plasmids are absent from references altogether.
@@ -298,6 +323,7 @@ The simulated datasets, the known insertion sites and the full results for all 1
 - The benchmarks use real sequence but simulated reads, a Kraken2 database far smaller than a standard one, and chimeras placed at random positions. Real data may include chimera hotspots and more reads classified above species level.
 - The divergence runs substitute bases uniformly at random, which is not how strains differ from a reference. Real divergence is clustered, carries indels, and includes whole genes and plasmids that are in no reference at all. Those give unclassified reads, which cost sensitivity rather than precision, but the shape of the loss has not been measured.
 - Each divergence level is a single seed, so the recall figures on that table are approximate.
+- The long-read runs simulate a flat per-base error rate and gamma-distributed lengths rather than the context-dependent errors and length profile of a particular chemistry, and one aligner was used. They say the junctions are found and the chimeras rejected; they do not say how hgt-site behaves on a given platform or basecaller, and it has not been compared against another long-read tool.
 - The bacterial host runs are a single seed each, and the element is a slice of another bacterial genome rather than a real prophage, so it carries no integrase, no att sites and no phage gene content. What they measure is the effect of host homology on precision, not anything about phage biology.
 - The LGTSeek comparison covers its read classification step only, not its later BLAST-based filtering.
 - Sites are tested one taxon at a time, so an insertion whose reads Kraken2 splits between related species can lose support. Grouping Kraken2 calls at genus or family level before testing was tried and did not help: genus grouping changed nothing in the benchmark, and family grouping merged real insertions with contamination from related bacteria, which lowered recall.

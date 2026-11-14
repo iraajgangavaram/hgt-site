@@ -106,47 +106,95 @@ def fit_limits(pairs, settings, user_set):
     return fitted
 
 
+
+def _long_read_evidence(alignments, donor, donor_taxid, settings, reference, threads, index, summary):
+    """Clipped long reads, reshaped into the same objects the paired path builds."""
+    from .alignments import ReadPairs
+    from .donor import SYNTHETIC_CONSTRUCT
+    from .longreads import collect_clipped
+
+    if not donor:
+        raise ValueError(
+            "--long-reads needs --donor. A classifier calls whole reads, and here the "
+            "foreign sequence is a clipped tail of a read that aligned to the host, so a "
+            "per-read call would describe the host rather than the insertion."
+        )
+    taxid = SYNTHETIC_CONSTRUCT if donor_taxid is None else donor_taxid
+    anchors, calls, seqs, lengths, stats = collect_clipped(
+        alignments, donor, taxid, settings["min_mapq"],
+        reference=reference, threads=threads, index=index,
+    )
+    log.info(
+        "%d long reads, %d with a clip of at least %d bases, %d of those matching the donor.",
+        stats["long_reads"], stats["clipped"], settings.get("min_clip", 200),
+        stats["foreign_clips"],
+    )
+    if stats["long_reads"] and not stats["clipped"]:
+        log.warning(
+            "No read is clipped enough to cross a junction. If these are short reads, leave "
+            "--long-reads off and give the classifications or the mates instead."
+        )
+    if summary is not None:
+        summary.update(stats)
+    return ReadPairs(anchors, seqs, set(), lengths), calls
+
+
 def call_sites(
     alignments, kraken, host_taxid, nodes_dmp=None, exclude=(), reference=None, threads=1, split_reads=True,
     annotation=None, max_gene_distance=100_000, classifier="auto", exclude_regions=None,
-    donor=None, donor_taxid=None, local_background=False, index=None, summary=None, **opts
+    donor=None, donor_taxid=None, local_background=False, index=None, long_reads=False,
+    summary=None, **opts
 ):
     """Call candidate sites. If summary is a dict, read counts are added to it."""
     user_set = {k for k, v in opts.items() if v is not None}
     settings = {**DEFAULTS, **{k: v for k, v in opts.items() if v is not None}}
     taxon_filter = TaxonFilter(host_taxid, nodes_dmp, exclude)
-    pairs = collect_pairs(
-        alignments, settings["min_mapq"], reference, threads, keep_both_unmapped_seqs=bool(donor),
-        count_coverage=local_background, index=index,
-    )
-    if donor:
-        from .donor import SYNTHETIC_CONSTRUCT, classify_against_donor
-
-        calls = classify_against_donor(
-            donor, [pairs.unmapped_mate_seqs, pairs.both_unmapped_seqs],
-            SYNTHETIC_CONSTRUCT if donor_taxid is None else donor_taxid,
+    if long_reads:
+        # A long read carries the junction inside itself, so the evidence is
+        # built from clipped reads rather than from pairs.
+        pairs, calls = _long_read_evidence(
+            alignments, donor, donor_taxid, settings, reference, threads, index, summary
         )
-        log.info("%d unmapped reads match the donor sequence.", len(calls))
-        if not calls:
-            log.warning(
-                "No unmapped read matches the donor. Check that the FASTA is the sequence you "
-                "expect to find, and that it is not diverged from the reads throughout."
-            )
     else:
-        calls = load_classifications(kraken, classifier)
-        if not calls:
-            log.warning("The classification file has no classified reads.")
+        pairs = collect_pairs(
+            alignments, settings["min_mapq"], reference, threads,
+            keep_both_unmapped_seqs=bool(donor), count_coverage=local_background, index=index,
+        )
+        if donor:
+            from .donor import SYNTHETIC_CONSTRUCT, classify_against_donor
+
+            calls = classify_against_donor(
+                donor, [pairs.unmapped_mate_seqs, pairs.both_unmapped_seqs],
+                SYNTHETIC_CONSTRUCT if donor_taxid is None else donor_taxid,
+            )
+            log.info("%d unmapped reads match the donor sequence.", len(calls))
+            if not calls:
+                log.warning(
+                    "No unmapped read matches the donor. Check that the FASTA is the sequence you "
+                    "expect to find, and that it is not diverged from the reads throughout."
+                )
+        else:
+            calls = load_classifications(kraken, classifier)
+            if not calls:
+                log.warning("The classification file has no classified reads.")
 
     with_call = [a for a in pairs.anchors if a.name in calls]
     foreign = [a for a in with_call if taxon_filter.is_foreign(calls[a.name])]
-    log.info(
-        "%d anchored pairs (one mate on the host, mapping quality %d or more) and %d pairs with both mates unmapped.",
-        len(pairs.anchors), settings["min_mapq"], len(pairs.both_unmapped),
-    )
-    log.info(
-        "%d anchored pairs have a taxonomic call; %d of these are from taxa outside the host.",
-        len(with_call), len(foreign),
-    )
+    if long_reads:
+        log.info(
+            "%d clipped long reads carry donor sequence; %d of them are from taxa outside the host.",
+            len(with_call), len(foreign),
+        )
+    else:
+        log.info(
+            "%d anchored pairs (one mate on the host, mapping quality %d or more) and "
+            "%d pairs with both mates unmapped.",
+            len(pairs.anchors), settings["min_mapq"], len(pairs.both_unmapped),
+        )
+        log.info(
+            "%d anchored pairs have a taxonomic call; %d of these are from taxa outside the host.",
+            len(with_call), len(foreign),
+        )
     if pairs.anchors and calls and not with_call:
         if donor:
             log.warning(

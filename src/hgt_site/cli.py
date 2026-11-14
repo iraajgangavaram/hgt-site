@@ -73,6 +73,13 @@ def _add_common(parser, kraken_required):
     )
     parser.add_argument("--reference", help="Reference FASTA, needed for CRAM input")
     parser.add_argument(
+        "--long-reads",
+        action="store_true",
+        help="The alignment is long reads (Nanopore or PacBio). The junction is read off the "
+             "clipped tail of a single read instead of from a pair, so this needs --donor "
+             "rather than a classifier",
+    )
+    parser.add_argument(
         "--index",
         help="Index of the alignment, if it is not in the usual place beside it. "
              "Without an index the junctions are estimated from read pairs instead of "
@@ -210,7 +217,7 @@ def _call(args, kraken):
         exclude_regions=args.exclude_regions, donor=donor,
         donor_taxid=getattr(args, "donor_taxid", DONOR_TAXID),
         local_background=args.local_background, index=getattr(args, "index", None),
-        summary=summary, **opts
+        long_reads=getattr(args, "long_reads", False), summary=summary, **opts
     )
     _write_outputs(args, sites, summary)
 

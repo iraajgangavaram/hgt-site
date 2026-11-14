@@ -65,6 +65,40 @@ def test_excluded_taxid_is_exact_without_a_taxonomy():
     assert f.is_foreign(28901)
 
 
+def test_clip_lengths_reads_both_ends_and_ignores_hard_clips():
+    """Soft clips carry sequence to match against the donor; hard clips do not."""
+    from hgt_site.longreads import clip_lengths
+
+    MATCH, SOFT, HARD = 0, 4, 5
+    assert clip_lengths([(SOFT, 300), (MATCH, 5000)]) == (300, 0)
+    assert clip_lengths([(MATCH, 5000), (SOFT, 420)]) == (0, 420)
+    assert clip_lengths([(SOFT, 300), (MATCH, 5000), (SOFT, 420)]) == (300, 420)
+    assert clip_lengths([(MATCH, 5000)]) == (0, 0)
+    assert clip_lengths([]) == (0, 0)
+    # A hard clip has no sequence in the record, so it is worth nothing here.
+    assert clip_lengths([(HARD, 900), (MATCH, 5000), (HARD, 900)]) == (0, 0)
+    # A single operation must not be counted at both ends.
+    assert clip_lengths([(SOFT, 300)]) == (300, 0)
+
+
+def test_long_read_clips_are_taken_from_the_right_end():
+    """The left clip is the head of the read and the right clip is the tail."""
+    from hgt_site.longreads import _clips_of
+
+    class FakeRead:
+        cigartuples = [(4, 10), (0, 1000), (4, 20)]
+        query_sequence = "L" * 10 + "M" * 1000 + "R" * 20
+        reference_length = 1000
+
+    clips = dict(_clips_of(FakeRead(), min_clip=5, min_mapped=100))
+    assert clips["left"] == "L" * 10
+    assert clips["right"] == "R" * 20
+    # Too short a host side means the read is not anchored anywhere.
+    assert dict(_clips_of(FakeRead(), min_clip=5, min_mapped=5000)) == {}
+    # Too short a clip is not worth matching against the donor.
+    assert dict(_clips_of(FakeRead(), min_clip=50, min_mapped=100)) == {}
+
+
 def test_complexity():
     assert sequence_complexity("A" * 100) < 0.05
     assert sequence_complexity("ACGTTGCAAGCTTCGAGATCCGATAGCTAGCATGCATCGA") > 0.8

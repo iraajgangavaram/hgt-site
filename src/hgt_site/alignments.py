@@ -290,7 +290,9 @@ def collect_pairs(
             f"No read in {path} is marked as paired, so this looks like a single-end "
             "alignment. hgt-site finds a junction from a pair with one mate on the host "
             "and the other unmapped, which single-end reads cannot show, and it would "
-            "otherwise report no candidate sites whatever the sample contains."
+            "otherwise report no candidate sites whatever the sample contains. "
+            "If these are long reads, use --long-reads with --donor, which reads the "
+            "junction off the clipped tail of a single read instead."
         )
     return ReadPairs(
         anchors, mate_seqs, both_unmapped, lengths, sample.insert_sizes, sample.read_lengths,

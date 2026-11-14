@@ -58,6 +58,17 @@ On simulated data this holds up where it matters. With nine chance chimeras in t
 
 Two things to know. This is k-mer matching and not alignment, so a donor that differs from your reads throughout, by more than a few per cent, will not be found this way: align the reads and use a classifier for that case. And a donor sharing sequence with the host, a vector carrying a human promoter for instance, will match host reads too, so mask those parts of the FASTA or expect the shared region to produce sites.
 
+### Long reads
+
+Nanopore and PacBio reads are not paired, and a read that crosses an integration carries the junction inside it. Point `--donor` at the sequence you are looking for and add `--long-reads`:
+
+```bash
+hgt-site call --bam reads.bam --long-reads \
+  --donor construct.fa --host-taxid 9606 -o sites.tsv
+```
+
+A read counts towards a site when at least 500 bases of it align to the host and at least 200 clipped bases match the donor. A classifier cannot be used here, because it labels whole reads and the foreign sequence is a clipped tail of a read that aligned to the host.
+
 ## When host coverage is uneven
 
 The test asks how many foreign pairs chance would put at a position, and by default it assumes they fall evenly across the genome. A chimera is a host fragment joined to a foreign fragment, so the chance its host half comes from a given region depends on how much host DNA from that region is in the library. Three copies of a region contribute three times the chimeras, and the even assumption will read the excess as an insertion.
