@@ -1,0 +1,30 @@
+name: Galaxy wrapper
+
+on:
+  push:
+    branches:
+      - galaxy-check
+  workflow_dispatch:
+
+jobs:
+  planemo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install planemo
+        run: pip install planemo
+      - name: Lint
+        run: planemo lint --report_level warn --fail_level error galaxy/tools/hgt_site
+      - name: Lint against the IUC best practices
+        run: planemo lint --skip_tests --conda_requirements --biocontainer galaxy/tools/hgt_site
+      - name: Test
+        run: planemo test --biocontainers --test_output /tmp/report.html galaxy/tools/hgt_site
+      - name: Keep the test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: planemo-report
+          path: /tmp/report.html
