@@ -1,14 +1,10 @@
-<tool id="hgt_site_call" name="hgt-site" version="@TOOL_VERSION@+galaxy0" profile="23.0">
+<tool id="hgt_site_call" name="hgt-site" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@" license="MIT">
     <description>call candidate horizontal gene transfer sites from host alignments and per-read taxonomic calls</description>
     <macros>
-        <token name="@TOOL_VERSION@">0.4.0</token>
+        <import>macros.xml</import>
     </macros>
-    <xrefs>
-        <xref type="bio.tools">hgt-site</xref>
-    </xrefs>
-    <requirements>
-        <requirement type="package" version="@TOOL_VERSION@">hgt-site</requirement>
-    </requirements>
+    <expand macro="xrefs"/>
+    <expand macro="requirements"/>
     <version_command>hgt-site --version</version_command>
     <command detect_errors="exit_code"><![CDATA[
 #if $alignment.ext == 'sam'
@@ -16,6 +12,7 @@
     #set $aln = 'input.sam'
 #else
     ln -s '$alignment' input.bam &&
+    ln -s '$alignment.metadata.bam_index' input.bam.bai &&
     #set $aln = 'input.bam'
 #end if
 hgt-site call
@@ -37,16 +34,17 @@ hgt-site call
     --vcf '$vcf'
     ]]></command>
     <inputs>
-        <param name="alignment" type="data" format="bam,sam" label="Paired-end reads aligned to the host genome"/>
+        <param name="alignment" type="data" format="bam,sam" label="Paired-end reads aligned to the host genome"
+               help="A BAM is indexed by Galaxy, which lets the tool find exact junctions from split reads. A SAM has no index, so junctions are placed from read pairs only."/>
         <param name="classifications" type="data" format="tabular" multiple="true" label="Per-read taxonomic calls for the unmapped reads"
                help="Per-read output from Kraken2, KrakenUniq, Kaiju, Centrifuge, DIAMOND or BLAST, or a two-column file of read name and taxid. Not a Kraken2 report. The format is detected from the file. Read names must match the alignment. Several files can be selected if a pipeline wrote more than one per sample."/>
-        <param name="host_taxid" type="integer" value="9606" min="1" label="NCBI taxonomy ID of the host" help="For example 9606 for human or 10090 for mouse."/>
-        <param name="nodes" type="data" format="txt" optional="true" label="NCBI nodes.dmp (optional)"
+        <param argument="--host-taxid" type="integer" value="9606" min="1" label="NCBI taxonomy ID of the host" help="For example 9606 for human or 10090 for mouse."/>
+        <param argument="--nodes" type="data" format="txt" optional="true" label="NCBI nodes.dmp (optional)"
                help="With the NCBI taxonomy, reads classified anywhere in the host lineage are ignored, not only those assigned to the host taxid itself."/>
         <section name="advanced" title="Advanced options" expanded="false">
-            <param name="min_mapq" type="integer" value="20" min="0" label="Minimum mapping quality of an anchor read"/>
-            <param name="min_support" type="integer" value="3" min="1" label="Minimum supporting read pairs for a site"/>
-            <param name="max_qvalue" type="float" value="0.05" min="0" max="1" label="Maximum q-value of the enrichment test"/>
+            <param argument="--min-mapq" type="integer" value="20" min="0" label="Minimum mapping quality of an anchor read"/>
+            <param argument="--min-support" type="integer" value="3" min="1" label="Minimum supporting read pairs for a site"/>
+            <param argument="--max-qvalue" type="float" value="0.05" min="0" max="1" label="Maximum q-value of the enrichment test"/>
         </section>
     </inputs>
     <outputs>
@@ -63,6 +61,9 @@ hgt-site call
                 <assert_contents>
                     <has_line_matching expression="^chrom\tstart\tend.*"/>
                     <has_n_lines min="2"/>
+                    <!-- The exact junction at 5989 and the two split reads behind it
+                         are only found when the BAM index is linked alongside the BAM. -->
+                    <has_line_matching expression="^chr1\t5720\t6262\t5989\t5989\t5989\t2\t.*"/>
                 </assert_contents>
             </output>
             <output name="bed" ftype="bed">
@@ -108,7 +109,6 @@ Documentation: https://iraajgangavaram.github.io/hgt-site/
 
 Benchmarks and source: https://github.com/iraajgangavaram/hgt-site
     ]]></help>
-    <citations>
-        <citation type="doi">10.5281/zenodo.23842712</citation>
-    </citations>
+    <expand macro="citations"/>
+    <expand macro="creator"/>
 </tool>

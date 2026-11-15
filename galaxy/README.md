@@ -7,6 +7,7 @@ which is why this could not be submitted until the recipe had merged.
 ```
 tools/hgt_site/
     hgt_site.xml          the tool definition
+    macros.xml            version, requirement, citation and author
     .shed.yml             Tool Shed metadata
     test-data/            a small simulated dataset with known insertion sites
 ```
@@ -43,7 +44,7 @@ instead, with `owner` in `.shed.yml` changed from `iuc` to that account.
 The wrapper pins a version in one place:
 
 ```xml
-<token name="@TOOL_VERSION@">0.3.0</token>
+<token name="@TOOL_VERSION@">0.4.0</token>
 ```
 
 Galaxy requires that version to exist on Bioconda, so the order for a release is
