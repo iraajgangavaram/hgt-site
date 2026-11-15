@@ -1,30 +1,86 @@
 name: Galaxy wrapper
 
+# Mirrors the checks galaxyproject/tools-iuc run on a pull request, so the
+# wrapper can be fixed here before it is submitted there.
+
 on:
   push:
     branches:
       - galaxy-check
   workflow_dispatch:
 
+env:
+  GALAXY_FORK: galaxyproject
+  GALAXY_BRANCH: release_26.1
+  TOOL_DIR: galaxy/tools/hgt_site
+  MAX_FILE_SIZE: 1M
+
 jobs:
-  planemo:
+  lint:
+    name: Lint the wrapper
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install planemo
-        run: pip install planemo
-      - name: Lint
-        run: planemo lint --report_level warn --fail_level error galaxy/tools/hgt_site
-      - name: Lint against the IUC best practices
-        run: planemo lint --skip_tests --conda_requirements --biocontainer galaxy/tools/hgt_site
-      - name: Test
-        run: planemo test --biocontainers --test_output /tmp/report.html galaxy/tools/hgt_site
-      - name: Keep the test report
-        if: always()
-        uses: actions/upload-artifact@v4
+      - name: Check no test file is over the size the IUC allow
+        run: |
+          found=$(find "$TOOL_DIR" -type f -size +${MAX_FILE_SIZE} || true)
+          if [ -n "$found" ]; then echo "too large:"; echo "$found"; exit 1; fi
+          echo "every file is under ${MAX_FILE_SIZE}"
+      - name: Planemo lint
+        uses: galaxyproject/planemo-ci-action@v1
         with:
-          name: planemo-report
-          path: /tmp/report.html
+          mode: lint
+          fail-level: warn
+          report-level: warn
+          repository-list: ${{ env.TOOL_DIR }}
+          python-version: "3.11"
+      - uses: actions/upload-artifact@v4
+        if: ${{ failure() }}
+        with:
+          name: lint-report
+          path: lint_report.txt
+
+  test:
+    name: Test the wrapper
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:11
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Get number of CPU cores
+        uses: SimenB/github-actions-cpu-cores@v2
+        id: cpu-cores
+      - name: Clean dotnet folder for space
+        run: rm -Rf /usr/share/dotnet
+      - name: Planemo test
+        uses: galaxyproject/planemo-ci-action@v1
+        with:
+          mode: test
+          repository-list: ${{ env.TOOL_DIR }}
+          galaxy-fork: ${{ env.GALAXY_FORK }}
+          galaxy-branch: ${{ env.GALAXY_BRANCH }}
+          galaxy-slots: ${{ steps.cpu-cores.outputs.count }}
+          test_timeout: 900
+          python-version: "3.11"
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: test-output
+          path: upload
