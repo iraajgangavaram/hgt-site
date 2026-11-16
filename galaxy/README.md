@@ -9,6 +9,8 @@ tools/hgt_site/
     hgt_site.xml          the tool definition
     macros.xml            version, requirement, citation and author
     .shed.yml             Tool Shed metadata
+    tool_data_table_conf.xml.sample   the NCBI taxonomy data table
+    tool-data/            the sample location file an admin fills in
     test-data/            a small simulated dataset with known insertion sites
 ```
 
