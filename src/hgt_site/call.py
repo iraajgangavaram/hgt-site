@@ -107,6 +107,46 @@ def fit_limits(pairs, settings, user_set):
 
 
 
+# Signature of something in the sample being homologous to the host. Measured
+# on the benchmark runs: with a bacterial host and relatives of it in the
+# sample, 45% of anchors diverge from the host by more than 3% of their
+# aligned bases, against 0.0% on a human host. The threshold sits far below the
+# first and well above the second. It has only been measured on simulated
+# reads, so a real sample from a host that differs from its own reference may
+# need it raised.
+RELATIVES_DIVERGENCE = 0.03
+RELATIVES_FRACTION = 0.02
+
+
+def warn_if_host_has_relatives(pairs, log):
+    """Say so when the anchors look like they come from more than the host.
+
+    An anchor is supposed to be host sequence. When the sample contains an
+    organism related to the host, reads from it settle on conserved host genes
+    at good mapping quality and carry the mismatches of the distance between
+    the two, which produces candidate sites with nothing wrong with them except
+    that they are not insertions. The shape of the anchor divergence says when
+    that is happening, and the user is better told than left with a table that
+    looks fine.
+    """
+    seen = [a.divergence for a in pairs.anchors if a.divergence is not None]
+    if len(seen) < 100:
+        return
+    share = sum(1 for v in seen if v > RELATIVES_DIVERGENCE) / len(seen)
+    if share < RELATIVES_FRACTION:
+        return
+    log.warning(
+        "%.0f%% of anchored reads diverge from the host reference by more than %.0f%% of their "
+        "aligned bases, which is what a sample containing an organism related to the host looks "
+        "like. Those reads are not host sequence, and the sites they support are not insertions. "
+        "Consider --max-anchor-divergence 0.01, which on a bacterial host with relatives in the "
+        "sample raised precision from 0.14 to 0.67 without losing a real site. This warning is "
+        "expected if the host itself differs from the reference you aligned to, in which case the "
+        "reads are host and the limit should be looser.",
+        share * 100, RELATIVES_DIVERGENCE * 100,
+    )
+
+
 def _long_read_evidence(alignments, donor, donor_taxid, settings, reference, threads, index, summary):
     """Clipped long reads, reshaped into the same objects the paired path builds."""
     from .alignments import ReadPairs
@@ -143,7 +183,8 @@ def call_sites(
     alignments, kraken, host_taxid, nodes_dmp=None, exclude=(), reference=None, threads=1, split_reads=True,
     annotation=None, max_gene_distance=100_000, classifier="auto", exclude_regions=None,
     donor=None, donor_taxid=None, local_background=False, index=None, long_reads=False,
-    control=None, control_min_pairs=None, control_window=None, summary=None, **opts
+    control=None, control_min_pairs=None, control_window=None, max_anchor_divergence=None,
+    summary=None, **opts
 ):
     """Call candidate sites. If summary is a dict, read counts are added to it."""
     user_set = {k for k, v in opts.items() if v is not None}
@@ -159,7 +200,16 @@ def call_sites(
         pairs = collect_pairs(
             alignments, settings["min_mapq"], reference, threads,
             keep_both_unmapped_seqs=bool(donor), count_coverage=local_background, index=index,
+            max_anchor_divergence=max_anchor_divergence,
         )
+        if pairs.diverged_anchors:
+            log.info(
+                "%d anchored reads dropped for diverging from the host reference by more than "
+                "%.1f%% of their aligned bases.",
+                pairs.diverged_anchors, max_anchor_divergence * 100,
+            )
+        elif max_anchor_divergence is None:
+            warn_if_host_has_relatives(pairs, log)
         if donor:
             from .donor import SYNTHETIC_CONSTRUCT, classify_against_donor
 

@@ -96,7 +96,7 @@ What gives way is sensitivity. Chimeras made from the donor are anchored pairs, 
 
 Every other benchmark on this page uses a human host with bacterial reads in the sample. Someone asked whether hgt-site can be used on prophage, ICE and IME integrations, which means a bacterial host, and the method does not care what the host is, so the expectation was that it would work.
 
-It does not, and the reason is worth stating plainly: **hgt-site should not be used with a bacterial host as it stands.**
+It does not out of the box, and the reason is worth stating plainly before the fix for it: **a bacterial host needs `--max-anchor-divergence`, and without it precision is poor.**
 
 The runs below use an E. coli host carrying twenty insertions cut from a Pseudomonas genome, which stands in for a prophage by having its own taxid and a different base composition. Coverage 30, 10,000 chance chimeras, one seed. `benchmark/prophage_test.py` builds them.
 
@@ -115,6 +115,31 @@ This is the one assumption the method makes about the host that is never written
 `--exclude-taxid` with a taxonomy is the only mitigation that helps, and it is partial. Excluding the host's family raises precision to 0.426, and even a single distant contaminant leaves it at 0.311, because every bacterium shares conserved genes with every other.
 
 One prediction this disproved. ICEs and prophages integrate into tRNA genes, and a tRNA family is a set of near-identical copies, so the anchors at such a site should lose mapping quality and the site should be flagged `LOW_MAPQ`. The runs include 80 copies of a 300 bp repeat with the insertions placed immediately after a copy, and a control with the insertions in unique sequence in the same host. The two are indistinguishable: 0.144 against 0.138 precision, and not one of the surviving false sites falls within 1 kb of a repeat copy. The repeated gene is not the problem. Host homology is.
+
+### Rejecting anchors that are not host
+
+An anchor is supposed to be host sequence. That is the whole basis for treating a cluster of them as a position in the host genome. When something in the sample is homologous to the host, the assumption fails quietly: a read from a relative settles on a conserved host gene at good mapping quality and becomes an anchor like any other.
+
+The two are not actually alike, though, and the difference is in the alignment rather than in the taxonomy. A read from Salmonella sitting on a conserved E. coli gene carries the mismatches of the distance between the two organisms. A read that really is host carries almost none. Measured over every site the tool reported in the first run above:
+
+| | anchor mismatches per aligned base, site median |
+| --- | --- |
+| the 20 real sites | median 0, worst 0.007 |
+| the 119 false sites | median 0.040, quartiles 0.020 to 0.067 |
+
+`--max-anchor-divergence` rejects an anchor above a given rate. It is done per read rather than per site, so the support counts and the enrichment test are computed on the anchors that survive, and a false site fails on its own rather than being struck off at the end.
+
+| Run | Precision, off | Precision, 0.01 | Insertions found |
+| --- | ---: | ---: | --- |
+| Klebsiella, Salmonella and Acinetobacter in the sample | 0.144 | 0.667 | 20 of 20, either way |
+| the same, insertions in unique sequence | 0.138 | 0.690 | 20 of 20, either way |
+| Acinetobacter alone | 0.311 | 0.864 | 19 of 20, either way |
+| human host, no relatives in the sample | 1.000 | 1.000 | 20 of 20, either way |
+| human tumour with a 6-copy region | 0.692 | 0.750 | 18 of 18, either way |
+
+Four to five times the precision on a bacterial host at no cost in recall, and nothing lost on a human host. The threshold was swept rather than reasoned: 0.05, 0.03 and 0.02 each help less, and 0.005 starts rejecting real sites, taking the first run to 18 of 20 for a precision gain of 0.025.
+
+The option is off by default. Instead hgt-site measures the shape of the anchor divergence and says when it looks wrong: 45% of anchors diverge by more than 3% of their aligned bases on a bacterial host with relatives in the sample, against 0.0% on a human host, and a run above 2% gets a warning naming the option. The same warning will appear, correctly in form and uselessly in substance, if the host itself differs from the reference it was aligned to, because then the diverged reads really are host reads. It says so.
 
 ## Long reads
 
@@ -353,6 +378,7 @@ The simulated datasets, the known insertion sites and the full results for all 1
 - The matched control is tested against one tumour and normal pair sharing one amplified region. Real artefacts also recur through reference errors, repeats and germline insertions, none of which the simulator models, so the benefit on real data could be larger or smaller than this.
 - The long-read runs simulate a flat per-base error rate and gamma-distributed lengths rather than the context-dependent errors and length profile of a particular chemistry, and one aligner was used. They say the junctions are found and the chimeras rejected; they do not say how hgt-site behaves on a given platform or basecaller, and it has not been compared against another long-read tool.
 - The bacterial host runs are a single seed each, and the element is a slice of another bacterial genome rather than a real prophage, so it carries no integrase, no att sites and no phage gene content. What they measure is the effect of host homology on precision, not anything about phage biology.
+- The anchor divergence filter is measured on simulated reads from real genomes, where a host read matches the reference almost perfectly. A sample whose host differs from its reference, a different strain or a diverged individual, raises the divergence of genuine anchors and the limit has to be loosened to suit. Nothing here says by how much.
 - The LGTSeek comparison covers its read classification step only, not its later BLAST-based filtering.
 - Sites are tested one taxon at a time, so an insertion whose reads Kraken2 splits between related species can lose support. Grouping Kraken2 calls at genus or family level before testing was tried and did not help: genus grouping changed nothing in the benchmark, and family grouping merged real insertions with contamination from related bacteria, which lowered recall.
 - Fragment sizes are measured from properly paired reads, so if the input contains only pairs with an unmapped mate, the default clustering limits are used.

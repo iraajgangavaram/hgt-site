@@ -83,6 +83,19 @@ hgt-site call --bam tumour.bam --classifications tumour.kraken2.txt \
 
 A candidate the control also has is reported with `IN_CONTROL` instead of passing. The control needs five supporting reads within 300 bases of the site before it counts, which `--control-min-pairs` and `--control-window` change. Lowering the read threshold much below five is a mistake: a control sample carries thousands of weak candidates from chance chimeras and they will reject real sites along with the artefacts.
 
+### A bacterial host, or anything related to the host in the sample
+
+An anchored read is treated as host sequence. If the sample contains an organism related to the host, which is the normal case in microbiology, reads from it land on conserved host genes and look like anchors, and the sites they support look like insertions. Rejecting the reads that are too diverged to be host fixes most of it:
+
+```bash
+hgt-site call --bam sample.bam --classifications sample.kraken2.txt \
+  --host-taxid 562 --max-anchor-divergence 0.01 -o sites.tsv
+```
+
+0.01 means an anchor may differ from the reference by up to 1% of its aligned bases. On a bacterial host with three relatives in the sample that took precision from 0.144 to 0.667 without losing an insertion. Going tighter costs real sites.
+
+Use it only when the host itself matches the reference closely. If you have aligned a strain to the reference of another strain, genuine host reads carry real mismatches and this will throw them away. hgt-site warns when the anchors look diverged, and it cannot tell the two cases apart for you.
+
 ## When host coverage is uneven
 
 The test asks how many foreign pairs chance would put at a position, and by default it assumes they fall evenly across the genome. A chimera is a host fragment joined to a foreign fragment, so the chance its host half comes from a given region depends on how much host DNA from that region is in the library. Three copies of a region contribute three times the chimeras, and the even assumption will read the excess as an insertion.
@@ -144,6 +157,7 @@ This reads the tables rather than the alignments, so samples called at different
 | `--exclude-taxid 1234` | Ignores a taxon, for example a known contaminant (can be repeated) |
 | `--local-background` | Works out how many chance chimeras to expect at a site from host coverage near that site, rather than from one genome-wide rate. Worth using wherever coverage is uneven: a tumour with copy-number changes, an amplified or low-input library. Needs the whole alignment, not one filtered down to the pairs with an unmapped mate |
 | `--exclude-regions artefacts.bed` | Leaves out positions listed in a BED file. A candidate is excluded when its span, which is usually several hundred bases, overlaps one of the regions, so this is meant for a handful of broad regions rather than a dense feature file. An excluded candidate is reported with `EXCLUDED` instead of passing |
+| `--max-anchor-divergence 0.01` | Rejects an anchored read whose mismatches and indels exceed this fraction of its aligned bases, because such a read did not come from the host. For a bacterial host, or anything else where the sample contains a relative of the host. Needs the aligner's `NM` tag. Off by default |
 | `--no-split-reads` | Skips the split-read search, so junctions come from read pairs only |
 
 ### Thresholds

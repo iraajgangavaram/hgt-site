@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- New `--max-anchor-divergence` rejects an anchored read whose mismatches and indels exceed a given fraction of its aligned bases. An anchor is treated as host sequence, which is the basis for reading a cluster of them as a position in the host genome, and that assumption fails when the sample contains an organism related to the host: a read from it settles on a conserved host gene at good mapping quality and becomes an anchor, and the site it supports is not an insertion. The alignment gives the two away where the taxonomy cannot. Over the sites reported on a simulated E. coli host with three relatives in the sample, the 20 real ones had a median anchor divergence of 0 and the 119 false ones 0.040. At 0.01 precision went from 0.144 to 0.667 there, 0.138 to 0.690 with the insertions in unique sequence, and 0.311 to 0.864 with only a distant relative present, without losing an insertion in any of the three. On a human host it changes nothing, 1.000 either way, and on a tumour with an amplified region it helps slightly, 0.692 to 0.750. The threshold is from a sweep: looser values help less and 0.005 starts rejecting real sites.
+- The option is off by default, and hgt-site now warns when a run looks like it needs it. On a bacterial host with relatives in the sample 45% of anchors diverge from the host by more than 3% of their aligned bases, against 0.0% on a human host, and a run above 2% is reported with the option named. The warning is also correct and unhelpful when the host itself differs from its reference, and says so.
+
 ## 0.5.0 (2026-11-16)
 
 - The benchmark was repeated with a viral donor in place of the bacterial one. Precision is 0.989 over eighteen runs against 1.000 for a bacterial donor, with the errors appearing where chimeras are fewest rather than most. The virus used does not integrate and stands in for size and composition only.

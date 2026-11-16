@@ -90,6 +90,15 @@ def _add_common(parser, kraken_required):
              "position (default 300)",
     )
     parser.add_argument(
+        "--max-anchor-divergence", type=float, metavar="FRACTION",
+        help="Reject an anchored read whose mismatches and indels exceed this fraction of its "
+             "aligned bases. Use it when something in the sample is homologous to the host, as "
+             "with a bacterial host and its relatives: such a read maps to a conserved host gene "
+             "at good quality but carries the mismatches of the distance between the two "
+             "organisms, where a read genuinely from the host carries almost none. Needs the "
+             "aligner's NM tag. Off by default",
+    )
+    parser.add_argument(
         "--long-reads",
         action="store_true",
         help="The alignment is long reads (Nanopore or PacBio). The junction is read off the "
@@ -238,6 +247,7 @@ def _call(args, kraken):
         control=getattr(args, "control", None),
         control_min_pairs=getattr(args, "control_min_pairs", None),
         control_window=getattr(args, "control_window", None),
+        max_anchor_divergence=getattr(args, "max_anchor_divergence", None),
         summary=summary, **opts
     )
     _write_outputs(args, sites, summary)

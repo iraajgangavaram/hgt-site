@@ -243,3 +243,77 @@ def test_limits_widen_only_for_long_fragments():
     assert fit_limits(pairs(900), dict(DEFAULTS), {"max_span"}) == DEFAULTS
     # Too few pairs to estimate: defaults are kept.
     assert fit_limits(ReadPairs([], {}, set(), {}, [900] * 10, [100] * 10), dict(DEFAULTS), set()) == DEFAULTS
+
+
+def test_divergence_ignores_clipped_bases():
+    from hgt_site.alignments import _aligned_query_length, _divergence, _nm_from_tags
+
+    # A read clipped at a junction: 100 bases on the host, 50 foreign. The
+    # foreign tail must not count against the read.
+    assert _aligned_query_length("100M50S") == 100
+    assert _aligned_query_length("50S100M") == 100
+    assert _aligned_query_length("40M2I58M") == 100
+    assert _aligned_query_length("50M10D50M") == 100
+    assert _nm_from_tags("NM:i:3\tMD:Z:100\tAS:i:95") == 3
+    assert _nm_from_tags("AS:i:95\tXS:i:0") is None
+    assert _divergence(3, 100) == 0.03
+    assert _divergence(None, 100) is None
+    assert _divergence(3, 0) is None
+
+
+def test_diverged_anchors_are_dropped(tmp_path):
+    from hgt_site.alignments import collect_pairs
+
+    sam = tmp_path / "a.sam"
+    rows = [
+        "@HD\tVN:1.6\tSO:coordinate",
+        "@SQ\tSN:chr1\tLN:10000",
+        # A host read: no mismatches, kept whatever the limit.
+        "host\t9\tchr1\t1000\t60\t100M\t*\t0\t0\t" + "A" * 100 + "\t*\tNM:i:0",
+        "host\t5\t*\t0\t0\t*\t*\t0\t0\t" + "C" * 100 + "\t*",
+        # A read from a relative sitting on a conserved gene: 8 mismatches.
+        "relative\t9\tchr1\t2000\t60\t100M\t*\t0\t0\t" + "A" * 100 + "\t*\tNM:i:8",
+        "relative\t5\t*\t0\t0\t*\t*\t0\t0\t" + "C" * 100 + "\t*",
+    ]
+    sam.write_text("\n".join(rows) + "\n")
+
+    loose = collect_pairs(sam)
+    assert {a.name for a in loose.anchors} == {"host", "relative"}
+    assert loose.diverged_anchors == 0
+
+    strict = collect_pairs(sam, max_anchor_divergence=0.01)
+    assert {a.name for a in strict.anchors} == {"host"}
+    assert strict.diverged_anchors == 1
+    # The reads that survive carry their divergence for later inspection.
+    assert strict.anchors[0].divergence == 0.0
+
+
+def test_host_relatives_warning_fires_only_when_anchors_are_diverged(caplog):
+    import logging
+
+    from hgt_site.alignments import Anchor, ReadPairs
+    from hgt_site.call import warn_if_host_has_relatives
+
+    log = logging.getLogger("hgt_site")
+
+    def pairs(divergences):
+        return ReadPairs(
+            [Anchor(str(i), "chr1", i, i + 100, False, 60, d) for i, d in enumerate(divergences)],
+            {}, set(), {},
+        )
+
+    # A human host: almost every anchor is host sequence.
+    with caplog.at_level(logging.WARNING):
+        warn_if_host_has_relatives(pairs([0.0] * 1000), log)
+    assert not caplog.records
+
+    # A bacterial host with relatives in the sample.
+    with caplog.at_level(logging.WARNING):
+        warn_if_host_has_relatives(pairs([0.0] * 600 + [0.05] * 400), log)
+    assert "related to the host" in caplog.text
+
+    # Too few anchors to say anything.
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        warn_if_host_has_relatives(pairs([0.05] * 20), log)
+    assert not caplog.records

@@ -32,6 +32,9 @@ class Record:
     end: int  # 0-based, exclusive
     mapq: int
     seq: str
+    # Mismatches and indels per aligned base, from the aligner's NM tag. None
+    # when the aligner did not write one.
+    divergence: float = None
 
 
 @dataclass
@@ -44,6 +47,7 @@ class Anchor:
     end: int
     reverse: bool
     mapq: int
+    divergence: float = None
 
     @property
     def junction_side(self):
@@ -120,6 +124,9 @@ class ReadPairs:
     both_unmapped_seqs: dict = field(default_factory=dict)
     coverage: "Coverage" = None
     host_composition: "Background" = None
+    # Anchors dropped for being too diverged from the host reference to have
+    # come from it. Zero when no divergence limit was asked for.
+    diverged_anchors: int = 0
 
 
 # Number of properly paired reads sampled to estimate the fragment size.
@@ -167,6 +174,42 @@ def _cigar_ref_length(cigar):
     return length
 
 
+def _aligned_query_length(cigar):
+    """Bases of the read the aligner actually placed on the reference.
+
+    Soft and hard clipped bases are left out, which is what we want: an anchor
+    that crosses a junction is clipped at it, and the clipped tail is foreign
+    sequence that should not count against the read as host mismatches.
+    """
+    length, number = 0, ""
+    for char in cigar:
+        if char.isdigit():
+            number += char
+        else:
+            if char in "MI=X":
+                length += int(number)
+            number = ""
+    return length
+
+
+def _divergence(nm, aligned):
+    """Mismatches and indels per aligned base, or None if NM is missing."""
+    if nm is None or not aligned:
+        return None
+    return nm / aligned
+
+
+def _nm_from_tags(tags):
+    """The NM value out of a SAM line's optional fields, or None."""
+    for field_ in tags.split("\t"):
+        if field_.startswith("NM:i:"):
+            try:
+                return int(field_[5:])
+            except ValueError:
+                return None
+    return None
+
+
 def _wanted(flag):
     """True for primary records of paired reads where at least one mate is unmapped.
 
@@ -200,7 +243,12 @@ def _iter_sam_text(path, sample, coverage=None):
             pos = int(cols[3]) - 1
             cigar = cols[5]
             end = pos + (_cigar_ref_length(cigar) if cigar != "*" else 0)
-            records.append(Record(cols[0], flag, cols[2], pos, end, int(cols[4]), cols[9]))
+            divergence = None
+            if cigar != "*" and len(cols) > 10:
+                divergence = _divergence(_nm_from_tags(cols[10]), _aligned_query_length(cigar))
+            records.append(
+                Record(cols[0], flag, cols[2], pos, end, int(cols[4]), cols[9], divergence)
+            )
     return lengths, records
 
 
@@ -235,6 +283,10 @@ def _iter_pysam(path, sample, reference=None, threads=1, coverage=None, index=No
                 read.reference_end if read.reference_end is not None else -1,
                 read.mapping_quality,
                 read.query_sequence or "",
+                _divergence(
+                    read.get_tag("NM") if read.has_tag("NM") else None,
+                    read.query_alignment_length,
+                ),
             )
 
     return lengths, generate()
@@ -249,10 +301,11 @@ def open_alignments(path, sample, reference=None, threads=1, coverage=None, inde
 
 def collect_pairs(
     path, min_mapq=20, reference=None, threads=1, keep_both_unmapped_seqs=False,
-    count_coverage=False, bin_size=COVERAGE_BIN, index=None,
+    count_coverage=False, bin_size=COVERAGE_BIN, index=None, max_anchor_divergence=None,
 ):
     """Scan the alignments once and sort read pairs into the groups we need."""
     sample = _Sample()
+    diverged = 0
     coverage = Coverage(bin_size) if count_coverage else None
     host_composition = Background()
     lengths, records = open_alignments(path, sample, reference, threads, coverage, index)
@@ -272,11 +325,27 @@ def collect_pairs(
                 both_unmapped_seqs[name] = rec.seq
         elif not read_unmapped and mate_unmapped:
             if rec.mapq >= min_mapq:
+                # An anchor is only useful if the read really came from the
+                # host. When something in the sample is homologous to the host,
+                # a read from it lands on a conserved host gene at good mapping
+                # quality and carries the mismatches of the distance between
+                # the two organisms. A read that is genuinely host carries
+                # almost none, so divergence tells the two apart.
+                if (
+                    max_anchor_divergence is not None
+                    and rec.divergence is not None
+                    and rec.divergence > max_anchor_divergence
+                ):
+                    diverged += 1
+                    continue
                 anchors.append(
-                    Anchor(name, rec.chrom, rec.start, rec.end, bool(rec.flag & REVERSE), rec.mapq)
+                    Anchor(
+                        name, rec.chrom, rec.start, rec.end, bool(rec.flag & REVERSE), rec.mapq,
+                        rec.divergence,
+                    )
                 )
-                # This read is host sequence by definition, so it gives the
-                # host's own base composition for nothing.
+                # This read is host sequence, so it gives the host's own base
+                # composition for nothing.
                 host_composition.add(rec.seq)
         elif read_unmapped and not mate_unmapped:
             mate_seqs[name] = rec.seq
@@ -296,7 +365,7 @@ def collect_pairs(
         )
     return ReadPairs(
         anchors, mate_seqs, both_unmapped, lengths, sample.insert_sizes, sample.read_lengths,
-        both_unmapped_seqs, coverage, host_composition,
+        both_unmapped_seqs, coverage, host_composition, diverged,
     )
 
 

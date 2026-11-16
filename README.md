@@ -81,6 +81,7 @@ It is packaged on Bioconda and PyPI, with a container built from the Bioconda re
 - **One command from a BAM.** `hgt-site run` pulls out the unmapped reads, classifies them and calls the sites.
 - **Takes whatever classifier you already ran.** Kraken2, KrakenUniq, Kaiju, Centrifuge, DIAMOND, BLAST tabular, or any two-column file of read name and taxid. All six give byte-identical calls on the same reads, and there is a test that checks it.
 - **Copes with uneven coverage.** `--local-background` expects more chimeras where there is more host DNA, so a copy-number gain or an amplified library does not turn into a list of false sites. On the benchmark it removed all 10 false sites a 6-copy region produced, and cost none of the real ones.
+- **Bacterial hosts.** Prophages, ICEs and plasmid insertions, where the sample usually contains relatives of the host. `--max-anchor-divergence 0.01` keeps the reads that are genuinely host, which took precision from 0.144 to 0.667 on a simulated E. coli host with three relatives present, with every insertion still found.
 - **Or no classifier at all.** If you put the DNA there, point `--donor` at the vector, transgene or viral genome and skip the classifier and its database entirely.
 - **Junctions to the base pair.** Where reads cross the junction, the insertion point is exact: 71% of junctions exact and 98% within 2 bp, against 41% and 57% from read pairs alone.
 - **Tells you the gene.** Point `--annotation` at a GTF or GFF3 and every site comes back with the gene it landed in, or the nearest one.
@@ -281,6 +282,7 @@ Other options:
 | `--control normal.tsv` | An hgt-site table from a matched control, such as the normal tissue beside a tumour. A candidate the control also has is flagged `IN_CONTROL` rather than passing |
 | `--control-min-pairs 5` | Supporting reads a control candidate needs before it counts (default 5) |
 | `--long-reads` | The alignment is Nanopore or PacBio reads. The junction is read off the clipped tail of one read, so this needs `--donor` rather than a classifier |
+| `--max-anchor-divergence 0.01` | Rejects an anchored read too diverged from the host reference to have come from it. For a bacterial host, or anything else with a relative of the host in the sample, where such reads otherwise become anchors and produce sites that are not insertions |
 | `--exclude-taxid 1234` | Ignores a taxon, for example a known contaminant (can be repeated). With `--nodes` it covers the whole clade, so excluding a family ignores every species in it |
 
 While it runs, hgt-site reports how many anchored pairs it found, how many have a Kraken2 call, the fragment size it measured, and how many sites got an exact junction. If none of the anchored reads has a Kraken2 call, it warns that the Kraken2 file may not match the alignment.
@@ -476,7 +478,7 @@ The simulated datasets, the known insertion sites and the full results for all 1
 - The speed comparison used five bacterial genomes as LGTSeek's reference, and the time for its second alignment depends on the size of that reference. All timings were measured on one 2-core machine and will differ on other hardware.
 - Across every benchmark run, including earlier versions of the code, one false site appeared in 4 of 59 simulated datasets, all of them in the samples with the fewest chance chimeras. The raw results are in the repository.
 - A single insertion is occasionally reported as two neighbouring sites. This happened to one insertion in 4 of 18 runs on fresh seeds.
-- hgt-site should not be used with a bacterial host. Precision is 0.144 against 1.000 for a human host, because reads from a relative of the host map to conserved host genes well enough to become anchors while their mates are classified as that relative. Every insertion is still found, so it is precision rather than sensitivity that fails. Excluding the host's family with `--exclude-taxid` raises precision to 0.426, which is better and still not enough. The method assumes nothing in the sample is homologous to the host, which a human host with bacterial contaminants satisfies and a bacterial host does not.
+- A bacterial host needs `--max-anchor-divergence`. The method treats an anchored read as host sequence, and with a relative of the host in the sample, reads from it map to conserved host genes well enough to become anchors while their mates are classified as that relative. Without the option precision is 0.144 against 1.000 for a human host; with `0.01` it is 0.667, and every insertion is found either way. That is usable rather than solved, and it assumes the host matches the reference it was aligned to, since otherwise genuine host reads carry real mismatches and the filter discards them.
 - Single-end alignments are refused. A pair with one mate on the host and the other unmapped is the only thing the method can work from, so single-end reads can never produce a candidate.
 
 ## Future work
