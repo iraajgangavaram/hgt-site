@@ -417,14 +417,32 @@ With split reads, 71% of junctions were exact and 98% were within 2 bp, against 
 | --- | --- | --- |
 | [LGTSeek](https://github.com/rileydavidr/lgtseek) | v1.08, January 2015 | June 2016 |
 | [IGS lgtseek-pipeline](https://github.com/IGS/lgtseek-pipeline) | none tagged | February 2022 |
-| hgt-site | 0.2.0, November 2026 | actively developed |
+| [VIRUSBreakend](https://github.com/PapenfussLab/gridss) (part of GRIDSS) | v2.13.2 | May 2025 |
+| hgt-site | 0.5.0, November 2026 | actively developed |
 
-Read from the repositories on 2 November 2026.
+Read from the repositories on 20 November 2026.
 
 LGTSeek is the tool hgt-site is benchmarked against, and it has had no commit for
 nine years, so getting it to run at all now takes work. Pipelines that align
 reads and classify the unmapped ones solve a different part of the problem and
 produce the input hgt-site takes, rather than calling sites themselves.
+
+VIRUSBreakend is the serious modern comparator, and **hgt-site has not been
+benchmarked against it.** It is worth being clear about what it does and does
+not share with hgt-site. It detects viral integration into a host genome using a
+viral database, and inside that task it is the stronger caller: it assembles the
+breakend through GRIDSS rather than clustering read pairs, so it can work with
+less support at a site, and it adapts the viral reference to the strain actually
+present before realigning, which hgt-site has no equivalent for. hgt-site
+covers ground VIRUSBreakend does not, since it is not restricted to viruses and
+handles bacterial transfer, prophages, vectors and transgenes, takes any of six
+classifiers or a plain two-column table, and needs no database at all when given
+the sequence to look for. It is also far cheaper to run: VIRUSBreakend wants
+four cores, 64 GB of memory and a 54 GB database, where hgt-site is one conda
+package and seconds of CPU. A comparison on the same alignment and the same
+Kraken2 database is the obvious next test, and until it has been run the
+sensible assumption is that VIRUSBreakend is better at the viral case and
+hgt-site covers more cases.
 
 ## Speed
 

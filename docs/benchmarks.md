@@ -141,6 +141,24 @@ Four to five times the precision on a bacterial host at no cost in recall, and n
 
 The option is off by default. Instead hgt-site measures the shape of the anchor divergence and says when it looks wrong: 45% of anchors diverge by more than 3% of their aligned bases on a bacterial host with relatives in the sample, against 0.0% on a human host, and a run above 2% gets a warning naming the option. The same warning will appear, correctly in form and uselessly in substance, if the host itself differs from the reference it was aligned to, because then the diverged reads really are host reads. It says so.
 
+### Why repetitive sequence is not masked
+
+Callers built for viral integration into human genomes mask repetitive host sequence, on the reasonable grounds that repeats produce false breakpoints. hgt-site does not, and the reason is not an oversight.
+
+The question was put to the reference directly. For every site reported in the runs above, the host sequence within 300 bases was taken and the share of its 21-mers that occur more than once in the host genome counted. Across the genome as a whole, 0.82% of distinct 21-mers are repeated, so anything well above that is repetitive sequence.
+
+| Run | Real sites | False sites |
+| --- | --- | --- |
+| insertions placed beside a repeat copy | median 0.215, range 0.137 to 0.509 | median 0.000 |
+| insertions placed in unique sequence | median 0.000 | median 0.000 |
+| one distant relative in the sample | median 0.214, range 0.192 to 0.509 | median 0.000 |
+
+It separates, and it separates the wrong way round. In the first run, a ceiling of 0.1 on flank repetitiveness would have discarded all 20 real sites and kept 112 of the 119 false ones. In the third, all 19 real sites and 37 of 42 false ones.
+
+The reason is biological rather than statistical. Prophages and integrative conjugative elements integrate at tRNA genes and other att sites, and those are repeated by nature, so for horizontal gene transfer the repeats are where the real integrations are. The false sites here come from host homology, which is spread across conserved genes rather than concentrated in repeats. Masking repeats would remove the signal and leave the noise.
+
+This is one of the clearest places where a tool for viral integration in cancer and a tool for horizontal gene transfer should not share a design. It does not follow that repeats are harmless on real data, where the repeat content is far richer than a simulated 80-copy element: it follows only that on this evidence, masking them would cost more than it saved.
+
 ## Long reads
 
 A short read says where a junction is by pointing at it: one mate lands on the host, the other is foreign, and the junction is somewhere in the gap between them. A long read contains the junction instead. The aligner places the host part of the read and clips the rest, so the clip boundary is the junction and the clipped tail is the inserted sequence itself.
