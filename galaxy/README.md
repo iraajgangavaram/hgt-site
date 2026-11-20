@@ -46,7 +46,7 @@ instead, with `owner` in `.shed.yml` changed from `iuc` to that account.
 The wrapper pins a version in one place:
 
 ```xml
-<token name="@TOOL_VERSION@">0.4.0</token>
+<token name="@TOOL_VERSION@">0.5.0</token>
 ```
 
 Galaxy requires that version to exist on Bioconda, so the order for a release is
