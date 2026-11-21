@@ -67,7 +67,7 @@ chr21_20M  2646531  2646869  2646659          4            5        562        3
 
 Every candidate stays in the table with the reason it failed, so you can see what was considered and rejected. Full options under [Usage](#usage).
 
-hgt-site detects candidate horizontal gene transfer and integration sites from short-read sequencing data. It finds places where DNA from bacteria, viruses or other organisms may have been inserted into a host genome, such as a human genome. Most bacterial reads in these samples come from contamination or from DNA fragments joined by chance in the lab, so hgt-site checks each possible site against what chance alone would produce and keeps only the sites with clearly more support. In the benchmarks below it reported no false sites across 18 runs on fresh random seeds, 364 calls in all, while an existing tool, LGTSeek, reported thousands of false sites in the noisiest samples.
+hgt-site detects candidate horizontal gene transfer and integration sites from sequencing data, short reads or long. It finds places where DNA from bacteria, viruses or other organisms may have been inserted into a host genome, such as a human genome. Most bacterial reads in these samples come from contamination or from DNA fragments joined by chance in the lab, so hgt-site checks each possible site against what chance alone would produce and keeps only the sites with clearly more support. In the benchmarks below it reported no false sites across 18 runs on fresh random seeds, 364 calls in all, while an existing tool, LGTSeek, reported thousands of false sites in the noisiest samples.
 
 It is also fast. On a sample of 2.1 million reads, hgt-site took about 3 seconds once the reads were aligned and classified, while LGTSeek needed about 2.5 minutes (see [Speed](#speed)).
 
@@ -89,6 +89,7 @@ It is packaged on Bioconda and PyPI, with a container built from the Bioconda re
 - **Three seconds** on a sample of 2.1 million reads, against about 2.5 minutes for LGTSeek.
 - **Compares samples.** `hgt-site cohort` merges the tables from several samples and flags the positions that turn up in all of them, which are nearly always artefacts rather than biology.
 - **Installs in one line.** On [Bioconda](https://bioconda.github.io/recipes/hgt-site/README.html) and PyPI, with a Docker and Singularity container built from the Bioconda recipe, so it drops into a pipeline without anything to set up.
+- **Or no installation at all.** It is installed on [usegalaxy.eu](https://usegalaxy.eu/?tool_id=toolshed.g2.bx.psu.edu%2Frepos%2Fiuc%2Fhgt_site%2Fhgt_site_call), so it can be run from a browser with a free account, and any Galaxy server can install it from the Tool Shed.
 - **Shows its working.** Every rejected candidate stays in the table with the reason, so you can see what was considered and thrown out.
 
 ### Who this is for
@@ -177,10 +178,14 @@ pip install hgt-site
 The Bioconda package also gives you a container, built automatically, which needs nothing installed at all:
 
 ```bash
-docker run --rm quay.io/biocontainers/hgt-site:0.4.0--pyhdfd78af_0 hgt-site --help
+docker run --rm quay.io/biocontainers/hgt-site:0.5.0--pyhdfd78af_0 hgt-site --help
 ```
 
 The exact tag is on the [Bioconda page](https://bioconda.github.io/recipes/hgt-site/README.html), and a Singularity image of the same build is on the [Galaxy depot](https://depot.galaxyproject.org/singularity/).
+
+### In a browser, with no installation
+
+hgt-site is in the [Galaxy Tool Shed](https://toolshed.g2.bx.psu.edu/view/iuc/hgt_site) and installed on [usegalaxy.eu](https://usegalaxy.eu/?tool_id=toolshed.g2.bx.psu.edu%2Frepos%2Fiuc%2Fhgt_site%2Fhgt_site_call), so it can be run from a web browser with a free account and no command line at all. Upload the alignment and the per-read classifications, and the table, BED and VCF come back as datasets. Any other Galaxy server can install it from the Tool Shed.
 
 ### In a Nextflow pipeline
 
