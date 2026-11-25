@@ -1,3 +1,5 @@
+import io
+import json
 import sys
 from pathlib import Path
 
@@ -25,3 +27,21 @@ def test_download_count_ignores_invalid_and_negative_counts():
 
 def test_download_count_rejects_non_object_response():
     assert fetch_conda_downloads.total([1, 2, 3]) is None
+
+
+def test_main_reports_malformed_response_without_traceback(monkeypatch, capsys):
+    response = io.BytesIO(json.dumps([1, 2, 3]).encode())
+    monkeypatch.setattr(fetch_conda_downloads.urllib.request, "urlopen", lambda *args, **kwargs: response)
+
+    assert fetch_conda_downloads.main() == 1
+    captured = capsys.readouterr()
+    assert "response JSON type was list" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_main_prints_download_count(monkeypatch, capsys):
+    response = io.BytesIO(json.dumps({"total_ndownloads": 17}).encode())
+    monkeypatch.setattr(fetch_conda_downloads.urllib.request, "urlopen", lambda *args, **kwargs: response)
+
+    assert fetch_conda_downloads.main() == 0
+    assert capsys.readouterr().out == "17\n"
