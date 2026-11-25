@@ -22,8 +22,11 @@ has and has not been shown to do.
 - You want to detect horizontal gene transfer between bacterial genomes, over
   evolutionary time. That is a different problem and hgt-site does not address
   it. Phylogenetic methods do.
-- You have long reads. hgt-site works on paired short reads, and a long read
-  spanning a junction is better evidence than anything it can offer.
+- You have long reads. hgt-site supports Nanopore and PacBio alignments with
+  `--long-reads` and a donor sequence. In a simulated benchmark it found all
+  20 insertions at 15x coverage, with no false sites; at 5x it found 17 or 18.
+  The junction was a median of 4 bp from truth at 15x. See the
+  [long-read benchmark](benchmarks.md#long-reads) and its limits.
 - You have RNA-seq. Precision on a simulated RNA-seq library reaches 0.77 at
   best, against 1.000 on DNA, and reads crossing exon junctions produce false
   sites of their own. The measurements are in the
@@ -44,6 +47,7 @@ has and has not been shown to do.
 | Better than an existing tool | Benchmarked against LGTSeek, which reported thousands of false sites in the noisiest datasets. LGTSeek has had no commit since 2016. |
 | Not an artefact of our own simulator | The benchmark was repeated with an independent published simulator and the conclusion held. |
 | Junctions to the base pair | Over 8 runs and 157 insertions, 71% of junctions were exact and 98% within 2 bp, against 41% and 57% from read pairs alone. |
+| Long-read support | In three simulated Nanopore runs at 15x, all 20 insertions were found per run with no false sites; median junction offset was 4 bp. This has not been compared with another long-read tool. |
 | Fast enough not to matter | About 3 seconds of calling on a sample of 2.1 million reads, on 2 cores. |
 | Installs without a fight | On Bioconda and PyPI, with a container built from the Bioconda recipe. Bioconda builds and tests a package on its own infrastructure before publishing it, so the install has been checked on a clean machine by somebody other than the author. |
 | Reproducible | Every benchmark rebuilds from a seed. The scripts and raw results are in the repository, and the datasets are archived separately. |
