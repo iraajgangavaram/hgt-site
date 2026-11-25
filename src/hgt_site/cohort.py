@@ -15,6 +15,7 @@ never needed.
 
 import csv
 import logging
+from math import ceil
 from pathlib import Path
 
 log = logging.getLogger("hgt_site")
@@ -119,7 +120,7 @@ def merge(samples, window=WINDOW, common_fraction=COMMON_FRACTION):
         genes = sorted({row.get("gene", "") for _, row in members if row.get("gene")})
 
         flags = []
-        if total > 1 and len(names) >= max(2, round(common_fraction * total)):
+        if total > 1 and len(names) >= max(2, ceil(common_fraction * total)):
             flags.append("COMMON")
         if len(names) > 1:
             flags.append("RECURRENT")
