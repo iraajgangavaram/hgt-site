@@ -1,14 +1,16 @@
 """Build the animated figures panel for the top of the README.
 
-Three numbers that say what the tool is for: how many people have installed it,
+Three numbers that say what the tool is for: how many Bioconda package downloads,
 how many candidates it has sifted without a false call, and how long it takes.
 Each one counts up when the page loads.
 
     python scripts/make_stats_svg.py
 
-The install count is read from docs/stats.json, which the update-stats workflow
-refreshes nightly from the Anaconda API. The other two come from the benchmark
-and change only when the benchmark is rerun, so they are kept here.
+The download count is read from docs/stats.json, which the update-stats workflow
+refreshes nightly from the Anaconda API. It counts download events, not distinct
+users, and excludes PyPI and other installation routes. The other two come
+from the benchmark and change only when the benchmark is rerun, so they are
+kept here.
 
 Counting up is done by drawing every intermediate value as its own <text> and
 showing them in sequence, because GitHub renders a README image in an <img>
@@ -81,10 +83,10 @@ def counter(x, target, fmt, cls, theme, size=38):
     return out, css
 
 
-def build(theme_name, installs):
+def build(theme_name, downloads):
     t = THEMES[theme_name]
     columns = [
-        (installs, lambda v: f"{v:,}", "conda installs", "and counting"),
+        (downloads, lambda v: f"{v:,}", "Bioconda downloads", "download events, not unique users"),
         (123926, lambda v: f"{v:,}", "candidates sifted", "across 18 benchmark runs"),
         (0, lambda v: str(v), "false positives", "in every one of them"),
     ]
@@ -115,7 +117,7 @@ def build(theme_name, installs):
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{WIDTH}" height="{HEIGHT}" '
         f'viewBox="0 0 {WIDTH} {HEIGHT}" '
         f"font-family=\"-apple-system,'Segoe UI',Helvetica,Arial,sans-serif\" role=\"img\" "
-        f'aria-label="{installs:,} conda installs. 123,926 candidate sites sifted across 18 '
+        f'aria-label="{downloads:,} Bioconda download events, not unique users. 123,926 candidate sites sifted across 18 '
         f'benchmark runs, with zero false positives in every one of them.">'
     )
     return "\n".join([head, "<style>", *css, "</style>", *body, "</svg>"])
@@ -124,8 +126,8 @@ def build(theme_name, installs):
 if __name__ == "__main__":
     root = Path(__file__).resolve().parent.parent
     stats = json.loads((root / "docs" / "stats.json").read_text())
-    installs = int(stats["conda_downloads"])
+    downloads = int(stats["conda_downloads"])
     for name in THEMES:
         path = root / "docs" / "images" / f"stats-{name}.svg"
-        path.write_text(build(name, installs))
+        path.write_text(build(name, downloads))
         print(f"wrote {path} ({path.stat().st_size:,} bytes)")

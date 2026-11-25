@@ -25,12 +25,13 @@ dependencies = ["pysam>=0.21"]
 
 [project.urls]
 Homepage = "https://github.com/iraajgangavaram/hgt-site"
-Documentation = "https://github.com/iraajgangavaram/hgt-site#readme"
+Documentation = "https://iraajgangavaram.github.io/hgt-site/"
 Issues = "https://github.com/iraajgangavaram/hgt-site/issues"
 DOI = "https://doi.org/10.5281/zenodo.23842712"
 
 [project.optional-dependencies]
 test = ["pytest"]
+dev = ["pytest", "ruff"]
 
 [project.scripts]
 hgt-site = "hgt_site.cli:main"

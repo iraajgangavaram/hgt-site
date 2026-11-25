@@ -11,7 +11,7 @@ Most of the positions they point to are library artefacts. This tells you which 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/stats-dark.svg">
-    <img alt="Conda installs to date, beside the 123,926 candidate sites sifted across 18 benchmark runs with zero false positives in every one of them." src="docs/images/stats-light.svg" width="900">
+    <img alt="Bioconda download events to date (not unique users), beside the 123,926 candidate sites sifted across 18 benchmark runs with zero false positives in every one of them." src="docs/images/stats-light.svg" width="900">
   </picture>
 </p>
 
@@ -517,7 +517,7 @@ pip install ".[test]"
 pytest
 ```
 
-69 tests cover the units, the simulated data, BAM and CRAM input, the output formats, the exact junctions and that results do not depend on the order of records in the file. They run on GitHub for Python 3.10 to 3.13. Code style is checked with `ruff check src tests benchmark`.
+The tests cover the units, simulated data, BAM and CRAM input, output formats, exact junctions, and independence from record order. GitHub Actions runs them on Python 3.10 to 3.13.
 
 ## Using it from Python
 

@@ -1,5 +1,6 @@
 import argparse
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -294,6 +295,58 @@ def _selftest():
     return 1
 
 
+def _same_path(left, right):
+    """Whether two paths identify the same location, including symlinks/hard links."""
+    if Path(left).resolve() == Path(right).resolve():
+        return True
+    try:
+        return os.path.samefile(left, right)
+    except FileNotFoundError:
+        return False
+
+
+def _validate_paths(args):
+    """Reject output paths that could overwrite another output or an input."""
+    if args.command in ("call", "run"):
+        outputs = [("--output", args.output)]
+        for option in ("bed", "vcf", "multiqc"):
+            path = getattr(args, option, None)
+            if path:
+                outputs.append((f"--{option}", path))
+
+        inputs = [("--bam", args.bam)]
+        for option in ("reference", "nodes", "exclude_regions", "control", "annotation", "donor"):
+            path = getattr(args, option, None)
+            if path:
+                inputs.append((f"--{option.replace('_', '-')}", path))
+        for path in getattr(args, "kraken", None) or ():
+            inputs.append(("--classifications", path))
+        if args.command == "run":
+            inputs.append(("--kraken-db", args.kraken_db))
+            if args.workdir:
+                inputs.extend(
+                    ("--workdir intermediate", Path(args.workdir) / name)
+                    for name in ("unmapped.fq", "kraken2.txt", "kraken2.report")
+                )
+    elif args.command == "cohort":
+        outputs = [("--output", args.output)]
+        if args.matrix:
+            outputs.append(("--matrix", args.matrix))
+        inputs = [("input site table", path) for path in args.sites]
+    else:
+        return
+
+    for index, (option, path) in enumerate(outputs):
+        for other_option, other_path in outputs[:index]:
+            if _same_path(path, other_path):
+                raise ValueError(
+                    f"{other_option} and {option} must refer to different files (same path: {path})."
+                )
+        for input_option, input_path in inputs:
+            if _same_path(path, input_path):
+                raise ValueError(f"{option} would overwrite {input_option} input: {path}.")
+
+
 def main(argv=None):
     given = sys.argv[1:] if argv is None else list(argv)
     args = build_parser().parse_args(given)
@@ -302,6 +355,11 @@ def main(argv=None):
     # arguments of whatever program called it.
     args.command_line = " ".join(["hgt-site", *given])
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s", stream=sys.stderr)
+    try:
+        _validate_paths(args)
+    except (OSError, ValueError) as problem:
+        print(f"ERROR: {problem}", file=sys.stderr)
+        return 1
     if args.command == "call":
         if bool(args.kraken) == bool(args.donor):
             print(
@@ -347,12 +405,12 @@ def main(argv=None):
             rows, names = build(
                 args.sites, args.names, args.window, args.common_fraction, args.include_failed
             )
+            write_cohort(rows, args.output)
+            if args.matrix:
+                write_matrix(rows, names, args.matrix)
         except (OSError, ValueError) as problem:
             print(f"ERROR: {problem}", file=sys.stderr)
             return 1
-        write_cohort(rows, args.output)
-        if args.matrix:
-            write_matrix(rows, names, args.matrix)
         common = sum(1 for r in rows if "COMMON" in r["flags"])
         print(
             f"{len(rows)} positions across {len(names)} samples, {common} of them in most samples "
