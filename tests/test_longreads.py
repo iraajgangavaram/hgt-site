@@ -3,8 +3,8 @@ import random
 
 import pysam
 
-from hgt_site.longreads import collect_clipped
 from hgt_site.call import call_sites, write_table
+from hgt_site.longreads import collect_clipped
 
 
 def _read(name, sequence, start, cigar, mapq=60):
@@ -36,6 +36,12 @@ def test_collect_clipped_matches_donor_tails_at_both_junction_sides(tmp_path):
         bam.write(_read("right", host_sequence[:600] + donor_sequence[:250], 1_000, [(0, 600), (4, 250)]))
         bam.write(_read("left", donor_sequence[300:550] + host_sequence[600:], 2_000, [(4, 250), (0, 600)]))
         bam.write(_read("noise", host_sequence[:600] + "T" * 250, 3_000, [(0, 600), (4, 250)]))
+        duplicate = _read("duplicate", host_sequence[:600] + donor_sequence[:250], 3_500, [(0, 600), (4, 250)])
+        duplicate.is_duplicate = True
+        bam.write(duplicate)
+        qcfail = _read("qcfail", host_sequence[:600] + donor_sequence[:250], 4_000, [(0, 600), (4, 250)])
+        qcfail.is_qcfail = True
+        bam.write(qcfail)
 
     anchors, calls, sequences, lengths, stats = collect_clipped(alignment, donor, 562)
 
