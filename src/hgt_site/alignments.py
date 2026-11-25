@@ -21,6 +21,25 @@ QCFAIL = 0x200
 DUPLICATE = 0x400
 SUPPLEMENTARY = 0x800
 SKIP = SECONDARY | SUPPLEMENTARY | QCFAIL | DUPLICATE
+SAM_HEADER_TAGS = {"@HD", "@SQ", "@RG", "@PG", "@CO"}
+
+
+def _is_sam_header(cols):
+    """Distinguish SAM headers from records whose query name begins with @."""
+    if cols[0] not in SAM_HEADER_TAGS:
+        return False
+    if len(cols) >= 11:
+        try:
+            int(cols[1])
+            return False
+        except ValueError:
+            pass
+    if cols[0] == "@CO":
+        return True
+    return len(cols) > 1 and all(
+        len(field) >= 3 and field[2] == ":" and field[:2].isupper()
+        for field in cols[1:]
+    )
 
 
 @dataclass
@@ -226,12 +245,12 @@ def _iter_sam_text(path, sample, coverage=None):
     sampling = True
     with open(path) as handle:
         for line in handle:
-            if line.startswith("@"):
-                if line.startswith("@SQ"):
-                    tags = dict(t.split(":", 1) for t in line.rstrip("\n").split("\t")[1:])
+            cols = line.rstrip("\n").split("\t", 10)
+            if _is_sam_header(cols):
+                if cols[0] == "@SQ":
+                    tags = dict(t.split(":", 1) for t in cols[1:])
                     lengths[tags["SN"]] = int(tags["LN"])
                 continue
-            cols = line.split("\t", 10)
             flag = int(cols[1])
             sample.count(flag)
             if sampling:

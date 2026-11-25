@@ -12,33 +12,16 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from .alignments import _is_sam_header
+
 log = logging.getLogger("hgt_site")
 
 UNMAPPED, SECONDARY, QCFAIL, DUPLICATE, SUPPLEMENTARY = 0x4, 0x100, 0x200, 0x400, 0x800
 SKIP = SECONDARY | SUPPLEMENTARY | QCFAIL | DUPLICATE
-SAM_HEADER_TAGS = {"@HD", "@SQ", "@RG", "@PG", "@CO"}
 
 
 class ToolMissing(Exception):
     """A program hgt-site needs is not on PATH."""
-
-
-def _is_sam_header(cols):
-    """Distinguish header records from valid read names that begin with @HD, etc."""
-    if cols[0] not in SAM_HEADER_TAGS:
-        return False
-    if len(cols) >= 11:
-        try:
-            int(cols[1])
-            return False
-        except ValueError:
-            pass
-    if cols[0] == "@CO":
-        return True
-    return len(cols) > 1 and all(
-        len(field) >= 3 and field[2] == ":" and field[:2].isupper()
-        for field in cols[1:]
-    )
 
 
 def _fastq_record(name, seq, qual):
