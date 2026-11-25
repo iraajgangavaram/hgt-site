@@ -56,6 +56,24 @@ def run(cmd, **kwargs):
     subprocess.run(cmd, check=True, **kwargs)
 
 
+def run_pipeline(first, second, **kwargs):
+    """Run two argument-vector commands connected by a pipe, checking both."""
+    first = [str(c) for c in first]
+    second = [str(c) for c in second]
+    with subprocess.Popen(first, stdout=subprocess.PIPE) as producer:
+        try:
+            result = subprocess.run(second, stdin=producer.stdout, check=False, **kwargs)
+        finally:
+            producer.stdout.close()
+        returncode = producer.wait()
+
+    if returncode:
+        raise subprocess.CalledProcessError(returncode, first)
+    if result.returncode:
+        raise subprocess.CalledProcessError(result.returncode, second)
+    return result
+
+
 def build_sample(host, donor, args, rng):
     """Return the sample sequence and the true insertion sites in host coordinates."""
     (host_name, host_seq), = host.items()
@@ -304,14 +322,17 @@ def main():
 
     # Primary alignments only, in read order. LGTSeek needs this order, and
     # hgt-site ignores secondary and supplementary records anyway.
-    run(
-        f"bwa mem -t {args.threads} -v 1 {args.host} {out}/reads_1.fq {out}/reads_2.fq"
-        f" | samtools view -b -F 0x900 -o {out}/host.bam -",
-        shell=True,
+    run_pipeline(
+        ["bwa", "mem", "-t", args.threads, "-v", 1, args.host,
+         out / "reads_1.fq", out / "reads_2.fq"],
+        ["samtools", "view", "-b", "-F", "0x900", "-o", out / "host.bam", "-"],
     )
     # hgt-site only needs pairs with at least one unmapped mate, plus the header.
-    run(f"samtools view -h -e 'flag.unmap || flag.munmap' -o {out}/aligned.sam {out}/host.bam", shell=True)
-    run(f"samtools fastq -f 4 {out}/aligned.sam > {out}/unmapped.fq 2> /dev/null", shell=True)
+    run(["samtools", "view", "-h", "-e", "flag.unmap || flag.munmap",
+         "-o", out / "aligned.sam", out / "host.bam"])
+    with open(out / "unmapped.fq", "w") as unmapped:
+        run(["samtools", "fastq", "-f", "4", out / "aligned.sam"],
+            stdout=unmapped, stderr=subprocess.DEVNULL)
     run(
         ["kraken2", "--db", args.kraken_db, "--threads", str(args.threads),
          "--output", str(out / "kraken2.txt"), "--report", str(out / "kraken2.report"), str(out / "unmapped.fq")],
