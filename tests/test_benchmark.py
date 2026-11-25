@@ -32,6 +32,23 @@ def test_run_pipeline_reports_producer_failure():
     assert error.value.cmd == producer
 
 
+def test_run_pipeline_reports_consumer_failure_before_broken_pipe():
+    producer = [
+        sys.executable,
+        "-c",
+        "import sys\ntry:\n while True:\n  sys.stdout.write('x' * 65536); sys.stdout.flush()\n"
+        "except BrokenPipeError:\n raise SystemExit(42)",
+    ]
+    consumer = [sys.executable, "-c", "raise SystemExit(9)"]
+
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        run_pipeline(producer, consumer, stderr=subprocess.DEVNULL)
+
+    assert error.value.returncode == 9
+    assert error.value.cmd == consumer
+    assert error.value.producer_returncode != 0
+
+
 def test_build_sample_rejects_more_insertions_than_host_can_hold():
     args = SimpleNamespace(n_insertions=2, insert_max=100, insert_min=50)
 

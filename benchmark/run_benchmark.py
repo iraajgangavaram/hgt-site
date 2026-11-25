@@ -67,10 +67,13 @@ def run_pipeline(first, second, **kwargs):
             producer.stdout.close()
         returncode = producer.wait()
 
+    if result.returncode:
+        error = subprocess.CalledProcessError(result.returncode, second)
+        if returncode:
+            error.producer_returncode = returncode
+        raise error
     if returncode:
         raise subprocess.CalledProcessError(returncode, first)
-    if result.returncode:
-        raise subprocess.CalledProcessError(result.returncode, second)
     return result
 
 
