@@ -831,13 +831,15 @@ def test_unmapped_sam_read_name_starting_with_at_sign_is_kept(tmp_path):
 
     sam = tmp_path / "at-sign.sam"
     sam.write_text(
-        "@HD\tVN:1.6\n"
+        "@HD\tVN:1.6\tSO:unsorted\n"
+        "@SQ\tSN:chr1\tLN:1000\n"
         "@read\t4\t*\t0\t0\t*\t*\t0\t0\tACGT\tIIII\n"
+        "@HD\t4\t*\t0\t0\t*\t*\t0\t0\tTGCA\tIIII\n"
     )
     fastq = tmp_path / "unmapped.fq"
 
-    assert write_unmapped_fastq(sam, fastq) == 1
-    assert fastq.read_text() == "@@read\nACGT\n+\nIIII\n"
+    assert write_unmapped_fastq(sam, fastq) == 2
+    assert fastq.read_text() == "@@read\nACGT\n+\nIIII\n@@HD\nTGCA\n+\nIIII\n"
 
 
 def test_unmapped_sam_record_without_sequence_is_skipped(tmp_path, caplog):
