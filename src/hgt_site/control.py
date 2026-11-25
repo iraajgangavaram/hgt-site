@@ -58,19 +58,37 @@ def load_control(path, min_pairs=MIN_PAIRS):
     positions = {}
     with opener(path, "rt", newline="") as handle:
         reader = csv.DictReader(handle, delimiter="\t")
-        if reader.fieldnames is None or "chrom" not in reader.fieldnames:
+        required = {"chrom", "start", "end", "n_pairs"}
+        missing = required - set(reader.fieldnames or ())
+        if missing:
             raise ValueError(
-                f"{path} does not look like an hgt-site table: it has no chrom column."
+                f"{path} does not look like an hgt-site table: missing required column(s) "
+                f"{', '.join(sorted(missing))}."
             )
         for row in reader:
+            line = reader.line_num
+            chrom = row.get("chrom")
+            if not chrom or not chrom.strip():
+                raise ValueError(f"{path} line {line}: chrom must not be empty.")
             try:
-                pairs = int(row.get("n_pairs") or 0)
-            except ValueError:
-                pairs = 0
+                start = int(row["start"])
+            except (TypeError, ValueError):
+                raise ValueError(f"{path} line {line}: start must be a whole number.") from None
+            try:
+                end = int(row["end"])
+            except (TypeError, ValueError):
+                raise ValueError(f"{path} line {line}: end must be a whole number.") from None
+            try:
+                pairs = int(row["n_pairs"])
+            except (TypeError, ValueError):
+                raise ValueError(f"{path} line {line}: n_pairs must be a whole number.") from None
+            if start < 0 or end < start:
+                raise ValueError(f"{path} line {line}: {start}-{end} is not a valid interval.")
+            if pairs < 0:
+                raise ValueError(f"{path} line {line}: n_pairs must not be negative.")
             if pairs < min_pairs:
                 continue
-            start, end = int(row["start"]), int(row["end"])
-            positions.setdefault(row["chrom"], []).append((start + end) // 2)
+            positions.setdefault(chrom, []).append((start + end) // 2)
     for chrom in positions:
         positions[chrom].sort()
     return positions
