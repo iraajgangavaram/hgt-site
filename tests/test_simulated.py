@@ -74,6 +74,52 @@ def test_cli_reports_unwritable_output_without_traceback(sim, tmp_path, capsys):
     assert "Traceback" not in captured.err
 
 
+@pytest.mark.parametrize(
+    ("option", "value", "message"),
+    [
+        ("--threads", "0", "--threads must be at least 1"),
+        ("--host-taxid", "0", "--host-taxid must be at least 1"),
+        ("--window", "0", "--window must be at least 1"),
+        ("--min-support", "0", "--min-support must be at least 1"),
+        ("--max-gap", "-1", "--max-gap must be at least 0"),
+        ("--min-mean-mapq", "256", "--min-mean-mapq must be between 0 and 255"),
+        ("--min-taxon-fraction", "1.1", "--min-taxon-fraction must be between 0 and 1"),
+        ("--max-qvalue", "-0.1", "--max-qvalue must be between 0 and 1"),
+        ("--min-complexity", "1.1", "--min-complexity must be between 0 and 1"),
+        ("--control-min-pairs", "0", "--control-min-pairs must be at least 1"),
+        ("--control-window", "-1", "--control-window must be at least 0"),
+        ("--max-anchor-divergence", "-0.01", "--max-anchor-divergence must be a finite"),
+        ("--max-anchor-divergence", "inf", "--max-anchor-divergence must be a finite"),
+    ],
+)
+def test_cli_rejects_invalid_numeric_options(sim, tmp_path, capsys, option, value, message):
+    output = tmp_path / "sites.tsv"
+    code = main([
+        "call", "--bam", f"{sim}.sam", "--kraken", f"{sim}.kraken2.txt",
+        "--host-taxid", str(HOST_TAXID), "-o", str(output), option, value,
+    ])
+
+    error = capsys.readouterr().err
+    assert code == 1
+    assert message in error
+    assert "Traceback" not in error
+    assert not output.exists()
+
+
+def test_cohort_rejects_invalid_numeric_options(tmp_path, capsys):
+    output = tmp_path / "cohort.tsv"
+    code = main([
+        "cohort", str(tmp_path / "missing.tsv"), "-o", str(output),
+        "--common-fraction", "1.1",
+    ])
+
+    error = capsys.readouterr().err
+    assert code == 1
+    assert "--common-fraction must be between 0 and 1" in error
+    assert "Traceback" not in error
+    assert not output.exists()
+
+
 def test_cli_rejects_output_that_would_overwrite_bam(sim, capsys):
     bam = Path(f"{sim}.sam")
     original = bam.read_bytes()
