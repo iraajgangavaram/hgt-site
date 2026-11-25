@@ -37,3 +37,12 @@ def test_build_sample_rejects_more_insertions_than_host_can_hold():
 
     with pytest.raises(SystemExit, match="host can hold at most 1 insertions"):
         build_sample({"host": "A" * 20_000}, {"donor": "C" * 100}, args, None)
+
+
+def test_build_sample_allows_zero_insertions_on_a_short_host():
+    args = SimpleNamespace(n_insertions=0, insert_max=100, insert_min=50)
+
+    _, sample, truth = build_sample({"host": "A" * 100}, {"donor": "C" * 100}, args, None)
+
+    assert sample == "A" * 100
+    assert truth == []
