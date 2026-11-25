@@ -78,6 +78,17 @@ def build_sample(host, donor, args, rng):
     """Return the sample sequence and the true insertion sites in host coordinates."""
     (host_name, host_seq), = host.items()
     donor_seq = max(donor.values(), key=len)
+    if args.n_insertions < 0:
+        raise SystemExit("--n-insertions must be zero or greater")
+    if len(host_seq) < 20_000:
+        raise SystemExit("The host must be at least 20,000 bp to place an insertion")
+    candidate_span = len(host_seq) - 20_000 + 1
+    max_insertions = (candidate_span - 1) // 20_001 + 1
+    if args.n_insertions > max_insertions:
+        raise SystemExit(
+            f"The host can hold at most {max_insertions} insertions at the required spacing; "
+            f"--n-insertions is {args.n_insertions}. Use a longer host or request fewer insertions."
+        )
     if len(donor_seq) < args.insert_max:
         raise SystemExit(
             f"The donor is {len(donor_seq)} bp but insertions are up to {args.insert_max} bp. "

@@ -1,11 +1,12 @@
 import subprocess
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "benchmark"))
-from run_benchmark import run_pipeline  # noqa: E402
+from run_benchmark import build_sample, run_pipeline  # noqa: E402
 
 
 def test_run_pipeline_passes_paths_literally(tmp_path):
@@ -29,3 +30,10 @@ def test_run_pipeline_reports_producer_failure():
 
     assert error.value.returncode == 7
     assert error.value.cmd == producer
+
+
+def test_build_sample_rejects_more_insertions_than_host_can_hold():
+    args = SimpleNamespace(n_insertions=2, insert_max=100, insert_min=50)
+
+    with pytest.raises(SystemExit, match="host can hold at most 1 insertions"):
+        build_sample({"host": "A" * 20_000}, {"donor": "C" * 100}, args, None)
