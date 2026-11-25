@@ -312,7 +312,7 @@ def main(argv=None):
             return 1
         try:
             _call(args, args.kraken)
-        except ValueError as problem:
+        except (OSError, ValueError) as problem:
             print(f"ERROR: {problem}", file=sys.stderr)
             return 1
     elif args.command == "run":
@@ -334,6 +334,9 @@ def main(argv=None):
         except ToolMissing as problem:
             print(f"ERROR: {problem}", file=sys.stderr)
             return 1
+        except (OSError, ValueError) as problem:
+            print(f"ERROR: {problem}", file=sys.stderr)
+            return 1
         finally:
             if temporary is not None:
                 temporary.cleanup()
@@ -344,7 +347,7 @@ def main(argv=None):
             rows, names = build(
                 args.sites, args.names, args.window, args.common_fraction, args.include_failed
             )
-        except ValueError as problem:
+        except (OSError, ValueError) as problem:
             print(f"ERROR: {problem}", file=sys.stderr)
             return 1
         write_cohort(rows, args.output)
@@ -357,11 +360,19 @@ def main(argv=None):
             file=sys.stderr,
         )
     elif args.command == "selftest":
-        return _selftest()
+        try:
+            return _selftest()
+        except (OSError, ValueError) as problem:
+            print(f"ERROR: {problem}", file=sys.stderr)
+            return 1
     elif args.command == "simulate":
         from .simulate import SimConfig, simulate
 
-        truth = simulate(args.output_prefix, SimConfig(seed=args.seed))
+        try:
+            truth = simulate(args.output_prefix, SimConfig(seed=args.seed))
+        except (OSError, ValueError) as problem:
+            print(f"ERROR: {problem}", file=sys.stderr)
+            return 1
         print(
             f"Wrote {args.output_prefix}.sam, .kraken2.txt, .truth.bed and .host.fa ({len(truth)} insertions)",
             file=sys.stderr,

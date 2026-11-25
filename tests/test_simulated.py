@@ -50,6 +50,30 @@ def test_cli_runs(sim, tmp_path):
     assert out.read_text().startswith("chrom\tstart")
 
 
+def test_cli_reports_missing_classification_file_without_traceback(sim, tmp_path, capsys):
+    missing = tmp_path / "missing.kraken2.txt"
+    code = main([
+        "call", "--bam", f"{sim}.sam", "--kraken", str(missing),
+        "--host-taxid", str(HOST_TAXID), "-o", str(tmp_path / "sites.tsv"),
+    ])
+    captured = capsys.readouterr()
+    assert code == 1
+    assert "ERROR:" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_cli_reports_unwritable_output_without_traceback(sim, tmp_path, capsys):
+    output = tmp_path / "missing-parent" / "sites.tsv"
+    code = main([
+        "call", "--bam", f"{sim}.sam", "--kraken", f"{sim}.kraken2.txt",
+        "--host-taxid", str(HOST_TAXID), "-o", str(output),
+    ])
+    captured = capsys.readouterr()
+    assert code == 1
+    assert "ERROR:" in captured.err
+    assert "Traceback" not in captured.err
+
+
 def test_simulated_sam_has_mate_positions(sim):
     with open(f"{sim}.sam") as handle:
         for line in handle:
