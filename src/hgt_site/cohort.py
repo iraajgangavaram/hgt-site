@@ -51,11 +51,39 @@ def read_sites(path, include_failed=False):
     rows = []
     with open(path, newline="") as handle:
         reader = csv.DictReader(handle, delimiter="\t")
-        if reader.fieldnames is None or "chrom" not in reader.fieldnames:
-            raise ValueError(f"{path} does not look like an hgt-site table: no chrom column.")
+        required = {"chrom", "start", "end", "n_pairs", "filter"}
+        if reader.fieldnames is None:
+            raise ValueError(f"{path} does not look like an hgt-site table: no header row.")
+        missing = sorted(required - set(reader.fieldnames))
+        if missing:
+            raise ValueError(
+                f"{path} does not look like an hgt-site table: missing column(s) "
+                f"{', '.join(missing)}."
+            )
         for row in reader:
             if not include_failed and row.get("filter") != "PASS":
                 continue
+            line = reader.line_num
+            chrom = (row.get("chrom") or "").strip()
+            if not chrom:
+                raise ValueError(f"{path}:{line}: chromosome must not be empty.")
+            values = {}
+            for column in ("start", "end", "n_pairs"):
+                value = (row.get(column) or "").strip()
+                try:
+                    # int() accepts whitespace, but not fractional or malformed values.
+                    values[column] = int(value)
+                except ValueError as exc:
+                    raise ValueError(
+                        f"{path}:{line}: {column} must be an integer; got {value!r}."
+                    ) from exc
+            if values["start"] < 0:
+                raise ValueError(f"{path}:{line}: start must be non-negative.")
+            if values["end"] < values["start"]:
+                raise ValueError(f"{path}:{line}: end must be greater than or equal to start.")
+            if values["n_pairs"] < 0:
+                raise ValueError(f"{path}:{line}: n_pairs must be non-negative.")
+            row.update(chrom=chrom, **values)
             rows.append(row)
     return rows
 
