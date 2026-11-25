@@ -4,6 +4,8 @@ hgt-site finds places where DNA from bacteria or other organisms may have been i
 
 It takes paired-end reads aligned to the host (BAM, CRAM or SAM) and the per-read output of whatever classifier you ran on the reads that did not align, and writes a table of candidate sites, with optional BED, VCF and MultiQC files.
 
+Nanopore and PacBio alignments are also supported when you know the donor sequence: use `--long-reads` with `--donor`, without classifier output or a Kraken2 database.
+
 - **Any classifier.** Kraken2, KrakenUniq, Kaiju, Centrifuge, DIAMOND and BLAST tabular output are read directly, as is any two-column file of read name and taxid. All of them give identical calls on the same reads.
 - **Junctions to the base pair** where reads cross the junction, rather than an estimate from read pairs.
 - **The gene at each site**, with `--annotation` and a GTF or GFF3.
@@ -45,6 +47,8 @@ hgt-site call --bam demo.sam --kraken demo.kraken2.txt --host-taxid 9606 -o demo
 ## Documentation and benchmarks
 
 Full documentation: https://iraajgangavaram.github.io/hgt-site/
+
+Try the self-contained quickstart in your browser: https://colab.research.google.com/github/iraajgangavaram/hgt-site/blob/main/examples/quickstart.ipynb
 
 Source code, benchmark scripts and results: https://github.com/iraajgangavaram/hgt-site
 
