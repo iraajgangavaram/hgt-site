@@ -21,15 +21,20 @@ TIMEOUT = 30
 
 def total(payload):
     """The download count, from whichever shape this response uses."""
+    if not isinstance(payload, dict):
+        return None
     for key in ("total_ndownloads", "ndownloads"):
         value = payload.get(key)
-        if isinstance(value, int):
+        if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
             return value
     files = payload.get("files")
     if isinstance(files, list) and files:
-        counts = [f.get("ndownloads", 0) for f in files if isinstance(f, dict)]
-        if any(isinstance(c, int) for c in counts):
-            return sum(c for c in counts if isinstance(c, int))
+        counts = [f.get("ndownloads") for f in files if isinstance(f, dict)]
+        valid_counts = [
+            c for c in counts if isinstance(c, int) and not isinstance(c, bool) and c >= 0
+        ]
+        if valid_counts:
+            return sum(valid_counts)
     return None
 
 
@@ -43,11 +48,12 @@ def main():
 
     count = total(payload)
     if count is None:
-        print(
-            "no download count in the response. Top-level keys were: "
-            + ", ".join(sorted(payload)),
-            file=sys.stderr,
+        details = (
+            f"top-level keys were: {', '.join(sorted(payload))}"
+            if isinstance(payload, dict)
+            else f"response JSON type was {type(payload).__name__}"
         )
+        print(f"no download count in the response; {details}", file=sys.stderr)
         return 1
     print(count)
     return 0
