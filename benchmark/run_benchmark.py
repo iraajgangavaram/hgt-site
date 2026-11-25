@@ -56,10 +56,43 @@ def run(cmd, **kwargs):
     subprocess.run(cmd, check=True, **kwargs)
 
 
+def run_pipeline(first, second, **kwargs):
+    """Run two argument-vector commands connected by a pipe, checking both."""
+    first = [str(c) for c in first]
+    second = [str(c) for c in second]
+    with subprocess.Popen(first, stdout=subprocess.PIPE) as producer:
+        try:
+            result = subprocess.run(second, stdin=producer.stdout, check=False, **kwargs)
+        finally:
+            producer.stdout.close()
+        returncode = producer.wait()
+
+    if result.returncode:
+        error = subprocess.CalledProcessError(result.returncode, second)
+        if returncode:
+            error.producer_returncode = returncode
+        raise error
+    if returncode:
+        raise subprocess.CalledProcessError(returncode, first)
+    return result
+
+
 def build_sample(host, donor, args, rng):
     """Return the sample sequence and the true insertion sites in host coordinates."""
     (host_name, host_seq), = host.items()
     donor_seq = max(donor.values(), key=len)
+    if args.n_insertions < 0:
+        raise SystemExit("--n-insertions must be zero or greater")
+    if args.n_insertions and len(host_seq) < 20_000:
+        raise SystemExit("The host must be at least 20,000 bp to place an insertion")
+    if args.n_insertions:
+        candidate_span = len(host_seq) - 20_000 + 1
+        max_insertions = (candidate_span - 1) // 20_001 + 1
+        if args.n_insertions > max_insertions:
+            raise SystemExit(
+                f"The host can hold at most {max_insertions} insertions at the required spacing; "
+                f"--n-insertions is {args.n_insertions}. Use a longer host or request fewer insertions."
+            )
     if len(donor_seq) < args.insert_max:
         raise SystemExit(
             f"The donor is {len(donor_seq)} bp but insertions are up to {args.insert_max} bp. "
@@ -304,14 +337,17 @@ def main():
 
     # Primary alignments only, in read order. LGTSeek needs this order, and
     # hgt-site ignores secondary and supplementary records anyway.
-    run(
-        f"bwa mem -t {args.threads} -v 1 {args.host} {out}/reads_1.fq {out}/reads_2.fq"
-        f" | samtools view -b -F 0x900 -o {out}/host.bam -",
-        shell=True,
+    run_pipeline(
+        ["bwa", "mem", "-t", args.threads, "-v", 1, args.host,
+         out / "reads_1.fq", out / "reads_2.fq"],
+        ["samtools", "view", "-b", "-F", "0x900", "-o", out / "host.bam", "-"],
     )
     # hgt-site only needs pairs with at least one unmapped mate, plus the header.
-    run(f"samtools view -h -e 'flag.unmap || flag.munmap' -o {out}/aligned.sam {out}/host.bam", shell=True)
-    run(f"samtools fastq -f 4 {out}/aligned.sam > {out}/unmapped.fq 2> /dev/null", shell=True)
+    run(["samtools", "view", "-h", "-e", "flag.unmap || flag.munmap",
+         "-o", out / "aligned.sam", out / "host.bam"])
+    with open(out / "unmapped.fq", "w") as unmapped:
+        run(["samtools", "fastq", "-f", "4", out / "aligned.sam"],
+            stdout=unmapped, stderr=subprocess.DEVNULL)
     run(
         ["kraken2", "--db", args.kraken_db, "--threads", str(args.threads),
          "--output", str(out / "kraken2.txt"), "--report", str(out / "kraken2.report"), str(out / "unmapped.fq")],
@@ -341,15 +377,16 @@ def main():
     passed = [(r["chrom"], int(r["start"]), int(r["end"])) for r in rows if r["filter"] == "PASS"]
     support_only = [(r["chrom"], int(r["start"]), int(r["end"])) for r in rows if int(r["n_pairs"]) >= 3]
     if args.lgtseek_lib:
-        run(
-            f"bwa mem -t {args.threads} -v 1 {args.bacteria_index} {out}/reads_1.fq {out}/reads_2.fq"
-            f" | samtools view -b -F 0x900 -o {out}/donor.bam -",
-            shell=True,
+        run_pipeline(
+            ["bwa", "mem", "-t", args.threads, "-v", 1, args.bacteria_index,
+             out / "reads_1.fq", out / "reads_2.fq"],
+            ["samtools", "view", "-b", "-F", "0x900", "-o", out / "donor.bam", "-"],
         )
         script = Path(__file__).with_name("run_lgtseek.pl")
         samtools = subprocess.run(["which", "samtools"], capture_output=True, text=True).stdout.strip()
-        run(["perl", script, args.lgtseek_lib, out / "donor.bam", out / "host.bam", out, samtools],
-            stdout=open(out / "lgtseek_counts.txt", "w"), stderr=subprocess.DEVNULL)
+        with open(out / "lgtseek_counts.txt", "w") as counts:
+            run(["perl", script, args.lgtseek_lib, out / "donor.bam", out / "host.bam", out, samtools],
+                stdout=counts, stderr=subprocess.DEVNULL)
         lgtseek_sites = lgtseek_calls(out / "lgtseek.lgt_recipient.bam", args.min_lgtseek_pairs)
 
     summary = {

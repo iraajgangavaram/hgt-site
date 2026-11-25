@@ -25,7 +25,7 @@ question.
 ```bash
 git clone https://github.com/iraajgangavaram/hgt-site
 cd hgt-site
-pip install -e ".[test]"
+pip install -e ".[dev]"
 pytest
 ruff check src tests
 ```

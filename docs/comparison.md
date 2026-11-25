@@ -15,7 +15,7 @@ Dates were read from the repositories on 2 November 2026.
 | [ViFi](https://github.com/namphuon/ViFi) | Viral integration, using HMMs over viral families | none tagged | July 2021 |
 | [nf-core/hgtseq](https://github.com/nf-core/hgtseq) | A pipeline that aligns reads and classifies the unmapped ones | 1.1.0, May 2023 | actively developed |
 | [VISPA2](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5702242/) | Vector integration sites from amplicon data, for gene therapy | v2, 2017 | see publication |
-| hgt-site | Bacterial, viral or vector insertion sites, tested against chance chimeras | 0.4.0, November 2026 | actively developed |
+| hgt-site | Bacterial, viral or vector insertion sites, tested against chance chimeras | 0.5.0, November 2026 | actively developed |
 
 ## Viral integration
 

@@ -288,6 +288,24 @@ def test_diverged_anchors_are_dropped(tmp_path):
     assert strict.anchors[0].divergence == 0.0
 
 
+def test_sam_call_reader_keeps_query_name_that_matches_header_tag(tmp_path):
+    from hgt_site.alignments import collect_pairs
+
+    sam = tmp_path / "header-name.sam"
+    sam.write_text(
+        "@HD\tVN:1.6\tSO:unsorted\n"
+        "@SQ\tSN:chr1\tLN:10000\n"
+        "@HD\t73\tchr1\t101\t60\t4M\t*\t0\t0\tACGT\tIIII\n"
+        "@HD\t133\t*\t0\t0\t*\tchr1\t101\t0\tTGCA\tIIII\n"
+    )
+
+    pairs = collect_pairs(sam)
+
+    assert len(pairs.anchors) == 1
+    assert pairs.anchors[0].name == "@HD"
+    assert pairs.unmapped_mate_seqs == {"@HD": "TGCA"}
+
+
 def test_host_relatives_warning_fires_only_when_anchors_are_diverged(caplog):
     import logging
 

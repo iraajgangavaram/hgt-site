@@ -95,7 +95,13 @@ def collect_clipped(
     ) as bam:
         lengths = dict(zip(bam.references, bam.lengths))
         for read in bam:
-            if read.is_unmapped or read.is_secondary or read.is_supplementary:
+            if (
+                read.is_unmapped
+                or read.is_secondary
+                or read.is_supplementary
+                or read.is_duplicate
+                or read.is_qcfail
+            ):
                 continue
             reads += 1
             if read.mapping_quality < min_mapq:

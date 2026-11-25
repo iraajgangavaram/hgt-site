@@ -74,6 +74,34 @@ def test_cli_reports_unwritable_output_without_traceback(sim, tmp_path, capsys):
     assert "Traceback" not in captured.err
 
 
+def test_cli_rejects_output_that_would_overwrite_bam(sim, capsys):
+    bam = Path(f"{sim}.sam")
+    original = bam.read_bytes()
+
+    code = main([
+        "call", "--bam", str(bam), "--kraken", f"{sim}.kraken2.txt",
+        "--host-taxid", str(HOST_TAXID), "-o", str(bam),
+    ])
+
+    error = capsys.readouterr().err
+    assert code == 1
+    assert "--output would overwrite --bam input" in error
+    assert bam.read_bytes() == original
+
+
+def test_cli_rejects_two_outputs_with_same_path(sim, tmp_path, capsys):
+    output = tmp_path / "same.tsv"
+    code = main([
+        "call", "--bam", f"{sim}.sam", "--kraken", f"{sim}.kraken2.txt",
+        "--host-taxid", str(HOST_TAXID), "-o", str(output), "--bed", str(output),
+    ])
+
+    error = capsys.readouterr().err
+    assert code == 1
+    assert "--output and --bed must refer to different files" in error
+    assert not output.exists()
+
+
 def test_simulated_sam_has_mate_positions(sim):
     with open(f"{sim}.sam") as handle:
         for line in handle:
@@ -587,6 +615,27 @@ def test_cohort_rejects_a_mismatched_name_list(sim, tmp_path, capsys):
     assert "one name per file" in capsys.readouterr().err
 
 
+def test_cohort_rejects_same_output_and_matrix_path(tmp_path, capsys):
+    table = tmp_path / "sample.tsv"
+    table.write_text("chrom\tstart\tend\tfilter\n")
+    output = tmp_path / "result.tsv"
+
+    assert main(["cohort", str(table), "-o", str(output), "--matrix", str(output)]) == 1
+    assert "--output and --matrix must refer to different files" in capsys.readouterr().err
+    assert not output.exists()
+
+
+def test_cohort_reports_output_write_errors_without_traceback(tmp_path, capsys):
+    table = tmp_path / "sample.tsv"
+    table.write_text("chrom\tstart\tend\tfilter\n")
+    output = tmp_path / "missing" / "result.tsv"
+
+    assert main(["cohort", str(table), "-o", str(output)]) == 1
+    error = capsys.readouterr().err
+    assert error.startswith("ERROR:")
+    assert "Traceback" not in error
+
+
 def test_multiqc_table(sim, tmp_path):
     import json
 
@@ -734,6 +783,76 @@ def test_run_command_says_what_is_missing(sim, tmp_path, monkeypatch, capsys):
     ])
     assert code == 1
     assert "kraken2 was not found" in capsys.readouterr().err
+
+
+def test_run_command_reports_kraken2_failure_without_traceback(sim, tmp_path, monkeypatch, capsys):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    executable = bin_dir / "kraken2"
+    executable.write_text("#!/bin/sh\necho 'database is unreadable' >&2\nexit 2\n")
+    executable.chmod(0o755)
+    monkeypatch.setenv("PATH", str(bin_dir))
+    database = tmp_path / "db"
+    database.mkdir()
+
+    result = main([
+        "run", "--bam", f"{sim}.sam", "--kraken-db", str(database),
+        "--host-taxid", str(HOST_TAXID), "-o", str(tmp_path / "sites.tsv"),
+    ])
+
+    error = capsys.readouterr().err
+    assert result == 1
+    assert "Kraken2 failed:" in error
+    assert "database is unreadable" in error
+    assert "Traceback" not in error
+
+
+def test_run_command_reports_truncated_sam_record_without_traceback(tmp_path, monkeypatch, capsys):
+    sam = tmp_path / "truncated.sam"
+    sam.write_text("@HD\tVN:1.6\nread1\t4\n")
+    database = tmp_path / "db"
+    database.mkdir()
+    monkeypatch.setenv("PATH", str(tmp_path / "empty"))
+
+    result = main([
+        "run", "--bam", str(sam), "--kraken-db", str(database),
+        "--host-taxid", str(HOST_TAXID), "-o", str(tmp_path / "sites.tsv"),
+    ])
+
+    error = capsys.readouterr().err
+    assert result == 1
+    assert "truncated.sam line 2" in error
+    assert "expected at least 11" in error
+    assert "Traceback" not in error
+
+
+def test_unmapped_sam_read_name_starting_with_at_sign_is_kept(tmp_path):
+    from hgt_site.prepare import write_unmapped_fastq
+
+    sam = tmp_path / "at-sign.sam"
+    sam.write_text(
+        "@HD\tVN:1.6\tSO:unsorted\n"
+        "@SQ\tSN:chr1\tLN:1000\n"
+        "@read\t4\t*\t0\t0\t*\t*\t0\t0\tACGT\tIIII\n"
+        "@HD\t4\t*\t0\t0\t*\t*\t0\t0\tTGCA\tIIII\n"
+    )
+    fastq = tmp_path / "unmapped.fq"
+
+    assert write_unmapped_fastq(sam, fastq) == 2
+    assert fastq.read_text() == "@@read\nACGT\n+\nIIII\n@@HD\nTGCA\n+\nIIII\n"
+
+
+def test_unmapped_sam_record_without_sequence_is_skipped(tmp_path, caplog):
+    from hgt_site.prepare import write_unmapped_fastq
+
+    sam = tmp_path / "no-sequence.sam"
+    sam.write_text("@HD\tVN:1.6\nread1\t4\t*\t0\t0\t*\t*\t0\t0\t*\t*\n")
+    fastq = tmp_path / "unmapped.fq"
+
+    assert write_unmapped_fastq(sam, fastq) == 0
+    assert fastq.read_text() == ""
+    assert "Skipped 1 unmapped SAM record" in caplog.text
+    assert "cannot be classified" in caplog.text
 
 
 def _filters(path):

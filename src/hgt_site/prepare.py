@@ -12,6 +12,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from .alignments import _is_sam_header
+
 log = logging.getLogger("hgt_site")
 
 UNMAPPED, SECONDARY, QCFAIL, DUPLICATE, SUPPLEMENTARY = 0x4, 0x100, 0x200, 0x400, 0x800
@@ -38,17 +40,38 @@ def write_unmapped_fastq(alignments, path, reference=None, threads=1):
     """
     path = Path(path)
     written = 0
+    missing_sequence = 0
     if str(alignments).endswith(".sam"):
         with open(alignments) as handle, open(path, "w") as out:
-            for line in handle:
-                if line.startswith("@"):
+            for number, line in enumerate(handle, start=1):
+                if not line.strip():
                     continue
                 cols = line.rstrip("\n").split("\t")
-                flag = int(cols[1])
+                if _is_sam_header(cols):
+                    continue
+                if len(cols) < 11:
+                    raise ValueError(
+                        f"{alignments} line {number} is not a complete SAM record: "
+                        f"found {len(cols)} fields, expected at least 11."
+                    )
+                try:
+                    flag = int(cols[1])
+                except ValueError:
+                    raise ValueError(
+                        f"{alignments} line {number} has a non-integer SAM flag: {cols[1]!r}."
+                    ) from None
                 if not flag & UNMAPPED or flag & SKIP:
+                    continue
+                if cols[9] == "*":
+                    missing_sequence += 1
                     continue
                 out.write(_fastq_record(cols[0], cols[9], cols[10]))
                 written += 1
+        if missing_sequence:
+            log.warning(
+                "Skipped %d unmapped SAM record(s) with no sequence; they cannot be classified.",
+                missing_sequence,
+            )
         return written
 
     import pysam
@@ -61,10 +84,16 @@ def write_unmapped_fastq(alignments, path, reference=None, threads=1):
                 continue
             seq = read.query_sequence
             if not seq:
+                missing_sequence += 1
                 continue
             out.write(_fastq_record(read.query_name, seq, read.qual))
             written += 1
     bam.close()
+    if missing_sequence:
+        log.warning(
+            "Skipped %d unmapped alignment record(s) with no sequence; they cannot be classified.",
+            missing_sequence,
+        )
     return written
 
 
@@ -109,7 +138,7 @@ def prepare(alignments, database, workdir, reference=None, threads=1, kraken_arg
     log.info("Wrote %d unmapped reads to %s.", n, fastq)
     if n == 0:
         raise ToolMissing(
-            "The alignment holds no unmapped reads, so there is nothing to classify. "
+            "The alignment holds no unmapped reads with sequence, so there is nothing to classify. "
             "Check that the file is the alignment before any filtering of unmapped reads."
         )
     return run_kraken2(
