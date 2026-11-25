@@ -1,5 +1,6 @@
 import argparse
 import logging
+import math
 import os
 import sys
 from pathlib import Path
@@ -305,6 +306,59 @@ def _same_path(left, right):
         return False
 
 
+def _validate_options(args):
+    """Reject numeric options outside the ranges the caller and model support."""
+
+    def at_least(option, value, minimum):
+        if value < minimum:
+            raise ValueError(f"{option} must be at least {minimum} (got {value}).")
+
+    def between(option, value, minimum, maximum):
+        if not minimum <= value <= maximum:
+            raise ValueError(f"{option} must be between {minimum} and {maximum} (got {value}).")
+
+    if args.command in ("call", "run"):
+        at_least("--host-taxid", args.host_taxid, 1)
+        for taxid in args.exclude_taxid:
+            at_least("--exclude-taxid", taxid, 1)
+        at_least("--threads", args.threads, 1)
+        for option in ("min_mapq", "min_mean_mapq"):
+            value = getattr(args, option)
+            if value is None:
+                value = DEFAULTS[option]
+            between(f"--{option.replace('_', '-')}", value, 0, 255)
+        for option in ("max_gap", "max_span"):
+            value = getattr(args, option)
+            if value is None:
+                value = DEFAULTS[option]
+            at_least(f"--{option.replace('_', '-')}", value, 0)
+        for option, minimum in (("window", 1), ("min_support", 1)):
+            value = getattr(args, option)
+            if value is None:
+                value = DEFAULTS[option]
+            at_least(f"--{option.replace('_', '-')}", value, minimum)
+        for option in ("min_taxon_fraction", "max_other_pvalue", "min_complexity", "max_qvalue"):
+            value = getattr(args, option)
+            if value is None:
+                value = DEFAULTS[option]
+            between(f"--{option.replace('_', '-')}", value, 0, 1)
+        for option in ("control_min_pairs", "control_window", "max_gene_distance"):
+            value = getattr(args, option, None)
+            if value is not None:
+                at_least(f"--{option.replace('_', '-')}", value, 0 if option != "control_min_pairs" else 1)
+        divergence = args.max_anchor_divergence
+        if divergence is not None and (not math.isfinite(divergence) or divergence < 0):
+            raise ValueError(
+                f"--max-anchor-divergence must be a finite, non-negative number (got {divergence})."
+            )
+        donor_taxid = getattr(args, "donor_taxid", None)
+        if donor_taxid is not None:
+            at_least("--donor-taxid", donor_taxid, 1)
+    elif args.command == "cohort":
+        at_least("--window", args.window, 0)
+        between("--common-fraction", args.common_fraction, 0, 1)
+
+
 def _validate_paths(args):
     """Reject output paths that could overwrite another output or an input."""
     if args.command in ("call", "run"):
@@ -356,6 +410,7 @@ def main(argv=None):
     args.command_line = " ".join(["hgt-site", *given])
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s", stream=sys.stderr)
     try:
+        _validate_options(args)
         _validate_paths(args)
     except (OSError, ValueError) as problem:
         print(f"ERROR: {problem}", file=sys.stderr)
