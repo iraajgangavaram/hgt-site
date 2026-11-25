@@ -62,6 +62,29 @@ def test_cli_reports_missing_classification_file_without_traceback(sim, tmp_path
     assert "Traceback" not in captured.err
 
 
+@pytest.mark.parametrize(
+    ("record", "message"),
+    [
+        ("truncated\t73", "line 3 is not a complete SAM record"),
+        ("badflag\tX\tchr1\t10\t60\t4M\t*\t0\t0\tACGT\tIIII", "line 3 has a non-integer"),
+    ],
+)
+def test_cli_reports_malformed_sam_records_without_traceback(sim, tmp_path, capsys, record, message):
+    sam = tmp_path / "malformed.sam"
+    sam.write_text(f"@HD\tVN:1.6\n@SQ\tSN:chr1\tLN:1000\n{record}\n")
+    output = tmp_path / "sites.tsv"
+    code = main([
+        "call", "--bam", str(sam), "--kraken", f"{sim}.kraken2.txt",
+        "--host-taxid", str(HOST_TAXID), "-o", str(output),
+    ])
+
+    error = capsys.readouterr().err
+    assert code == 1
+    assert message in error
+    assert "Traceback" not in error
+    assert not output.exists()
+
+
 def test_cli_reports_unwritable_output_without_traceback(sim, tmp_path, capsys):
     output = tmp_path / "missing-parent" / "sites.tsv"
     code = main([

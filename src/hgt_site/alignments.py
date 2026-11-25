@@ -244,29 +244,50 @@ def _iter_sam_text(path, sample, coverage=None):
     records = []
     sampling = True
     with open(path) as handle:
-        for line in handle:
+        for number, line in enumerate(handle, start=1):
             cols = line.rstrip("\n").split("\t", 10)
             if _is_sam_header(cols):
                 if cols[0] == "@SQ":
-                    tags = dict(t.split(":", 1) for t in cols[1:])
-                    lengths[tags["SN"]] = int(tags["LN"])
+                    try:
+                        tags = dict(t.split(":", 1) for t in cols[1:])
+                        name, length = tags["SN"], int(tags["LN"])
+                    except (KeyError, ValueError):
+                        raise ValueError(
+                            f"{path} line {number} has an invalid SAM @SQ header; "
+                            "it must include SN and an integer LN."
+                        ) from None
+                    if length < 1:
+                        raise ValueError(f"{path} line {number} has a non-positive @SQ sequence length.")
+                    lengths[name] = length
                 continue
-            flag = int(cols[1])
+            if len(cols) < 11:
+                raise ValueError(
+                    f"{path} line {number} is not a complete SAM record: "
+                    f"found {len(cols)} fields, expected at least 11."
+                )
+            try:
+                flag = int(cols[1])
+                pos = int(cols[3]) - 1
+                mapq = int(cols[4])
+                template_length = int(cols[8])
+            except ValueError:
+                raise ValueError(
+                    f"{path} line {number} has a non-integer FLAG, POS, MAPQ, or TLEN field."
+                ) from None
             sample.count(flag)
             if sampling:
-                sampling = sample.add(flag, int(cols[8]), len(cols[9]))
+                sampling = sample.add(flag, template_length, len(cols[9]))
             if coverage is not None:
-                coverage.add(flag, cols[2], int(cols[3]) - 1)
+                coverage.add(flag, cols[2], pos)
             if not _wanted(flag):
                 continue
-            pos = int(cols[3]) - 1
             cigar = cols[5]
             end = pos + (_cigar_ref_length(cigar) if cigar != "*" else 0)
             divergence = None
             if cigar != "*" and len(cols) > 10:
                 divergence = _divergence(_nm_from_tags(cols[10]), _aligned_query_length(cigar))
             records.append(
-                Record(cols[0], flag, cols[2], pos, end, int(cols[4]), cols[9], divergence)
+                Record(cols[0], flag, cols[2], pos, end, mapq, cols[9], divergence)
             )
     return lengths, records
 
