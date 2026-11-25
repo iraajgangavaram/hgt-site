@@ -46,7 +46,9 @@ jobs:
 
       - name: Fetch the public test sample
         env:
-          BASE: https://raw.githubusercontent.com/nf-core/test-datasets/modules/data/genomics/sarscov2
+          # Pin the dataset commit so this check is repeatable. The test data
+          # moved from modules/data to data in this revision.
+          BASE: https://raw.githubusercontent.com/nf-core/test-datasets/02550aeca1f285f49ed70f533738f5e12e841ba8/data/genomics/sarscov2
         run: |
           curl -fsSL "$BASE/illumina/bam/test.paired_end.bam" -o unsorted.bam
           curl -fsSL "$BASE/metagenome/test_1.kraken2.reads.txt" -o calls.txt
