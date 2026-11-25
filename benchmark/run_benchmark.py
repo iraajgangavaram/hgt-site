@@ -374,15 +374,16 @@ def main():
     passed = [(r["chrom"], int(r["start"]), int(r["end"])) for r in rows if r["filter"] == "PASS"]
     support_only = [(r["chrom"], int(r["start"]), int(r["end"])) for r in rows if int(r["n_pairs"]) >= 3]
     if args.lgtseek_lib:
-        run(
-            f"bwa mem -t {args.threads} -v 1 {args.bacteria_index} {out}/reads_1.fq {out}/reads_2.fq"
-            f" | samtools view -b -F 0x900 -o {out}/donor.bam -",
-            shell=True,
+        run_pipeline(
+            ["bwa", "mem", "-t", args.threads, "-v", 1, args.bacteria_index,
+             out / "reads_1.fq", out / "reads_2.fq"],
+            ["samtools", "view", "-b", "-F", "0x900", "-o", out / "donor.bam", "-"],
         )
         script = Path(__file__).with_name("run_lgtseek.pl")
         samtools = subprocess.run(["which", "samtools"], capture_output=True, text=True).stdout.strip()
-        run(["perl", script, args.lgtseek_lib, out / "donor.bam", out / "host.bam", out, samtools],
-            stdout=open(out / "lgtseek_counts.txt", "w"), stderr=subprocess.DEVNULL)
+        with open(out / "lgtseek_counts.txt", "w") as counts:
+            run(["perl", script, args.lgtseek_lib, out / "donor.bam", out / "host.bam", out, samtools],
+                stdout=counts, stderr=subprocess.DEVNULL)
         lgtseek_sites = lgtseek_calls(out / "lgtseek.lgt_recipient.bam", args.min_lgtseek_pairs)
 
     summary = {
