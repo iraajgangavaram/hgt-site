@@ -200,6 +200,14 @@ def build_parser():
         help="Use every candidate site, not only the ones that passed every filter",
     )
 
+    report = sub.add_parser(
+        "report",
+        help="Create a searchable, standalone HTML report from a result table",
+        description="Summarize an hgt-site result table in a browser-readable report without rerunning the analysis.",
+    )
+    report.add_argument("sites", help="hgt-site result TSV")
+    report.add_argument("-o", "--output", required=True, help="Output HTML report")
+
     sub.add_parser(
         "selftest",
         help="Check the installation by calling a dataset whose answers are known",
@@ -387,6 +395,9 @@ def _validate_paths(args):
         if args.matrix:
             outputs.append(("--matrix", args.matrix))
         inputs = [("input site table", path) for path in args.sites]
+    elif args.command == "report":
+        outputs = [("--output", args.output)]
+        inputs = [("input site table", args.sites)]
     else:
         return
 
@@ -472,6 +483,15 @@ def main(argv=None):
             f"-> {args.output}",
             file=sys.stderr,
         )
+    elif args.command == "report":
+        from .report import write_report
+
+        try:
+            count = write_report(args.sites, args.output)
+        except (OSError, ValueError) as problem:
+            print(f"ERROR: {problem}", file=sys.stderr)
+            return 1
+        print(f"Wrote HTML report for {count} candidate sites -> {args.output}", file=sys.stderr)
     elif args.command == "selftest":
         try:
             return _selftest()

@@ -66,6 +66,16 @@ Any GTF or GFF3 works, gzipped or not, including the files Ensembl, GENCODE and 
 
 With `--multiqc sample_mqc.json`, hgt-site writes a custom-content table that MultiQC finds on its own, as long as the file name ends in `_mqc.json`. It holds the number of candidate sites, the number that passed, how many have an exact junction, and the read counts behind them.
 
+## HTML report
+
+To review a result table in a browser, create a portable HTML report:
+
+```bash
+hgt-site report sample.hgt-site.tsv -o sample-report.html
+```
+
+The report summarizes candidate, passing, failing and split-read junction counts; lists common filter reasons and taxids; and provides a searchable, paginated table of the calls. The table data and styling are embedded in the HTML, so no server, internet connection or extra package is needed. The report is a view of the supplied TSV: it does not rerun the analysis or change any filters. Keep the TSV beside the report if you want its source-file link to work.
+
 ## Flags
 
 | Flag | Meaning |

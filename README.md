@@ -88,6 +88,8 @@ It is packaged on Bioconda and PyPI, with a container built from the Bioconda re
 - **Proves its own installation.** `hgt-site selftest` builds a dataset with known answers, calls it, and checks them. No data, no database, no network.
 - **Three seconds** on a sample of 2.1 million reads, against about 2.5 minutes for LGTSeek.
 - **Compares samples.** `hgt-site cohort` merges the tables from several samples and flags the positions that turn up in all of them, which are nearly always artefacts rather than biology.
+- **Opens results in a browser.** `hgt-site report sample.tsv -o report.html` creates a searchable, standalone report with call summaries and a paginated candidate table. No server or internet connection is needed.
+- **Checks inputs before analysis.** Invalid numeric options and malformed alignment or site-table rows produce clear errors, and output paths are checked to avoid overwriting inputs.
 - **Installs in one line.** On [Bioconda](https://bioconda.github.io/recipes/hgt-site/README.html) and PyPI, with a Docker and Singularity container built from the Bioconda recipe, so it drops into a pipeline without anything to set up.
 - **Or no installation at all.** It is installed on [usegalaxy.eu](https://usegalaxy.eu/?tool_id=toolshed.g2.bx.psu.edu%2Frepos%2Fiuc%2Fhgt_site%2Fhgt_site_call), so it can be run from a browser with a free account, and any Galaxy server can install it from the Tool Shed.
 - **Shows its working.** Every rejected candidate stays in the table with the reason, so you can see what was considered and thrown out.
@@ -289,6 +291,23 @@ Other options:
 | `--long-reads` | The alignment is Nanopore or PacBio reads. The junction is read off the clipped tail of one read, so this needs `--donor` rather than a classifier |
 | `--max-anchor-divergence 0.01` | Rejects an anchored read too diverged from the host reference to have come from it. For a bacterial host, or anything else with a relative of the host in the sample, where such reads otherwise become anchors and produce sites that are not insertions |
 | `--exclude-taxid 1234` | Ignores a taxon, for example a known contaminant (can be repeated). With `--nodes` it covers the whole clade, so excluding a family ignores every species in it |
+
+### Comparing samples
+
+After calling each sample, combine the result tables without rereading the alignments:
+
+```bash
+hgt-site cohort sample1.hgt-site.tsv sample2.hgt-site.tsv \
+  --common-fraction 0.8 \
+  --matrix cohort-matrix.tsv \
+  -o cohort.tsv
+```
+
+Positions within 500 bp are grouped by default. A position found in at least 80% of samples is flagged `COMMON`; one found in multiple samples is flagged `RECURRENT`, and differing taxids are flagged `TAXA_DIFFER`. Only passing calls are included by default; add `--include-failed` to include rejected candidates. `--window` changes the grouping distance, `--common-fraction` changes the common-site cutoff, and `--names` sets sample names in the same order as the input files.
+
+### Input checks
+
+The command line rejects out-of-range numeric options and output paths that would overwrite an input. The SAM reader reports incomplete or invalid records with the file and line number. Matched-control and cohort tables are checked for required columns, valid coordinates and read counts, and non-empty chromosome names; malformed entries stop processing with a source location.
 
 While it runs, hgt-site reports how many anchored pairs it found, how many have a Kraken2 call, the fragment size it measured, and how many sites got an exact junction. If none of the anchored reads has a Kraken2 call, it warns that the Kraken2 file may not match the alignment.
 
