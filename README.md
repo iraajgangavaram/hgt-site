@@ -88,6 +88,7 @@ It is packaged on Bioconda and PyPI, with a container built from the Bioconda re
 - **Proves its own installation.** `hgt-site selftest` builds a dataset with known answers, calls it, and checks them. No data, no database, no network.
 - **Three seconds** on a sample of 2.1 million reads, against about 2.5 minutes for LGTSeek.
 - **Compares samples.** `hgt-site cohort` merges the tables from several samples and flags the positions that turn up in all of them, which are nearly always artefacts rather than biology.
+- **Opens results in a browser.** `hgt-site report sample.tsv -o report.html` creates a searchable, standalone report with call summaries and a paginated candidate table. No server or internet connection is needed.
 - **Installs in one line.** On [Bioconda](https://bioconda.github.io/recipes/hgt-site/README.html) and PyPI, with a Docker and Singularity container built from the Bioconda recipe, so it drops into a pipeline without anything to set up.
 - **Or no installation at all.** It is installed on [usegalaxy.eu](https://usegalaxy.eu/?tool_id=toolshed.g2.bx.psu.edu%2Frepos%2Fiuc%2Fhgt_site%2Fhgt_site_call), so it can be run from a browser with a free account, and any Galaxy server can install it from the Tool Shed.
 - **Shows its working.** Every rejected candidate stays in the table with the reason, so you can see what was considered and thrown out.

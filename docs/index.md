@@ -24,7 +24,7 @@ If the foreign DNA is something you put there, `--donor` takes its sequence dire
 - Takes paired-end reads aligned to the host (BAM, CRAM or SAM) and per-read taxonomic calls for the reads that did not align, from any of six classifiers, or the donor's own sequence instead.
 - Groups the reads that point at the same host position, and tests each group against the number of chance chimeras expected there.
 - Gives the junction to the base pair where reads cross it.
-- Writes a table, a BED file, a VCF file and a MultiQC summary.
+- Writes a table, a BED file, a VCF file, a MultiQC summary and a standalone HTML report.
 - Takes about 3 seconds on a sample of 2.1 million reads once the reads are aligned and classified.
 - Handles bacterial and viral insertions, and vectors or transgenes given the construct's sequence.
 
