@@ -55,6 +55,12 @@ def read_sites(path, include_failed=False):
         required = {"chrom", "start", "end", "n_pairs", "filter"}
         if reader.fieldnames is None:
             raise ValueError(f"{path} does not look like an hgt-site table: no header row.")
+        duplicates = sorted({name for name in reader.fieldnames if reader.fieldnames.count(name) > 1})
+        if duplicates:
+            raise ValueError(
+                f"{path} does not look like an hgt-site table: duplicate column(s) "
+                f"{', '.join(duplicates)}."
+            )
         missing = sorted(required - set(reader.fieldnames))
         if missing:
             raise ValueError(
@@ -62,9 +68,17 @@ def read_sites(path, include_failed=False):
                 f"{', '.join(missing)}."
             )
         for row in reader:
+            line = reader.line_num
+            missing_values = [name for name in reader.fieldnames if row.get(name) is None]
+            if None in row or missing_values:
+                problems = []
+                if missing_values:
+                    problems.append(f"missing value(s) for {', '.join(missing_values)}")
+                if None in row:
+                    problems.append(f"{len(row[None])} extra field(s)")
+                raise ValueError(f"{path}:{line}: malformed row ({'; '.join(problems)}).")
             if not include_failed and row.get("filter") != "PASS":
                 continue
-            line = reader.line_num
             chrom = (row.get("chrom") or "").strip()
             if not chrom:
                 raise ValueError(f"{path}:{line}: chromosome must not be empty.")

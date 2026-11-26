@@ -60,3 +60,42 @@ def test_read_sites_rejects_headerless_input(tmp_path):
 
     with pytest.raises(ValueError, match="no header row"):
         read_sites(table)
+
+
+def test_read_sites_rejects_duplicate_columns(tmp_path):
+    table = tmp_path / "duplicate.tsv"
+    table.write_text(
+        "chrom\tstart\tend\tn_pairs\tfilter\tfilter\n"
+        "chr1\t10\t20\t3\tPASS\tPASS\n"
+    )
+
+    with pytest.raises(ValueError, match=r"duplicate column\(s\) filter"):
+        read_sites(table)
+
+
+@pytest.mark.parametrize(
+    ("row", "message"),
+    [
+        ("chr1\t10\t20\t3", r"missing value\(s\) for filter"),
+        ("chr1\t10\t20\t3\tPASS\textra", r"1 extra field\(s\)"),
+    ],
+)
+def test_read_sites_rejects_rows_with_wrong_field_counts(tmp_path, row, message):
+    table = tmp_path / "ragged.tsv"
+    table.write_text(f"chrom\tstart\tend\tn_pairs\tfilter\n{row}\n")
+
+    with pytest.raises(ValueError, match=message) as error:
+        read_sites(table)
+
+    assert f"{table}:2:" in str(error.value)
+
+
+def test_read_sites_checks_row_width_before_filtering(tmp_path):
+    table = tmp_path / "ragged_failed.tsv"
+    table.write_text(
+        "chrom\tstart\tend\tn_pairs\tfilter\n"
+        "chr1\t10\t20\t3\tLOW_SUPPORT\textra\n"
+    )
+
+    with pytest.raises(ValueError, match=r"ragged_failed\.tsv:2: malformed row \(1 extra field\(s\)\)"):
+        read_sites(table)
